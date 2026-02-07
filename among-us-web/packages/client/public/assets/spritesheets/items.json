@@ -1,0 +1,1239 @@
+{
+  "frames": {
+    "items/emergency_icon_inv.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 250,
+        "h": 250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 250,
+        "h": 250
+      },
+      "sourceSize": {
+        "w": 250,
+        "h": 250
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/navigation.png": {
+      "frame": {
+        "x": 2,
+        "y": 256,
+        "w": 100,
+        "h": 208
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 208
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 208
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/navigation_stable.png": {
+      "frame": {
+        "x": 2,
+        "y": 468,
+        "w": 100,
+        "h": 208
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 208
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 208
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/navigation_highlight.png": {
+      "frame": {
+        "x": 2,
+        "y": 680,
+        "w": 97,
+        "h": 203
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 4,
+        "w": 97,
+        "h": 203
+      },
+      "sourceSize": {
+        "w": 100,
+        "h": 208
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/security_monitor.png": {
+      "frame": {
+        "x": 2,
+        "y": 887,
+        "w": 205,
+        "h": 163
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 205,
+        "h": 163
+      },
+      "sourceSize": {
+        "w": 205,
+        "h": 163
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/nav_highlight.png": {
+      "frame": {
+        "x": 103,
+        "y": 680,
+        "w": 114,
+        "h": 148
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 114,
+        "h": 148
+      },
+      "sourceSize": {
+        "w": 114,
+        "h": 148
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/reactor_btn.png": {
+      "frame": {
+        "x": 103,
+        "y": 832,
+        "w": 40,
+        "h": 49
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 49
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 49
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/reactor_btn_highlight.png": {
+      "frame": {
+        "x": 147,
+        "y": 832,
+        "w": 40,
+        "h": 49
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 40,
+        "h": 49
+      },
+      "sourceSize": {
+        "w": 40,
+        "h": 49
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/ventilation.png": {
+      "frame": {
+        "x": 191,
+        "y": 832,
+        "w": 63,
+        "h": 48
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 63,
+        "h": 48
+      },
+      "sourceSize": {
+        "w": 63,
+        "h": 48
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/nav.png": {
+      "frame": {
+        "x": 106,
+        "y": 256,
+        "w": 114,
+        "h": 146
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 114,
+        "h": 146
+      },
+      "sourceSize": {
+        "w": 114,
+        "h": 146
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/emergency_icon.png": {
+      "frame": {
+        "x": 106,
+        "y": 406,
+        "w": 98,
+        "h": 121
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 98,
+        "h": 121
+      },
+      "sourceSize": {
+        "w": 98,
+        "h": 121
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/emergency_icon_bright.png": {
+      "frame": {
+        "x": 106,
+        "y": 531,
+        "w": 98,
+        "h": 121
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 98,
+        "h": 121
+      },
+      "sourceSize": {
+        "w": 98,
+        "h": 121
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/shotgun.png": {
+      "frame": {
+        "x": 106,
+        "y": 656,
+        "w": 38,
+        "h": 16
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 38,
+        "h": 16
+      },
+      "sourceSize": {
+        "w": 38,
+        "h": 16
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/security_monitor_highlight.png": {
+      "frame": {
+        "x": 208,
+        "y": 406,
+        "w": 206,
+        "h": 105
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 2,
+        "w": 206,
+        "h": 105
+      },
+      "sourceSize": {
+        "w": 206,
+        "h": 110
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/admin_control1.png": {
+      "frame": {
+        "x": 224,
+        "y": 256,
+        "w": 42,
+        "h": 103
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 42,
+        "h": 103
+      },
+      "sourceSize": {
+        "w": 42,
+        "h": 103
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/wifi.png": {
+      "frame": {
+        "x": 224,
+        "y": 363,
+        "w": 44,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 44,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 44,
+        "h": 38
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/admin_control2.png": {
+      "frame": {
+        "x": 272,
+        "y": 256,
+        "w": 52,
+        "h": 98
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 52,
+        "h": 98
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 98
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/power_divert.png": {
+      "frame": {
+        "x": 272,
+        "y": 358,
+        "w": 56,
+        "h": 41
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 41
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 41
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/power_divert_highlight.png": {
+      "frame": {
+        "x": 332,
+        "y": 358,
+        "w": 56,
+        "h": 41
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 41
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 41
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/destroy_asteroids1.png": {
+      "frame": {
+        "x": 208,
+        "y": 515,
+        "w": 102,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 102,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 102,
+        "h": 96
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/cafeteria_comp.png": {
+      "frame": {
+        "x": 208,
+        "y": 615,
+        "w": 74,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 74,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 74,
+        "h": 60
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/cafeteria_comp_highlight.png": {
+      "frame": {
+        "x": 286,
+        "y": 615,
+        "w": 73,
+        "h": 59
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 0,
+        "w": 73,
+        "h": 59
+      },
+      "sourceSize": {
+        "w": 74,
+        "h": 60
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/admin_control2_highlight.png": {
+      "frame": {
+        "x": 314,
+        "y": 515,
+        "w": 51,
+        "h": 96
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 2,
+        "w": 51,
+        "h": 96
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 98
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/destroy_asteroids.png": {
+      "frame": {
+        "x": 369,
+        "y": 515,
+        "w": 102,
+        "h": 95
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 1,
+        "w": 102,
+        "h": 95
+      },
+      "sourceSize": {
+        "w": 102,
+        "h": 96
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/h.png": {
+      "frame": {
+        "x": 475,
+        "y": 515,
+        "w": 46,
+        "h": 95
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 3,
+        "w": 46,
+        "h": 95
+      },
+      "sourceSize": {
+        "w": 52,
+        "h": 98
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/admin_control1_highlight.png": {
+      "frame": {
+        "x": 221,
+        "y": 679,
+        "w": 38,
+        "h": 95
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 3,
+        "w": 38,
+        "h": 95
+      },
+      "sourceSize": {
+        "w": 42,
+        "h": 103
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/power_diverted.png": {
+      "frame": {
+        "x": 221,
+        "y": 778,
+        "w": 56,
+        "h": 41
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 41
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 41
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/f.png": {
+      "frame": {
+        "x": 263,
+        "y": 679,
+        "w": 37,
+        "h": 94
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 3,
+        "w": 37,
+        "h": 94
+      },
+      "sourceSize": {
+        "w": 42,
+        "h": 103
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/fuel_engine.png": {
+      "frame": {
+        "x": 256,
+        "y": 2,
+        "w": 66,
+        "h": 86
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 86
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 86
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/fuel_engine_highlighted.png": {
+      "frame": {
+        "x": 256,
+        "y": 92,
+        "w": 57,
+        "h": 79
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 5,
+        "y": 3,
+        "w": 57,
+        "h": 79
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 86
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/gas_can.png": {
+      "frame": {
+        "x": 256,
+        "y": 175,
+        "w": 55,
+        "h": 68
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 55,
+        "h": 68
+      },
+      "sourceSize": {
+        "w": 55,
+        "h": 68
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/gas_can_highlighted.png": {
+      "frame": {
+        "x": 315,
+        "y": 175,
+        "w": 49,
+        "h": 66
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 2,
+        "w": 49,
+        "h": 66
+      },
+      "sourceSize": {
+        "w": 55,
+        "h": 68
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/gas_can_highlightedv2.png": {
+      "frame": {
+        "x": 317,
+        "y": 92,
+        "w": 49,
+        "h": 66
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 2,
+        "w": 49,
+        "h": 66
+      },
+      "sourceSize": {
+        "w": 55,
+        "h": 68
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/garbage_liver.png": {
+      "frame": {
+        "x": 326,
+        "y": 2,
+        "w": 36,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 36,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 36,
+        "h": 64
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/lower_engine.png": {
+      "frame": {
+        "x": 366,
+        "y": 2,
+        "w": 67,
+        "h": 62
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 67,
+        "h": 62
+      },
+      "sourceSize": {
+        "w": 67,
+        "h": 62
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/garbage_liver_highlight.png": {
+      "frame": {
+        "x": 328,
+        "y": 245,
+        "w": 34,
+        "h": 62
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 34,
+        "h": 62
+      },
+      "sourceSize": {
+        "w": 36,
+        "h": 64
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/wifi_connected.png": {
+      "frame": {
+        "x": 328,
+        "y": 311,
+        "w": 44,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 44,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 44,
+        "h": 38
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/upper_engine_highlight.png": {
+      "frame": {
+        "x": 366,
+        "y": 245,
+        "w": 61,
+        "h": 58
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 2,
+        "w": 61,
+        "h": 58
+      },
+      "sourceSize": {
+        "w": 67,
+        "h": 62
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/wifi_highlight.png": {
+      "frame": {
+        "x": 376,
+        "y": 307,
+        "w": 44,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 44,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 44,
+        "h": 38
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/lower_engine_highlight.png": {
+      "frame": {
+        "x": 368,
+        "y": 162,
+        "w": 60,
+        "h": 57
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 3,
+        "w": 60,
+        "h": 57
+      },
+      "sourceSize": {
+        "w": 67,
+        "h": 62
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/electricity_wires_connected.png": {
+      "frame": {
+        "x": 392,
+        "y": 348,
+        "w": 48,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/generatorOLD.png": {
+      "frame": {
+        "x": 424,
+        "y": 307,
+        "w": 48,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/emergency_button.png": {
+      "frame": {
+        "x": 431,
+        "y": 223,
+        "w": 66,
+        "h": 55
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 55
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 55
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/emergency_button_highlight.png": {
+      "frame": {
+        "x": 476,
+        "y": 282,
+        "w": 66,
+        "h": 55
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 55
+      },
+      "sourceSize": {
+        "w": 66,
+        "h": 55
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/electricity_wires.png": {
+      "frame": {
+        "x": 370,
+        "y": 68,
+        "w": 44,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 0,
+        "w": 44,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/electricity_wires_highlight.png": {
+      "frame": {
+        "x": 370,
+        "y": 101,
+        "w": 42,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 0,
+        "w": 42,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/generator_highlight.png": {
+      "frame": {
+        "x": 416,
+        "y": 101,
+        "w": 42,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 3,
+        "y": 0,
+        "w": 42,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/generator_highlightOLD.png": {
+      "frame": {
+        "x": 418,
+        "y": 68,
+        "w": 41,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 0,
+        "w": 41,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/health_pack.png": {
+      "frame": {
+        "x": 462,
+        "y": 2,
+        "w": 32,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 32,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/generator.png": {
+      "frame": {
+        "x": 392,
+        "y": 348,
+        "w": 48,
+        "h": 29
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 29
+      },
+      "sourceSize": {
+        "w": 48,
+        "h": 29
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "items/upper_engine.png": {
+      "frame": {
+        "x": 366,
+        "y": 2,
+        "w": 67,
+        "h": 62
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 67,
+        "h": 62
+      },
+      "sourceSize": {
+        "w": 67,
+        "h": 62
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "items.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 544,
+      "h": 1052
+    },
+    "scale": 1
+  }
+}

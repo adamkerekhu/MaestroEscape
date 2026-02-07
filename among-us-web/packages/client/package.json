@@ -1,0 +1,21 @@
+{
+  "name": "@among-us/client",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@among-us/shared": "workspace:*",
+    "pixi.js": "^8.6.6",
+    "howler": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/howler": "^2.2.12",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}

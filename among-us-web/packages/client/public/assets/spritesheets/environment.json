@@ -1,0 +1,111 @@
+{
+  "frames": {
+    "environment/light_350_med_reactor.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 350,
+        "h": 350
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 350,
+        "h": 350
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "environment/light_350_hard.png": {
+      "frame": {
+        "x": 356,
+        "y": 2,
+        "w": 322,
+        "h": 321
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 13,
+        "y": 4,
+        "w": 322,
+        "h": 321
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "environment/light_350_med.png": {
+      "frame": {
+        "x": 682,
+        "y": 2,
+        "w": 297,
+        "h": 298
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 27,
+        "y": 27,
+        "w": 297,
+        "h": 298
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "environment/light_350_soft.png": {
+      "frame": {
+        "x": 983,
+        "y": 2,
+        "w": 287,
+        "h": 286
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 33,
+        "y": 33,
+        "w": 287,
+        "h": 286
+      },
+      "sourceSize": {
+        "w": 350,
+        "h": 350
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "environment.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1272,
+      "h": 354
+    },
+    "scale": 1
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "frames": {
+    "alerts/kill17.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 1270,
+        "h": 595
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 14,
+        "w": 1270,
+        "h": 595
+      },
+      "sourceSize": {
+        "w": 1270,
+        "h": 636
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "alerts/emergency_meeting_red.png": {
+      "frame": {
+        "x": 2,
+        "y": 601,
+        "w": 1270,
+        "h": 566
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 45,
+        "w": 1270,
+        "h": 566
+      },
+      "sourceSize": {
+        "w": 1270,
+        "h": 636
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "alerts/emergency_meeting_green.png": {
+      "frame": {
+        "x": 2,
+        "y": 1171,
+        "w": 1270,
+        "h": 565
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 45,
+        "w": 1270,
+        "h": 565
+      },
+      "sourceSize": {
+        "w": 1270,
+        "h": 636
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "alerts-9.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1274,
+      "h": 1738
+    },
+    "scale": 1
+  }
+}

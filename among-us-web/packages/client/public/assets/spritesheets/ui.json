@@ -1,0 +1,255 @@
+{
+  "frames": {
+    "ui/emergency_icon.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 152,
+        "h": 127
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 2,
+        "w": 152,
+        "h": 127
+      },
+      "sourceSize": {
+        "w": 153,
+        "h": 130
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/emergency_icon_dim.png": {
+      "frame": {
+        "x": 158,
+        "y": 2,
+        "w": 152,
+        "h": 127
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 2,
+        "w": 152,
+        "h": 127
+      },
+      "sourceSize": {
+        "w": 153,
+        "h": 130
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/light_bulb_icon.png": {
+      "frame": {
+        "x": 314,
+        "y": 2,
+        "w": 112,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 0,
+        "w": 112,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 115,
+        "h": 138
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/light_bulb_icon_dim.png": {
+      "frame": {
+        "x": 2,
+        "y": 133,
+        "w": 112,
+        "h": 137
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 0,
+        "w": 112,
+        "h": 137
+      },
+      "sourceSize": {
+        "w": 115,
+        "h": 138
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/kill_icon.png": {
+      "frame": {
+        "x": 118,
+        "y": 133,
+        "w": 83,
+        "h": 82
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 82
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 82
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/kill_icon_dim.png": {
+      "frame": {
+        "x": 205,
+        "y": 133,
+        "w": 83,
+        "h": 82
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 83,
+        "h": 82
+      },
+      "sourceSize": {
+        "w": 83,
+        "h": 82
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/sabotage_icon.png": {
+      "frame": {
+        "x": 430,
+        "y": 2,
+        "w": 82,
+        "h": 84
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 0,
+        "w": 82,
+        "h": 84
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 84
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/sabotage_icon_dim.png": {
+      "frame": {
+        "x": 516,
+        "y": 2,
+        "w": 81,
+        "h": 82
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 81,
+        "h": 82
+      },
+      "sourceSize": {
+        "w": 85,
+        "h": 84
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/close.png": {
+      "frame": {
+        "x": 601,
+        "y": 2,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "ui/map_button.png": {
+      "frame": {
+        "x": 670,
+        "y": 2,
+        "w": 56,
+        "h": 56
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 56,
+        "h": 56
+      },
+      "sourceSize": {
+        "w": 56,
+        "h": 56
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "ui.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 728,
+      "h": 272
+    },
+    "scale": 1
+  }
+}

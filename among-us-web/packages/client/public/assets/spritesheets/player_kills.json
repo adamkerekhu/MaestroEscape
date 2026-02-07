@@ -1,0 +1,87 @@
+{
+  "frames": {
+    "kills/kill3.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 433,
+        "h": 188
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 3,
+        "w": 433,
+        "h": 188
+      },
+      "sourceSize": {
+        "w": 435,
+        "h": 192
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "kills/kill1.png": {
+      "frame": {
+        "x": 439,
+        "y": 2,
+        "w": 412,
+        "h": 193
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 2,
+        "y": 8,
+        "w": 412,
+        "h": 193
+      },
+      "sourceSize": {
+        "w": 416,
+        "h": 206
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "kills/kill2.png": {
+      "frame": {
+        "x": 2,
+        "y": 194,
+        "w": 411,
+        "h": 217
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 411,
+        "h": 217
+      },
+      "sourceSize": {
+        "w": 411,
+        "h": 217
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "player_kills.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 853,
+      "h": 413
+    },
+    "scale": 1
+  }
+}

@@ -1,0 +1,687 @@
+{
+  "frames": {
+    "tasks/Clear Asteroids/space3.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 1280,
+        "h": 640
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 640
+      },
+      "sourceSize": {
+        "w": 1280,
+        "h": 640
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Enter Id Code/enterID_panel.png": {
+      "frame": {
+        "x": 1286,
+        "y": 2,
+        "w": 605,
+        "h": 604
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 605,
+        "h": 604
+      },
+      "sourceSize": {
+        "w": 606,
+        "h": 604
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/asteroid3.png": {
+      "frame": {
+        "x": 1895,
+        "y": 2,
+        "w": 146,
+        "h": 129
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 146,
+        "h": 129
+      },
+      "sourceSize": {
+        "w": 146,
+        "h": 129
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/asteroid4.png": {
+      "frame": {
+        "x": 1895,
+        "y": 135,
+        "w": 146,
+        "h": 129
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 146,
+        "h": 129
+      },
+      "sourceSize": {
+        "w": 146,
+        "h": 129
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_base2.png": {
+      "frame": {
+        "x": 1895,
+        "y": 268,
+        "w": 145,
+        "h": 145
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 145,
+        "h": 145
+      },
+      "sourceSize": {
+        "w": 145,
+        "h": 145
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/asteroid1.png": {
+      "frame": {
+        "x": 1895,
+        "y": 417,
+        "w": 145,
+        "h": 129
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 145,
+        "h": 129
+      },
+      "sourceSize": {
+        "w": 146,
+        "h": 129
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/liver_down.png": {
+      "frame": {
+        "x": 1895,
+        "y": 550,
+        "w": 112,
+        "h": 105
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 112,
+        "h": 105
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 105
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fuel Engines/fuel_engines_base.png": {
+      "frame": {
+        "x": 1286,
+        "y": 610,
+        "w": 526,
+        "h": 497
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 526,
+        "h": 497
+      },
+      "sourceSize": {
+        "w": 526,
+        "h": 497
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Enter Id Code/admin_Card.png": {
+      "frame": {
+        "x": 1816,
+        "y": 659,
+        "w": 225,
+        "h": 136
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 225,
+        "h": 136
+      },
+      "sourceSize": {
+        "w": 227,
+        "h": 138
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/score_box.png": {
+      "frame": {
+        "x": 2,
+        "y": 646,
+        "w": 1199,
+        "h": 210
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1199,
+        "h": 210
+      },
+      "sourceSize": {
+        "w": 1199,
+        "h": 210
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/liver_up.png": {
+      "frame": {
+        "x": 1816,
+        "y": 799,
+        "w": 111,
+        "h": 104
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 1,
+        "w": 111,
+        "h": 104
+      },
+      "sourceSize": {
+        "w": 112,
+        "h": 105
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Become Imposter/cafe_computer_base.png": {
+      "frame": {
+        "x": 2,
+        "y": 1111,
+        "w": 504,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 504,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 504,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/engineAlign_base2.png": {
+      "frame": {
+        "x": 2,
+        "y": 860,
+        "w": 260,
+        "h": 212
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 260,
+        "h": 212
+      },
+      "sourceSize": {
+        "w": 260,
+        "h": 212
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_sliderTop.png": {
+      "frame": {
+        "x": 266,
+        "y": 860,
+        "w": 500,
+        "h": 171
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 500,
+        "h": 171
+      },
+      "sourceSize": {
+        "w": 500,
+        "h": 171
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/garbage_base_full.png": {
+      "frame": {
+        "x": 770,
+        "y": 860,
+        "w": 504,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 504,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 504,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_walletFront.png": {
+      "frame": {
+        "x": 510,
+        "y": 1035,
+        "w": 247,
+        "h": 85
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 247,
+        "h": 85
+      },
+      "sourceSize": {
+        "w": 247,
+        "h": 85
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_base1.png": {
+      "frame": {
+        "x": 2,
+        "y": 1619,
+        "w": 494,
+        "h": 281
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 494,
+        "h": 281
+      },
+      "sourceSize": {
+        "w": 494,
+        "h": 281
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_sliderBottom.png": {
+      "frame": {
+        "x": 2,
+        "y": 1904,
+        "w": 500,
+        "h": 123
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 500,
+        "h": 123
+      },
+      "sourceSize": {
+        "w": 500,
+        "h": 123
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Enter Id Code/admin_Wallet.png": {
+      "frame": {
+        "x": 500,
+        "y": 1619,
+        "w": 478,
+        "h": 168
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 478,
+        "h": 168
+      },
+      "sourceSize": {
+        "w": 478,
+        "h": 168
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/blue_wire.png": {
+      "frame": {
+        "x": 500,
+        "y": 1791,
+        "w": 504,
+        "h": 99
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 504,
+        "h": 99
+      },
+      "sourceSize": {
+        "w": 504,
+        "h": 99
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/yellow_wire.png": {
+      "frame": {
+        "x": 982,
+        "y": 1894,
+        "w": 503,
+        "h": 95
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 503,
+        "h": 95
+      },
+      "sourceSize": {
+        "w": 503,
+        "h": 95
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/gb2.png": {
+      "frame": {
+        "x": 1008,
+        "y": 1368,
+        "w": 504,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 504,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 504,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/engineAlign_base4.png": {
+      "frame": {
+        "x": 1489,
+        "y": 1876,
+        "w": 306,
+        "h": 153
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 306,
+        "h": 153
+      },
+      "sourceSize": {
+        "w": 306,
+        "h": 153
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/gb3.png": {
+      "frame": {
+        "x": 1516,
+        "y": 1368,
+        "w": 504,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 504,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 504,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/pink_wire.png": {
+      "frame": {
+        "x": 1278,
+        "y": 1111,
+        "w": 502,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 502,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 502,
+        "h": 90
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/red_wire.png": {
+      "frame": {
+        "x": 1278,
+        "y": 1205,
+        "w": 502,
+        "h": 90
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 502,
+        "h": 90
+      },
+      "sourceSize": {
+        "w": 502,
+        "h": 90
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_Card.png": {
+      "frame": {
+        "x": 1816,
+        "y": 659,
+        "w": 225,
+        "h": 136
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 1,
+        "y": 1,
+        "w": 225,
+        "h": 136
+      },
+      "sourceSize": {
+        "w": 227,
+        "h": 138
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_Wallet.png": {
+      "frame": {
+        "x": 500,
+        "y": 1619,
+        "w": 478,
+        "h": 168
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 478,
+        "h": 168
+      },
+      "sourceSize": {
+        "w": 478,
+        "h": 168
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "tasks-1.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2043,
+      "h": 2031
+    },
+    "scale": 1
+  }
+}

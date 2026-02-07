@@ -1,0 +1,87 @@
+{
+  "frames": {
+    "alerts/report_dead_body_blue.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 1276,
+        "h": 565
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 53,
+        "w": 1276,
+        "h": 565
+      },
+      "sourceSize": {
+        "w": 1276,
+        "h": 639
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "alerts/report_dead_body_green.png": {
+      "frame": {
+        "x": 2,
+        "y": 571,
+        "w": 1276,
+        "h": 565
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 53,
+        "w": 1276,
+        "h": 565
+      },
+      "sourceSize": {
+        "w": 1276,
+        "h": 639
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "alerts/kill12.png": {
+      "frame": {
+        "x": 2,
+        "y": 1140,
+        "w": 1270,
+        "h": 596
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 14,
+        "w": 1270,
+        "h": 596
+      },
+      "sourceSize": {
+        "w": 1270,
+        "h": 636
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "alerts-3.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1280,
+      "h": 1738
+    },
+    "scale": 1
+  }
+}

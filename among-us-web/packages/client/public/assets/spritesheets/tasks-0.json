@@ -1,0 +1,927 @@
+{
+  "frames": {
+    "tasks/Clear Asteroids/space.png": {
+      "frame": {
+        "x": 2,
+        "y": 2,
+        "w": 1280,
+        "h": 720
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 720
+      },
+      "sourceSize": {
+        "w": 1280,
+        "h": 720
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/starship2.png": {
+      "frame": {
+        "x": 2,
+        "y": 726,
+        "w": 804,
+        "h": 1250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 804,
+        "h": 1250
+      },
+      "sourceSize": {
+        "w": 804,
+        "h": 1250
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_4.png": {
+      "frame": {
+        "x": 71,
+        "y": 1980,
+        "w": 51,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 51,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 51,
+        "h": 50
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/alignment_position.png": {
+      "frame": {
+        "x": 71,
+        "y": 2034,
+        "w": 9,
+        "h": 8
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 9,
+        "h": 8
+      },
+      "sourceSize": {
+        "w": 9,
+        "h": 8
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_0.png": {
+      "frame": {
+        "x": 126,
+        "y": 1980,
+        "w": 50,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 50,
+        "h": 50
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_2.png": {
+      "frame": {
+        "x": 180,
+        "y": 1980,
+        "w": 50,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 50,
+        "h": 50
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_6.png": {
+      "frame": {
+        "x": 234,
+        "y": 1980,
+        "w": 50,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 50,
+        "h": 50
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_8.png": {
+      "frame": {
+        "x": 288,
+        "y": 1980,
+        "w": 50,
+        "h": 50
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 50,
+        "h": 50
+      },
+      "sourceSize": {
+        "w": 50,
+        "h": 50
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Reboot Wifi/panel_wifi-lever.png": {
+      "frame": {
+        "x": 342,
+        "y": 1980,
+        "w": 63,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 63,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 63,
+        "h": 45
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/engine_liver.png": {
+      "frame": {
+        "x": 409,
+        "y": 1980,
+        "w": 96,
+        "h": 41
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 41
+      },
+      "sourceSize": {
+        "w": 99,
+        "h": 41
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fuel Engines/engineFuel_Button.png": {
+      "frame": {
+        "x": 409,
+        "y": 2025,
+        "w": 55,
+        "h": 20
+      },
+      "rotated": false,
+      "trimmed": true,
+      "spriteSourceSize": {
+        "x": 10,
+        "y": 27,
+        "w": 55,
+        "h": 20
+      },
+      "sourceSize": {
+        "w": 76,
+        "h": 77
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Swipe Card/admin_textBar.png": {
+      "frame": {
+        "x": 509,
+        "y": 1980,
+        "w": 421,
+        "h": 39
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 421,
+        "h": 39
+      },
+      "sourceSize": {
+        "w": 421,
+        "h": 39
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/starship3.png": {
+      "frame": {
+        "x": 810,
+        "y": 726,
+        "w": 804,
+        "h": 1250
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 804,
+        "h": 1250
+      },
+      "sourceSize": {
+        "w": 804,
+        "h": 1250
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/reactor_base3.png": {
+      "frame": {
+        "x": 509,
+        "y": 2023,
+        "w": 157,
+        "h": 22
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 157,
+        "h": 22
+      },
+      "sourceSize": {
+        "w": 157,
+        "h": 22
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Reboot Wifi/panel_wifi_bg.png": {
+      "frame": {
+        "x": 1286,
+        "y": 2,
+        "w": 366,
+        "h": 716
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 366,
+        "h": 716
+      },
+      "sourceSize": {
+        "w": 366,
+        "h": 716
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Divert Power/electricity_divert_btn.png": {
+      "frame": {
+        "x": 1618,
+        "y": 722,
+        "w": 423,
+        "h": 36
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 423,
+        "h": 36
+      },
+      "sourceSize": {
+        "w": 423,
+        "h": 36
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Divert Power/electricity_Divert_Base2.png": {
+      "frame": {
+        "x": 1618,
+        "y": 762,
+        "w": 420,
+        "h": 228
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 420,
+        "h": 228
+      },
+      "sourceSize": {
+        "w": 420,
+        "h": 228
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Become Imposter/cafe_computer_check.png": {
+      "frame": {
+        "x": 1618,
+        "y": 994,
+        "w": 411,
+        "h": 333
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 411,
+        "h": 333
+      },
+      "sourceSize": {
+        "w": 411,
+        "h": 333
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/laser.png": {
+      "frame": {
+        "x": 2033,
+        "y": 994,
+        "w": 13,
+        "h": 243
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 13,
+        "h": 243
+      },
+      "sourceSize": {
+        "w": 13,
+        "h": 243
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Reboot Wifi/wifi_on.png": {
+      "frame": {
+        "x": 934,
+        "y": 1980,
+        "w": 183,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 183,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 183,
+        "h": 37
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/garbage_base_empty.png": {
+      "frame": {
+        "x": 1656,
+        "y": 2,
+        "w": 353,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 353,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 353,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Become Imposter/check.png": {
+      "frame": {
+        "x": 1656,
+        "y": 510,
+        "w": 189,
+        "h": 191
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 189,
+        "h": 191
+      },
+      "sourceSize": {
+        "w": 189,
+        "h": 191
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/electricity_wire_btn.png": {
+      "frame": {
+        "x": 1121,
+        "y": 1980,
+        "w": 91,
+        "h": 26
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 91,
+        "h": 26
+      },
+      "sourceSize": {
+        "w": 91,
+        "h": 26
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Clear Asteroids/asteroid2.png": {
+      "frame": {
+        "x": 1849,
+        "y": 510,
+        "w": 146,
+        "h": 129
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 146,
+        "h": 129
+      },
+      "sourceSize": {
+        "w": 146,
+        "h": 129
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/gb4.png": {
+      "frame": {
+        "x": 1618,
+        "y": 1331,
+        "w": 351,
+        "h": 504
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 351,
+        "h": 504
+      },
+      "sourceSize": {
+        "w": 351,
+        "h": 504
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fuel Engines/gas_can.png": {
+      "frame": {
+        "x": 1973,
+        "y": 1331,
+        "w": 65,
+        "h": 81
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 81
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 81
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Align Engine Output/engineAlign_base3.png": {
+      "frame": {
+        "x": 1618,
+        "y": 1839,
+        "w": 300,
+        "h": 154
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 300,
+        "h": 154
+      },
+      "sourceSize": {
+        "w": 300,
+        "h": 154
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Stabilize Steering/nav_stabilize_target.png": {
+      "frame": {
+        "x": 1922,
+        "y": 1839,
+        "w": 115,
+        "h": 115
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 115,
+        "h": 115
+      },
+      "sourceSize": {
+        "w": 115,
+        "h": 115
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Stabilize Steering/target_center.png": {
+      "frame": {
+        "x": 71,
+        "y": 2034,
+        "w": 9,
+        "h": 8
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 9,
+        "h": 8
+      },
+      "sourceSize": {
+        "w": 9,
+        "h": 8
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Become Imposter/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Divert Power/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Empty Garbage/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fix Wiring/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Fuel Engines/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Reboot Wifi/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Stabilize Steering/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "tasks/Start Reactor/close.png": {
+      "frame": {
+        "x": 2,
+        "y": 1980,
+        "w": 65,
+        "h": 65
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 65,
+        "h": 65
+      },
+      "sourceSize": {
+        "w": 65,
+        "h": 65
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "http://github.com/odrick/free-tex-packer-core",
+    "version": "0.3.5",
+    "image": "tasks-0.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 2048,
+      "h": 2047
+    },
+    "scale": 1
+  }
+}
