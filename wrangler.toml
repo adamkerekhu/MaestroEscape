@@ -1,0 +1,11 @@
+name = "kulturalisdigitalispolgarikor"
+main = "src/worker.js"
+compatibility_date = "2026-11-12"
+
+[[durable_objects.bindings]]
+name = "GAME_ROOMS"
+class_name = "GameRoom"
+
+[[migrations]]
+tag = "maestro-escape-v1"
+new_sqlite_classes = ["GameRoom"]
