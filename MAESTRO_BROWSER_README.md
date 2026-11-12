@@ -27,3 +27,7 @@ The map image is committed in GitHub as a WebP and is delivered to the client fr
 - The map is displayed as a flattened image; editing the Tiled layers will require exporting another image.
 - There is currently one basic interaction marker.
 - Actual live Cloudflare deployment and browser playtesting have not been verified from this conversation.
+
+## Deployment trigger
+
+The Cloudflare `maestroescape` Worker is connected to this repository's `main` branch. This documentation update intentionally triggers a fresh Cloudflare Git integration deployment of the latest game build, including the custom character sprite.
