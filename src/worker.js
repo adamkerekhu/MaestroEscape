@@ -61,7 +61,7 @@ function enterPub(){
  if(!interiorImage){show("Interior map could not be loaded.");return;}
  if(car.driver){show("Exit the Skoda first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;
- character.setScale(0.648);
+ character.setScale(1.296);
  mapSize={...INTERIOR_SIZE};
  streetImage.setVisible(false);interiorImage.setVisible(true);
  if(carSprite)carSprite.setVisible(false);
