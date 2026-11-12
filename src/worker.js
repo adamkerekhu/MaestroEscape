@@ -20,7 +20,7 @@ kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
-<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move &nbsp; <kbd>E</kbd> interact &nbsp; <kbd>SHIFT</kbd> sprint &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Roam around Mester utca and Viola utca.</span></div>
+<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move &nbsp; <kbd>E</kbd> enter/exit Skoda or interact &nbsp; <kbd>SHIFT</kbd> sprint &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to the Skoda Superb parked by Maestro Pub. Press E to drive.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
 (function(){
@@ -29,12 +29,38 @@ if(!window.Phaser){document.getElementById('splash').textContent="Could not load
 const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
+const PARKING={x:697,y:505};
+const car={x:PARKING.x,y:PARKING.y,vx:0,vy:0,driver:false,frame:3};
+let carSprite=null,carHint=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
 function intersects(x,y){const w=19,h=16;return x<35||y<35||x>mapSize.w-35||y>mapSize.h-35||collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));}
-function interact(){const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
+function enterOrExitCar(){
+ if(!carSprite)return;
+ if(!car.driver){
+  if(!near(player,car.x,car.y,67)){show("Walk closer to the Skoda Superb.");return;}
+  car.driver=true;car.vx=0;car.vy=0;character.setVisible(false);
+  scene.cameras.main.startFollow(carSprite,true,0.13,0.13);
+  status.textContent="Driving: Skoda Superb 2.0TDI";
+  show("Driving Skoda Superb 2.0TDI. WASD/Arrows: drive. E: exit.");
+ }else{
+  const offsets=[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
+  const pos=offsets.map(([x,y])=>({x:car.x+x,y:car.y+y})).find(p=>!intersects(p.x,p.y));
+  if(!pos){show("Can't get out here. Drive somewhere with more space.");return;}
+  car.driver=false;car.vx=0;car.vy=0;player.x=pos.x;player.y=pos.y;
+  character.setPosition(player.x,player.y).setVisible(true);
+  scene.cameras.main.startFollow(character,true,0.13,0.13);
+  status.textContent="On foot";
+  show("Exited Skoda Superb 2.0TDI. E to enter again.");
+ }
+}
+function carCollides(x,y){
+ if(x<24||y<24||x>mapSize.w-24||y>mapSize.h-24)return true;
+ return collisionPolygons.some(poly=>[[x,y],[x-12,y-12],[x+12,y-12],[x-12,y+12],[x+12,y+12]].some(pt=>insidePolygon(pt[0],pt[1],poly)));
+}
+function interact(){if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
 const collisionPolygons=[
@@ -59,6 +85,7 @@ class Explore extends Phaser.Scene{
    this.load.crossOrigin="anonymous";
    this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
+   this.load.spritesheet("skoda","https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/skoda_superb_2_0tdi.webp",{frameWidth:32,frameHeight:32});
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
@@ -71,6 +98,10 @@ class Explore extends Phaser.Scene{
    for(const p of locs){gfx.fillStyle(p.color,0.3).fillCircle(p.x,p.y,33);gfx.lineStyle(3,p.color,0.95).strokeCircle(p.x,p.y,33);labels.push(this.add.text(p.x,p.y-49,p.name,{fontFamily:"Arial",fontSize:"23px",fontStyle:"bold",color:"#fff6d9",stroke:"#141722",strokeThickness:5}).setOrigin(.5).setDepth(4))}
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(0.324);character.setOrigin(0.5,1.0);
+   if(this.textures.exists("skoda")){
+     carSprite=this.add.sprite(car.x,car.y,"skoda",car.frame).setDepth(6).setScale(1.7);
+     carHint=this.add.text(car.x,car.y-45,"SKODA SUPERB 2.0TDI  ·  E",{fontFamily:"Arial",fontSize:"12px",fontStyle:"bold",color:"#fff7d4",stroke:"#171d25",strokeThickness:3}).setOrigin(.5).setDepth(7);
+   }else show("Skoda image failed to load. Refresh after the asset is published.");
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",interact);
@@ -83,6 +114,9 @@ class Explore extends Phaser.Scene{
  }
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
+   if(car.driver){car.driver=false;car.vx=0;car.vy=0;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
+   car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.vx=0;car.vy=0;
+   if(carSprite)carSprite.setPosition(car.x,car.y).setFrame(car.frame);
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
    player.x=x;player.y=y;character.setPosition(x,y);show("Spawned on a walkable point. Explore the original map.");
  }
@@ -91,6 +125,22 @@ class Explore extends Phaser.Scene{
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown);
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown);
    const distance=Math.hypot(dx,dy);
+   if(car.driver && carSprite){
+      const dt=Math.min(0.05,delta/1000), norm=distance||1;
+      const targetX=dx/norm*330, targetY=dy/norm*330;
+      const response=Math.min(1,dt*(distance?3.2:5.6));
+      car.vx+=(targetX-car.vx)*response;car.vy+=(targetY-car.vy)*response;
+      if(Math.hypot(car.vx,car.vy)<1){car.vx=0;car.vy=0;}
+      const nextX=car.x+car.vx*dt,nextY=car.y+car.vy*dt;
+      if(!carCollides(nextX,car.y))car.x=nextX;else car.vx=0;
+      if(!carCollides(car.x,nextY))car.y=nextY;else car.vy=0;
+      if(distance){car.frame=Math.round((((Math.atan2(dx,-dy)+Math.PI*2)%(Math.PI*2))/(Math.PI/4)))%8;}
+      carSprite.setPosition(car.x,car.y).setFrame(car.frame);
+      if(carHint)carHint.setVisible(false);
+      coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.hypot(car.vx,car.vy))+" px/s";
+      return;
+   }
+   if(carHint)carHint.setVisible(near(player,car.x,car.y,90));
    if(distance){
       const amount=(keys.SHIFT.isDown?300:205)*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
