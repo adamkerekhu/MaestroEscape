@@ -61,18 +61,19 @@ function enterPub(){
  if(!interiorImage){show("Interior map could not be loaded.");return;}
  if(car.driver){show("Exit the Skoda first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;
+ character.setScale(0.648);
  mapSize={...INTERIOR_SIZE};
  streetImage.setVisible(false);interiorImage.setVisible(true);
  if(carSprite)carSprite.setVisible(false);
  player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
  character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,INTERIOR_SIZE.w,INTERIOR_SIZE.h);
- scene.cameras.main.setZoom(1.65);
+ scene.cameras.main.setZoom(0.825);
  status.textContent="Inside Maestro Pub";
  show("You're inside! Walk around. Press E near the bottom-left exit to leave.");
 }
 function leavePub(){
- insidePub=false;mapSize={w:1600,h:992};
+ insidePub=false;character.setScale(0.324);mapSize={w:1600,h:992};
  interiorImage.setVisible(false);streetImage.setVisible(true);
  if(carSprite)carSprite.setVisible(true);
  if(exitHint)exitHint.setVisible(false);
@@ -236,7 +237,7 @@ class Explore extends Phaser.Scene{
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
    }else{
    }
-   const cameraZoom=insidePub?1.65:car.driver?DRIVING_ZOOM:2.03;
+   const cameraZoom=insidePub?0.825:car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(car.driver)return;
    if(exitHint)exitHint.setVisible(insidePub && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
