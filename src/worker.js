@@ -120,7 +120,7 @@ class Explore extends Phaser.Scene{
    this.load.crossOrigin="anonymous";
    this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
-   this.load.spritesheet("skoda","/assets/skoda.webp",{frameWidth:32,frameHeight:32});
+   this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
@@ -141,10 +141,10 @@ class Explore extends Phaser.Scene{
      fallback.fillStyle(0xa9defb,1).fillRoundedRect(11,9,10,9,3);
      fallback.generateTexture("skoda-fallback",32,32);
      fallback.destroy();
-     carSprite=this.add.sprite(car.x,car.y,"skoda-fallback").setDepth(6).setScale(2.05);
+     carSprite=this.add.image(car.x,car.y,"skoda-fallback").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
      show("Skoda picture unavailable, but the car can still be driven.");
    }else{
-     carSprite=this.add.sprite(car.x,car.y,"skoda",car.frame).setDepth(6).setScale(2.05);
+     carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
    }
    vehicleController=new VehicleController(car,carSprite);
    const ring=this.add.graphics().setDepth(5);
@@ -166,7 +166,7 @@ class Explore extends Phaser.Scene{
    let x=SPAWN.x,y=SPAWN.y;
    if(car.driver){car.driver=false;car.speed=0;car.wheelTurn=0;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.angle=3*Math.PI/4;car.speed=0;car.wheelTurn=0;
-   if(carSprite){carSprite.setPosition(car.x,car.y);if(carSprite.texture.key==="skoda")carSprite.setFrame(car.frame);}
+   if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
    player.x=x;player.y=y;character.setPosition(x,y);show("Spawned on a walkable point. Explore the original map.");
  }
@@ -179,9 +179,7 @@ class Explore extends Phaser.Scene{
       const dt=Math.min(.04,delta/1000);
       // Original controls: W throttle, S brake/reverse, A/D steering.
       vehicleController.update(dx,dy,dt);
-      car.frame=Math.round(((car.angle%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8;
-      carSprite.setPosition(car.x,car.y);
-      if(carSprite.texture.key==="skoda")carSprite.setFrame(car.frame);
+      carSprite.setPosition(car.x,car.y).setRotation(car.angle);
       if(carHint)carHint.setVisible(false);
       if(this.carParkRing)this.carParkRing.setVisible(false);
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
@@ -204,15 +202,15 @@ class Explore extends Phaser.Scene{
  }
 }
 document.getElementById("reset").onclick=()=>scene?.respawn();
-new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:true,antialias:false}});
+new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
 })();
 </script></body></html>`;
 export default {
  async fetch(request){
   const url=new URL(request.url);
   if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-with-skoda",vehicle:"Skoda Superb 2.0TDI"});
-  if(url.pathname==="/assets/skoda.webp"){
-    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/2a6edb848a148dc833a54d6591db79290c3f3a61/Assets/Vehicles/skoda_superb_2_0tdi.webp");
+  if(url.pathname==="/assets/skoda-highres.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/skoda_superb_top.webp");
     if(!upstream.ok)return new Response("Skoda asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=86400","x-content-type-options":"nosniff"}});
   }
