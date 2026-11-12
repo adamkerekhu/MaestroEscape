@@ -153,6 +153,7 @@ def main():
         pass
     game = Game()
     game.gamemode = "MaestroEscape"
+    game.player_colour = "Blue"  # Original menu normally sets this before creating Player.
     game.new()
     game.player = Player(game, random.choice(game.player_pos), 0, True, game.player_colour)
     game.player.imposter = False
