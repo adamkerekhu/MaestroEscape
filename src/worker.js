@@ -34,7 +34,7 @@ const PARKING={x:697,y:505};
 const car={x:PARKING.x,y:PARKING.y,angle:3*Math.PI/4,speed:0,wheelTurn:0,driver:false,frame:3};
 const DRIVING_ZOOM=2.03*0.68;
 let vehicleController=null;
-let carSprite=null,carHint=null;
+let carSprite=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
@@ -147,7 +147,6 @@ class Explore extends Phaser.Scene{
      carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
    }
    vehicleController=new VehicleController(car,carSprite);
-   carHint=this.add.text(car.x,car.y-51,"YOUR ŠKODA  ·  E",{fontFamily:"Arial",fontSize:"14px",fontStyle:"bold",color:"#b7ffd4",stroke:"#10151d",strokeThickness:4}).setOrigin(.5).setDepth(7);
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
@@ -176,10 +175,8 @@ class Explore extends Phaser.Scene{
       // Original controls: W throttle, S brake/reverse, A/D steering.
       vehicleController.update(dx,dy,dt);
       carSprite.setPosition(car.x,car.y).setRotation(car.angle);
-      if(carHint)carHint.setVisible(false);
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
    }else{
-      if(carHint){carHint.setPosition(car.x,car.y-51).setVisible(true);}
    }
    const cameraZoom=car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
