@@ -1,20 +1,17 @@
-from game import Game
+"""Entry point for the original Among Us clone and MaestroEscape adaptation.
 
+python main.py             -> original Pygame Among Us menu
+python main.py --maestro   -> MaestroEscape mode using the same Pygame engine
+"""
+import sys
 
-# create the game object
+if "--maestro" in sys.argv:
+    from maestro_native import main as run_maestro
+    run_maestro()
+else:
+    from game import Game
 
-# g.show_start_screen()
-
-while True:
-    g = Game()
-    print("Tasks done: " + str(g.missions_done))
-    g.menu.game_intro()
-
-    del g
-
-    # g.missions_done == 0
-    # g.new() # create sprites/objects/walls
-    # g.run() # run the game function
-s.close()
-
-
+    while True:
+        game = Game()
+        game.menu.game_intro()
+        del game
