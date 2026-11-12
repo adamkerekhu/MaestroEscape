@@ -16,10 +16,26 @@ h1{margin:0;font-size:22px;letter-spacing:.04em;color:#ffcb7b}header p{margin:3p
 kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white;padding:3px 7px;border-radius:5px}
 #msg{font-weight:bold;color:#f5cf89}button{border:1px solid #59677c;background:#273448;color:white;padding:7px 11px;border-radius:7px;cursor:pointer}
 @media(max-width:620px){header{flex-direction:column;align-items:flex-start}#hud{flex-wrap:wrap}}
+#mobile-controls{display:none;max-width:1360px;margin:10px auto;padding:0 16px;align-items:center;justify-content:space-between;gap:22px;touch-action:none;user-select:none;-webkit-user-select:none}
+#mobile-controls .dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,58px);gap:7px}
+#mobile-controls button{width:58px;height:58px;font-size:22px;font-weight:800;border-radius:12px;background:#34445e;border:1px solid #7185a5;color:white;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#mobile-controls button.active{background:#557d9b;transform:scale(.96)}
+#mobile-controls .action{width:78px;height:78px;border-radius:50%;background:#b98339;color:#fff;font-size:28px}
+@media(max-width:760px){#mobile-controls{display:flex}#instructions>div{display:none}}
+
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
+<div id="mobile-controls" aria-label="Touch game controls">
+ <div class="dpad">
+  <span></span><button type="button" data-control="w" aria-label="Move up">W</button><span></span>
+  <button type="button" data-control="a" aria-label="Move left">A</button>
+  <button type="button" data-control="s" aria-label="Move down">S</button>
+  <button type="button" data-control="d" aria-label="Move right">D</button>
+ </div>
+ <button type="button" class="action" data-control="e" aria-label="Interact">E</button>
+</div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
@@ -48,6 +64,19 @@ const DRIVING_ZOOM=2.03*0.68;
 let vehicleController=null;
 let carSprite=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
+const touchInput={w:false,a:false,s:false,d:false};
+for(const button of document.querySelectorAll("#mobile-controls button")){
+ const code=button.dataset.control;
+ const release=event=>{if(code!=="e"){touchInput[code]=false;button.classList.remove("active");}event.preventDefault();};
+ button.addEventListener("pointerdown",event=>{
+  event.preventDefault();
+  button.setPointerCapture(event.pointerId);
+  if(code==="e"){if(scene)interact();return;}
+  touchInput[code]=true;button.classList.add("active");
+ });
+ for(const type of ["pointerup","pointercancel","lostpointercapture"])button.addEventListener(type,release);
+}
+
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
@@ -226,8 +255,8 @@ class Explore extends Phaser.Scene{
  }
  update(_,delta){
    if(!character||!keys)return;
-   let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown);
-   let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown);
+   let dx=Number(keys.D.isDown||keys.RIGHT.isDown||touchInput.d)-Number(keys.A.isDown||keys.LEFT.isDown||touchInput.a);
+   let dy=Number(keys.S.isDown||keys.DOWN.isDown||touchInput.s)-Number(keys.W.isDown||keys.UP.isDown||touchInput.w);
    const distance=Math.hypot(dx,dy);
    if(car.driver && carSprite){
       const dt=Math.min(.04,delta/1000);
