@@ -70,14 +70,14 @@ class Explore extends Phaser.Scene{
    const gfx=this.add.graphics().setDepth(2);
    for(const p of locs){gfx.fillStyle(p.color,0.3).fillCircle(p.x,p.y,33);gfx.lineStyle(3,p.color,0.95).strokeCircle(p.x,p.y,33);labels.push(this.add.text(p.x,p.y-49,p.name,{fontFamily:"Arial",fontSize:"23px",fontStyle:"bold",color:"#fff6d9",stroke:"#141722",strokeThickness:5}).setOrigin(.5).setDepth(4))}
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
-   character.setScale(0.54);character.setOrigin(0.5,1.0);
+   character.setScale(0.324);character.setOrigin(0.5,1.0);
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",interact);
    this.input.keyboard.on("keydown-R",()=>this.respawn());
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
-   this.cameras.main.setZoom(1.45);
+   this.cameras.main.setZoom(2.03);
    this.input.mouse?.disableContextMenu();
    loadOriginalCollision().then(()=>this.respawn());
  }
