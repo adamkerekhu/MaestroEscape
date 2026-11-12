@@ -1,3 +1,10 @@
 name = "maestroescape"
 main = "src/worker.js"
 compatibility_date = "2026-11-12"
+
+# Previous multiplayer prototype registered GameRoom as a Durable Object.
+# The new single-player explorer has no Durable Objects.
+# This migration removes that obsolete class and any stored room data.
+[[migrations]]
+tag = "maestro-escape-remove-gameroom-v2"
+deleted_classes = ["GameRoom"]
