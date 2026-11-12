@@ -29,7 +29,7 @@ if(!window.Phaser){document.getElementById('splash').textContent="Could not load
 const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
-let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false;
+let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
@@ -57,13 +57,13 @@ class Explore extends Phaser.Scene{
  constructor(){super("Explore")}
  preload(){
    this.load.crossOrigin="anonymous";
-   this.load.image("world",BASE+"Assets/Maps/maestro_map.png");
+   this.load.image("world","https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_map.png");
    for(const dir of ["down","up","left","right"])for(let i=1;i<=6;i++)this.load.image(dir+i,BASE+"Assets/Images/Player/Blue/blue_"+dir+"_walk/step"+i+".png");
-   this.load.on("loaderror",file=>{status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
-   const splash=document.getElementById("splash");splash.remove();
+   const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Upload maestro_map.png to Assets/Maps in GitHub to activate the new map.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
    image.setDepth(0);
    mapSize={w:image.width,h:image.height};
