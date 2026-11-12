@@ -1,35 +1,32 @@
-# MaestroEscape — browser multiplayer prototype
+# MaestroEscape — Cloudflare single-player explorer
 
-Phaser 3 browser game + Cloudflare Worker with Durable Objects WebSocket rooms. Original Python/Pygame source retained as reference.
+This is the first **browser** version that uses assets from the user's existing Pygame game, not the previous placeholder circles/rectangles prototype.
 
-## Local preview
+## What runs now
 
-```bash
-npx wrangler dev
-```
+- Original Tiled `Assets/Maps/map.tmx` collision rectangles are read at runtime.
+- Original `Assets/Maps/map2.png` is displayed as a scrolling map.
+- Original blue character walking animation frames from `Assets/Images/Player/Blue/...` are rendered through Phaser 3.
+- WASD / arrows move; Shift sprints; E interacts; R respawns.
+- Camera follows player. Spawn seeks a walkable point.
+- Exploration waypoints: Jacket, Car keys, Own car, Taxi, Bubi, Kebab shop, Trafik.
+- Interactions display messages and require jacket/keys before specific escapes.
 
-Open the localhost URL in two browser windows, join the same room and start as host.
+**No multiplayer, server, lobby, rooms, database, or Durable Objects.**
 
-## Deploy to the dedicated Cloudflare Worker
+## Deploy
 
-```bash
-npx wrangler login
-npx wrangler deploy
-```
+This Cloudflare Worker is named `maestroescape` and is connected to the repository's `main` branch.
 
-The Worker is named `maestroescape`. Deployment updates that Worker, not `kulturalisdigitalispolgarikor`. You can also connect the `adamkerekhu/MaestroEscape` repository in the Cloudflare Worker dashboard using the build command `npx wrangler deploy` if supported by its Git integration.
+Build command: `npm run build`  
+Deploy command: `npx wrangler deploy`
 
-Cloudflare Durable Objects are required for multiplayer. The Worker serves both game HTML and WebSockets; no external multiplayer server or database is needed. Phaser loads from a CDN.
+Alternatively use `npx wrangler deploy` locally with Wrangler authentication.
 
-## Game rules
+## Important limitations
 
-- Two or more players in one room, one secretly selected Escaper.
-- Escaper gets a jacket and leaves via car, taxi, or Bubi; car requires keys.
-- Taxi has an 8-second wait; Bubi unlocks in roughly 4 seconds.
-- Hunters punch in close range (3 hits win), or sabotage car/taxi/bike for 15 seconds with a cooldown.
-- Hunters win after 6 minutes.
-- WASD movement, E interaction, Space punch.
-
-## Prototype limitations
-
-NPCs are decorative; game state is in memory and refresh creates a new player. Basic collision shapes, placeholder graphics, no copied Among Us artwork. This is an initial prototype and requires live multiplayer testing.
+- The original TMX map remains the original spaceship, **not a newly designed pub**.
+- The original map and walking sprite images are loaded from the project's public GitHub repository through jsDelivr at runtime; the game needs network access to those assets.
+- The game uses the original map's collision objects and player sprites, but the original Python gameplay code itself cannot execute in the browser.
+- This browser version has not been manually verified against a live Cloudflare deployment.
+- Original game sprites may have third-party rights; for any public/commercial release they should be replaced with original or properly licensed artwork.
