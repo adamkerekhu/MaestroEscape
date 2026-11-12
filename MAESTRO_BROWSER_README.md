@@ -1,32 +1,30 @@
-# MaestroEscape — Cloudflare single-player explorer
+# MaestroEscape — single-player Cloudflare map
 
-This is the first **browser** version that uses assets from the user's existing Pygame game, not the previous placeholder circles/rectangles prototype.
+The Cloudflare Worker code has been updated to roam around the **Mester utca × Viola utca Maestro Pub map** uploaded as `maestro_pub_v2(1).zip`.
 
-## What runs now
+- Map dimensions: **1600 × 992 pixels**.
+- Player spawn: **(859, 577)**, near Maestro Pub.
+- Building collisions: twelve approximate polygons from `gameplay_geometry.json` bundled into the browser code.
+- WASD/arrows to move, Shift to sprint, R to respawn, E to interact with Maestro Pub.
+- Animated blue character sprites are loaded from the original Python game's GitHub assets.
+- No multiplayer, lobby, database, or Durable Objects.
 
-- Original Tiled `Assets/Maps/map.tmx` collision rectangles are read at runtime.
-- Original `Assets/Maps/map2.png` is displayed as a scrolling map.
-- Original blue character walking animation frames from `Assets/Images/Player/Blue/...` are rendered through Phaser 3.
-- WASD / arrows move; Shift sprints; E interacts; R respawns.
-- Camera follows player. Spawn seeks a walkable point.
-- Exploration waypoints: Jacket, Car keys, Own car, Taxi, Bubi, Kebab shop, Trafik.
-- Interactions display messages and require jacket/keys before specific escapes.
+## Asset that must exist in GitHub
 
-**No multiplayer, server, lobby, rooms, database, or Durable Objects.**
+The new Worker loads the **original image** from:
 
-## Deploy
+`Assets/Maps/maestro_map.png`
 
-This Cloudflare Worker is named `maestroescape` and is connected to the repository's `main` branch.
+The GitHub connector used here can update text source but cannot upload the binary image from the conversation's ZIP. **Until this PNG is uploaded, the Worker intentionally displays a missing-image message instead of a fake background.**
 
-Build command: `npm run build`  
-Deploy command: `npx wrangler deploy`
+Upload the supplied file `maestro_map.png` into `Assets/Maps/` on the `main` branch through GitHub. Once committed, Cloudflare's GitHub integration should automatically deploy; refresh the game.
 
-Alternatively use `npx wrangler deploy` locally with Wrangler authentication.
+`maestro_pub.tmx` and `maestro_art.tsx` are included in the user-provided ZIP for editing in Tiled, but are not required at runtime because the image and collisions are handled directly in the browser code.
 
-## Important limitations
+## Deployment configuration
 
-- The original TMX map remains the original spaceship, **not a newly designed pub**.
-- The original map and walking sprite images are loaded from the project's public GitHub repository through jsDelivr at runtime; the game needs network access to those assets.
-- The game uses the original map's collision objects and player sprites, but the original Python gameplay code itself cannot execute in the browser.
-- This browser version has not been manually verified against a live Cloudflare deployment.
-- Original game sprites may have third-party rights; for any public/commercial release they should be replaced with original or properly licensed artwork.
+Cloudflare Worker: `maestroescape`
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
+
+The original Python files remain unchanged.
