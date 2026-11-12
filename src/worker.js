@@ -20,7 +20,7 @@ kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
-<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move &nbsp; <kbd>E</kbd> enter/exit Skoda or interact &nbsp; <kbd>SHIFT</kbd> sprint &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to the Skoda Superb parked by Maestro Pub. Press E to drive.</span></div>
+<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to the Skoda Superb parked by Maestro Pub. Press E to drive.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
 (function(){
@@ -30,7 +30,10 @@ const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
 const PARKING={x:697,y:505};
-const car={x:PARKING.x,y:PARKING.y,vx:0,vy:0,driver:false,frame:3};
+// Uses the same forward-speed / steering model as the original Vehicle.ts controller.
+const car={x:PARKING.x,y:PARKING.y,angle:3*Math.PI/4,speed:0,wheelTurn:0,driver:false,frame:3};
+const DRIVING_ZOOM=2.03*0.68;
+let vehicleController=null;
 let carSprite=null,carHint=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
@@ -41,24 +44,56 @@ function enterOrExitCar(){
  if(!carSprite)return;
  if(!car.driver){
   if(!near(player,car.x,car.y,67)){show("Walk closer to the Skoda Superb.");return;}
-  car.driver=true;car.vx=0;car.vy=0;character.setVisible(false);
+  car.driver=true;car.speed=0;car.wheelTurn=0;character.setVisible(false);
   scene.cameras.main.startFollow(carSprite,true,0.13,0.13);
   status.textContent="Driving: Skoda Superb 2.0TDI";
-  show("Driving Skoda Superb 2.0TDI. WASD/Arrows: drive. E: exit.");
+  show("Skoda Superb 2.0TDI · W accelerate · S brake/reverse · A/D steer · E exit.");
  }else{
   const offsets=[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
   const pos=offsets.map(([x,y])=>({x:car.x+x,y:car.y+y})).find(p=>!intersects(p.x,p.y));
   if(!pos){show("Can't get out here. Drive somewhere with more space.");return;}
-  car.driver=false;car.vx=0;car.vy=0;player.x=pos.x;player.y=pos.y;
+  car.driver=false;car.speed=0;car.wheelTurn=0;player.x=pos.x;player.y=pos.y;
   character.setPosition(player.x,player.y).setVisible(true);
   scene.cameras.main.startFollow(character,true,0.13,0.13);
   status.textContent="On foot";
   show("Exited Skoda Superb 2.0TDI. E to enter again.");
  }
 }
-function carCollides(x,y){
- if(x<24||y<24||x>mapSize.w-24||y>mapSize.h-24)return true;
- return collisionPolygons.some(poly=>[[x,y],[x-12,y-12],[x+12,y-12],[x-12,y+12],[x+12,y+12]].some(pt=>insidePolygon(pt[0],pt[1],poly)));
+// VehicleController ported from KulturalisDigitalisPolgariKor/src/entities/Vehicle.ts.
+// Throttle/brake/reverse, speed-dependent steering, grip and friction use the original
+// model; its city geometry collision check is adapted for MaestroEscape polygons.
+class VehicleController {
+ constructor(vehicle,sprite){this.vehicle=vehicle;this.sprite=sprite;}
+ update(inputX,inputY,dt){
+  const v=this.vehicle;
+  const acceleration=175,maxSpeed=245;
+  if(inputY<-.1)v.speed+=acceleration*dt;
+  else if(inputY>.1)v.speed-=acceleration*dt*(v.speed>0?1.65:.65);
+  else v.speed*=Math.max(0,1-1.35*dt);
+  v.speed=Phaser.Math.Clamp(v.speed,-maxSpeed*.33,maxSpeed);
+  const steer=Phaser.Math.Clamp(inputX,-1,1);
+  if(Math.abs(v.speed)>1){
+   v.wheelTurn=Phaser.Math.Linear(v.wheelTurn,steer,Math.min(1,dt*5));
+   const grip=Phaser.Math.Clamp(Math.abs(v.speed)/75,.2,1);
+   v.angle+=v.wheelTurn*2.0*dt*grip*Math.sign(v.speed);
+  }else{
+   v.wheelTurn=Phaser.Math.Linear(v.wheelTurn,0,Math.min(1,dt*5));
+  }
+  // The Skoda is controlled by its heading, not by moving sideways with A/D.
+  const px=v.x+Math.sin(v.angle)*v.speed*dt;
+  const py=v.y-Math.cos(v.angle)*v.speed*dt;
+  const fw={x:Math.sin(v.angle),y:-Math.cos(v.angle)};
+  const side={x:Math.cos(v.angle),y:Math.sin(v.angle)};
+  const halfW=12,halfL=25;
+  const corners=[-1,1].flatMap(f=>[-1,1].map(t=>({
+   x:px+fw.x*halfL*f+side.x*halfW*t,
+   y:py+fw.y*halfL*f+side.y*halfW*t
+  })));
+  const blocked=p=>p.x<18||p.y<18||p.x>mapSize.w-18||p.y>mapSize.h-18
+     || collisionPolygons.some(poly=>insidePolygon(p.x,p.y,poly));
+  if(corners.some(blocked)){v.speed*=-.08;return;}
+  v.x=px;v.y=py;
+ }
 }
 function interact(){if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
@@ -111,6 +146,7 @@ class Explore extends Phaser.Scene{
    }else{
      carSprite=this.add.sprite(car.x,car.y,"skoda",car.frame).setDepth(6).setScale(2.05);
    }
+   vehicleController=new VehicleController(car,carSprite);
    const ring=this.add.graphics().setDepth(5);
    ring.lineStyle(2,0x6ee7b7,0.95).strokeEllipse(car.x,car.y,70,75);
    carHint=this.add.text(car.x,car.y-51,"YOUR ŠKODA  ·  E",{fontFamily:"Arial",fontSize:"14px",fontStyle:"bold",color:"#b7ffd4",stroke:"#10151d",strokeThickness:4}).setOrigin(.5).setDepth(7);
@@ -118,7 +154,7 @@ class Explore extends Phaser.Scene{
    this.carParkRing=ring;
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
-   this.input.keyboard.on("keydown-E",interact);
+   this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
    this.input.keyboard.on("keydown-R",()=>this.respawn());
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
@@ -128,8 +164,8 @@ class Explore extends Phaser.Scene{
  }
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
-   if(car.driver){car.driver=false;car.vx=0;car.vy=0;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
-   car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.vx=0;car.vy=0;
+   if(car.driver){car.driver=false;car.speed=0;car.wheelTurn=0;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
+   car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.angle=3*Math.PI/4;car.speed=0;car.wheelTurn=0;
    if(carSprite){carSprite.setPosition(car.x,car.y);if(carSprite.texture.key==="skoda")carSprite.setFrame(car.frame);}
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
    player.x=x;player.y=y;character.setPosition(x,y);show("Spawned on a walkable point. Explore the original map.");
@@ -140,22 +176,22 @@ class Explore extends Phaser.Scene{
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown);
    const distance=Math.hypot(dx,dy);
    if(car.driver && carSprite){
-      const dt=Math.min(0.05,delta/1000), norm=distance||1;
-      const targetX=dx/norm*330, targetY=dy/norm*330;
-      const response=Math.min(1,dt*(distance?3.2:5.6));
-      car.vx+=(targetX-car.vx)*response;car.vy+=(targetY-car.vy)*response;
-      if(Math.hypot(car.vx,car.vy)<1){car.vx=0;car.vy=0;}
-      const nextX=car.x+car.vx*dt,nextY=car.y+car.vy*dt;
-      if(!carCollides(nextX,car.y))car.x=nextX;else car.vx=0;
-      if(!carCollides(car.x,nextY))car.y=nextY;else car.vy=0;
-      if(distance){car.frame=Math.round((((Math.atan2(dx,-dy)+Math.PI*2)%(Math.PI*2))/(Math.PI/4)))%8;}
-      carSprite.setPosition(car.x,car.y);if(carSprite.texture.key==="skoda")carSprite.setFrame(car.frame);
-      if(carHint)carHint.setVisible(false);if(this.carParkRing)this.carParkRing.setVisible(false);
-      coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.hypot(car.vx,car.vy))+" px/s";
-      return;
+      const dt=Math.min(.04,delta/1000);
+      // Original controls: W throttle, S brake/reverse, A/D steering.
+      vehicleController.update(dx,dy,dt);
+      car.frame=Math.round(((car.angle%(Math.PI*2)+Math.PI*2)%(Math.PI*2))/(Math.PI/4))%8;
+      carSprite.setPosition(car.x,car.y);
+      if(carSprite.texture.key==="skoda")carSprite.setFrame(car.frame);
+      if(carHint)carHint.setVisible(false);
+      if(this.carParkRing)this.carParkRing.setVisible(false);
+      coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
+   }else{
+      if(carHint){carHint.setPosition(car.x,car.y-51).setVisible(true);}
+      if(this.carParkRing){this.carParkRing.clear().lineStyle(2,0x6ee7b7,0.85).strokeEllipse(car.x,car.y,70,75).setVisible(true);}
    }
-   if(carHint){carHint.setPosition(car.x,car.y-51).setVisible(!car.driver);}
-   if(this.carParkRing){this.carParkRing.clear().lineStyle(2,0x6ee7b7,0.85).strokeEllipse(car.x,car.y,70,75).setVisible(!car.driver);}
+   const cameraZoom=car.driver?DRIVING_ZOOM:2.03;
+   this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
+   if(car.driver)return;
    if(distance){
       const amount=(keys.SHIFT.isDown?300:205)*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
