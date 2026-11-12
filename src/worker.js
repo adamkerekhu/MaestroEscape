@@ -70,7 +70,7 @@ class Explore extends Phaser.Scene{
    const gfx=this.add.graphics().setDepth(2);
    for(const p of locs){gfx.fillStyle(p.color,0.3).fillCircle(p.x,p.y,33);gfx.lineStyle(3,p.color,0.95).strokeCircle(p.x,p.y,33);labels.push(this.add.text(p.x,p.y-49,p.name,{fontFamily:"Arial",fontSize:"23px",fontStyle:"bold",color:"#fff6d9",stroke:"#141722",strokeThickness:5}).setOrigin(.5).setDepth(4))}
    character=this.add.sprite(player.x,player.y,"down1").setDepth(5);
-   character.setScale(1.4);character.setOrigin(0.5,0.8);
+   character.setScale(0.38);character.setOrigin(0.5,0.8);
    for(const dir of ["down","up","left","right"])this.anims.create({key:"walk-"+dir,frames:[1,2,3,4,5,6].map(i=>({key:dir+i})),frameRate:12,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",interact);
