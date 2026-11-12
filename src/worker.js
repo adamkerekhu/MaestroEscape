@@ -20,7 +20,7 @@ kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
-<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to the Skoda Superb parked by Maestro Pub. Press E to drive.</span></div>
+<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
 (function(){
@@ -29,6 +29,18 @@ if(!window.Phaser){document.getElementById('splash').textContent="Could not load
 const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
+const PUB_DOOR={x:825,y:547};
+const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
+const INTERIOR_SIZE={w:1448,h:1086};
+let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null;
+const interiorWalls=[
+[177,222,490,160],[140,396,136,268],[417,564,163,250],
+[717,233,147,119],[682,509,132,154],[965,472,111,152],
+[835,449,130,275],[1101,350,279,365],[60,0,785,200],
+[1181,0,267,326],[0,0,59,730],[961,843,487,243],
+[295,844,665,242],[1381,326,67,400],[295,808,540,32],
+[1154,50,26,166],[851,0,329,46],[842,45,26,154]
+];
 const PARKING={x:697,y:505};
 // Uses the same forward-speed / steering model as the original Vehicle.ts controller.
 const car={x:PARKING.x,y:PARKING.y,angle:3*Math.PI/4,speed:0,wheelTurn:0,driver:false,frame:3};
@@ -39,7 +51,38 @@ let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[]
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
-function intersects(x,y){const w=19,h=16;return x<35||y<35||x>mapSize.w-35||y>mapSize.h-35||collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));}
+function intersects(x,y){
+ const w=13,h=11;
+ if(x<25||y<25||x>mapSize.w-25||y>mapSize.h-25)return true;
+ if(insidePub)return interiorWalls.some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh);
+ return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
+}
+function enterPub(){
+ if(!interiorImage){show("Interior map could not be loaded.");return;}
+ if(car.driver){show("Exit the Skoda first.");return;}
+ streetPos={x:player.x,y:player.y};insidePub=true;
+ mapSize={...INTERIOR_SIZE};
+ streetImage.setVisible(false);interiorImage.setVisible(true);
+ if(carSprite)carSprite.setVisible(false);
+ player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
+ character.setPosition(player.x,player.y);
+ scene.cameras.main.setBounds(0,0,INTERIOR_SIZE.w,INTERIOR_SIZE.h);
+ scene.cameras.main.setZoom(1.65);
+ status.textContent="Inside Maestro Pub";
+ show("You're inside! Walk around. Press E near the bottom-left exit to leave.");
+}
+function leavePub(){
+ insidePub=false;mapSize={w:1600,h:992};
+ interiorImage.setVisible(false);streetImage.setVisible(true);
+ if(carSprite)carSprite.setVisible(true);
+ if(exitHint)exitHint.setVisible(false);
+ player.x=streetPos.x;player.y=streetPos.y;
+ character.setPosition(player.x,player.y);
+ scene.cameras.main.setBounds(0,0,1600,992);
+ scene.cameras.main.setZoom(2.03);
+ status.textContent="Outside Maestro Pub";
+ show("Back on Mester utca.");
+}
 function enterOrExitCar(){
  if(!carSprite)return;
  if(!car.driver){
@@ -95,7 +138,14 @@ class VehicleController {
   v.x=px;v.y=py;
  }
 }
-function interact(){if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
+function interact(){
+ if(insidePub){
+  if(near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,92))leavePub();
+  else show("The exit is at the lower-left corner of the pub.");
+  return;
+ }
+ if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}
+ if(near(player,PUB_DOOR.x,PUB_DOOR.y,83)){enterPub();return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
 const collisionPolygons=[
@@ -119,15 +169,23 @@ class Explore extends Phaser.Scene{
  preload(){
    this.load.crossOrigin="anonymous";
    this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
+   this.load.image("interior","/assets/interior.webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
-   this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
    const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Map failed to load. Check the published map asset.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
-   image.setDepth(0);
+   streetImage=image.setDepth(0);
+   if(this.textures.exists("interior")){
+     interiorImage=this.add.image(0,0,"interior").setOrigin(0,0)
+       .setDisplaySize(INTERIOR_SIZE.w,INTERIOR_SIZE.h).setDepth(1).setVisible(false);
+     exitHint=this.add.text(INTERIOR_EXIT.x+22,INTERIOR_EXIT.y-30,"EXIT [E]",
+       {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
+       stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
+   }
    mapSize={w:image.width,h:image.height};
    const gfx=this.add.graphics().setDepth(2);
    // Pub interaction remains active, without the visual marker.
@@ -178,9 +236,10 @@ class Explore extends Phaser.Scene{
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
    }else{
    }
-   const cameraZoom=car.driver?DRIVING_ZOOM:2.03;
+   const cameraZoom=insidePub?1.65:car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(car.driver)return;
+   if(exitHint)exitHint.setVisible(insidePub && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
    if(distance){
       const amount=(keys.SHIFT.isDown?300:205)*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
@@ -200,6 +259,11 @@ export default {
  async fetch(request){
   const url=new URL(request.url);
   if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-with-skoda",vehicle:"Skoda Superb 2.0TDI"});
+  if(url.pathname==="/assets/interior.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_interior.webp");
+    if(!upstream.ok)return new Response("Interior image unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=3600","x-content-type-options":"nosniff"}});
+  }
   if(url.pathname==="/assets/skoda-highres.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/skoda_superb_top.webp");
     if(!upstream.ok)return new Response("Skoda asset unavailable",{status:502});
