@@ -57,13 +57,13 @@ class Explore extends Phaser.Scene{
  constructor(){super("Explore")}
  preload(){
    this.load.crossOrigin="anonymous";
-   this.load.image("world","https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_map.png");
+   this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
    for(const dir of ["down","up","left","right"])for(let i=1;i<=6;i++)this.load.image(dir+i,BASE+"Assets/Images/Player/Blue/blue_"+dir+"_walk/step"+i+".png");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
-   const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Upload maestro_map.png to Assets/Maps in GitHub to activate the new map.";return;}splash.remove();
+   const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Map failed to load. Check the published map asset.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
    image.setDepth(0);
    mapSize={w:image.width,h:image.height};
