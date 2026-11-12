@@ -1,6 +1,6 @@
 # MaestroEscape — browser multiplayer prototype
 
-Phaser 3 browser game + Cloudflare Worker and Durable Objects WebSocket rooms. Original Python/Pygame source preserved in the repository as reference.
+Phaser 3 browser game + Cloudflare Worker with Durable Objects WebSocket rooms. Original Python/Pygame source retained as reference.
 
 ## Local preview
 
@@ -8,27 +8,28 @@ Phaser 3 browser game + Cloudflare Worker and Durable Objects WebSocket rooms. O
 npx wrangler dev
 ```
 
-Open the printed localhost URL in two browser windows, join the same room, and start the round as host.
+Open the localhost URL in two browser windows, join the same room and start as host.
 
-## Deploy (overwrites the existing named Cloudflare Worker)
+## Deploy to the dedicated Cloudflare Worker
 
 ```bash
 npx wrangler login
 npx wrangler deploy
 ```
 
-The Worker name is intentionally `kulturalisdigitalispolgarikor` as requested. Deploying replaces that Worker's code and routes; make a backup if it contains anything important. Worker custom domains/routes already attached to that Worker are managed in Cloudflare settings.
+The Worker is named `maestroescape`. Deployment updates that Worker, not `kulturalisdigitalispolgarikor`. You can also connect the `adamkerekhu/MaestroEscape` repository in the Cloudflare Worker dashboard using the build command `npx wrangler deploy` if supported by its Git integration.
 
-The Worker serves the whole app and real-time multiplayer. No database, API keys, Render server or Socket.io server are needed. Phaser is fetched from a public CDN.
+Cloudflare Durable Objects are required for multiplayer. The Worker serves both game HTML and WebSockets; no external multiplayer server or database is needed. Phaser loads from a CDN.
 
-## Game rules (first prototype)
+## Game rules
 
-- Two or more participants in one room, one randomly chosen Escaper.
-- Escaper must find jacket at cloakroom, then leave using car, taxi, or Bubi. Car requires keys; taxi takes 8 seconds; bike takes 4 seconds.
-- Hunters can punch at close range (3 hits win), or sabotage car/taxi/bike for 15 seconds with a 22-second cooldown.
-- Hunters also win after six minutes.
-- E to interact, Space to punch, WASD to move.
+- Two or more players in one room, one secretly selected Escaper.
+- Escaper gets a jacket and leaves via car, taxi, or Bubi; car requires keys.
+- Taxi has an 8-second wait; Bubi unlocks in roughly 4 seconds.
+- Hunters punch in close range (3 hits win), or sabotage car/taxi/bike for 15 seconds with a cooldown.
+- Hunters win after 6 minutes.
+- WASD movement, E interaction, Space punch.
 
-## Limitations
+## Prototype limitations
 
-Early playable prototype: NPCs are decorative; match state is memory-only, and page refresh creates a new player identity. Room codes are not private or authenticated. The art is placeholder geometry and no copied Among Us artwork is served.
+NPCs are decorative; game state is in memory and refresh creates a new player. Basic collision shapes, placeholder graphics, no copied Among Us artwork. This is an initial prototype and requires live multiplayer testing.
