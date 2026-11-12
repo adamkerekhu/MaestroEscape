@@ -17,50 +17,47 @@ kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white
 #msg{font-weight:bold;color:#f5cf89}button{border:1px solid #59677c;background:#273448;color:white;padding:7px 11px;border-radius:7px;cursor:pointer}
 @media(max-width:620px){header{flex-direction:column;align-items:flex-start}#hud{flex-wrap:wrap}}
 </style></head><body>
-<header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Original Among Us map & sprites • Single-player exploration</p></div>
+<header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
-<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move &nbsp; <kbd>E</kbd> interact &nbsp; <kbd>SHIFT</kbd> sprint &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Find the jacket, car keys, taxi, car, Bubi, kebab shop or trafik.</span></div>
+<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows: move &nbsp; <kbd>E</kbd> interact &nbsp; <kbd>SHIFT</kbd> sprint &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Roam around Mester utca and Viola utca.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
 (function(){
 'use strict';
 if(!window.Phaser){document.getElementById('splash').textContent="Could not load Phaser. Check internet access.";return;}
 const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
-const locs=[
- {name:"Jacket",x:3046,y:791,color:0xffc76a,info:"You've found your jacket.",done:false},
- {name:"Car keys",x:3563,y:762,color:0xffc76a,info:"Car keys collected.",done:false},
- {name:"Own car",x:3898,y:791,color:0x82caff,info:"Your car is waiting.",done:false},
- {name:"Taxi",x:4513,y:1525,color:0x82caff,info:"Taxi ordered. Someone will probably try to cancel it.",done:false},
- {name:"Bubi bike",x:3694,y:1942,color:0x82caff,info:"Bubi unlocked. You're finally leaving the pub.",done:false},
- {name:"Kebab shop",x:2220,y:1711,color:0x9de3a2,info:"Kebab acquired. A tactical detour.",done:false},
- {name:"Trafik",x:1887,y:1578,color:0x9de3a2,info:"Quick stop at the trafik.",done:false}
-];
-const SPAWN={x:3046,y:791};
-let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:5792,h:3168},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false;
+const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
+const SPAWN={x:859,y:577};
+let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false;
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
-function intersects(x,y){const w=19,h=16;return x<35||y<35||x>mapSize.w-35||y>mapSize.h-35||obstacles.some(o=>x+w>o.x&&x-w<o.x+o.w&&y+h>o.y&&y-h<o.y+o.h);}
+function intersects(x,y){const w=19,h=16;return x<35||y<35||x>mapSize.w-35||y>mapSize.h-35||collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));}
 function interact(){const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
- if(nearest.name==="Own car"&&!locs[1].done){show("You need the car keys first.");return;}
- if(["Own car","Taxi","Bubi bike"].includes(nearest.name)&&!locs[0].done){show("Find your jacket before you leave.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
-async function loadOriginalCollision(){try{
- const response=await fetch(BASE+"Assets/Maps/map.tmx");if(!response.ok)throw new Error("TMX HTTP "+response.status);
- const xml=new DOMParser().parseFromString(await response.text(),"application/xml");
- if(xml.querySelector("parsererror"))throw new Error("Invalid TMX XML");
- const m=xml.querySelector("map");mapSize={w:Number(m.getAttribute("width"))*Number(m.getAttribute("tilewidth")),h:Number(m.getAttribute("height"))*Number(m.getAttribute("tileheight"))};
- const collidable=new Set(["walls","tables","props","generator","medbay_comp","engines","reactor","security_room_comp","admin_btn1","admin_btn2"]);
- obstacles=[...xml.querySelectorAll("objectgroup object")].filter(o=>collidable.has(o.getAttribute("name"))).map(o=>({x:+o.getAttribute("x"),y:+o.getAttribute("y"),w:+o.getAttribute("width"),h:+o.getAttribute("height")})).filter(o=>o.w>0&&o.h>0);
- status.textContent="Map ready · "+obstacles.length+" obstacles";
- }catch(e){console.error(e);status.textContent="Collision loading failed";show("Map is visible, but original wall collisions could not be loaded.");}}
+const collisionPolygons=[
+[[186,0],[516,0],[694,197],[669,265],[547,254],[408,155],[248,98]],
+[[457,278],[573,241],[711,300],[823,364],[829,513],[791,536],[656,450],[563,405]],
+[[720,0],[1040,0],[946,238],[861,333],[732,256],[694,158]],
+[[1048,0],[1419,0],[1376,144],[1303,175],[1089,213],[993,163]],
+[[1053,160],[1414,154],[1401,412],[1230,502],[1014,453],[983,359]],
+[[1456,90],[1586,107],[1586,992],[1462,992],[1451,675],[1382,574],[1416,351]],
+[[935,454],[1014,430],[1123,481],[1288,524],[1407,681],[1342,817],[1177,794],[1053,709],[955,644]],
+[[1283,777],[1470,736],[1462,992],[1133,992],[1148,915]],
+[[0,227],[92,246],[187,336],[279,384],[291,519],[153,639],[0,550]],
+[[188,356],[357,392],[563,564],[660,688],[543,823],[324,701],[162,619]],
+[[0,712],[234,574],[373,723],[267,991],[0,991]],
+[[347,715],[525,691],[709,798],[1051,992],[350,992],[283,925]]
+];
+function insidePolygon(x,y,p){let inside=false;for(let i=0,j=p.length-1;i<p.length;j=i++){const a=p[i],b=p[j];if(((a[1]>y)!==(b[1]>y))&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;}
+async function loadOriginalCollision(){obstacles=[];status.textContent="Maestro map ready · "+collisionPolygons.length+" building collisions";}
 class Explore extends Phaser.Scene{
  constructor(){super("Explore")}
  preload(){
    this.load.crossOrigin="anonymous";
-   this.load.image("world",BASE+"Assets/Maps/map2.png");
+   this.load.image("world",BASE+"Assets/Maps/maestro_map.png");
    for(const dir of ["down","up","left","right"])for(let i=1;i<=6;i++)this.load.image(dir+i,BASE+"Assets/Images/Player/Blue/blue_"+dir+"_walk/step"+i+".png");
    this.load.on("loaderror",file=>{status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
@@ -80,7 +77,7 @@ class Explore extends Phaser.Scene{
    this.input.keyboard.on("keydown-R",()=>this.respawn());
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
-   this.cameras.main.setZoom(1.25);
+   this.cameras.main.setZoom(1.45);
    this.input.mouse?.disableContextMenu();
    loadOriginalCollision().then(()=>this.respawn());
  }
