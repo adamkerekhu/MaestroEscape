@@ -130,7 +130,7 @@ class Explore extends Phaser.Scene{
    image.setDepth(0);
    mapSize={w:image.width,h:image.height};
    const gfx=this.add.graphics().setDepth(2);
-   for(const p of locs){gfx.fillStyle(p.color,0.3).fillCircle(p.x,p.y,33);gfx.lineStyle(3,p.color,0.95).strokeCircle(p.x,p.y,33);labels.push(this.add.text(p.x,p.y-49,p.name,{fontFamily:"Arial",fontSize:"23px",fontStyle:"bold",color:"#fff6d9",stroke:"#141722",strokeThickness:5}).setOrigin(.5).setDepth(4))}
+   // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(0.324);character.setOrigin(0.5,1.0);
    if(!this.textures.exists("skoda")){
@@ -147,11 +147,7 @@ class Explore extends Phaser.Scene{
      carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
    }
    vehicleController=new VehicleController(car,carSprite);
-   const ring=this.add.graphics().setDepth(5);
-   ring.lineStyle(2,0x6ee7b7,0.95).strokeEllipse(car.x,car.y,70,75);
    carHint=this.add.text(car.x,car.y-51,"YOUR ŠKODA  ·  E",{fontFamily:"Arial",fontSize:"14px",fontStyle:"bold",color:"#b7ffd4",stroke:"#10151d",strokeThickness:4}).setOrigin(.5).setDepth(7);
-   ring.setVisible(true);
-   this.carParkRing=ring;
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
@@ -181,11 +177,9 @@ class Explore extends Phaser.Scene{
       vehicleController.update(dx,dy,dt);
       carSprite.setPosition(car.x,car.y).setRotation(car.angle);
       if(carHint)carHint.setVisible(false);
-      if(this.carParkRing)this.carParkRing.setVisible(false);
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
    }else{
       if(carHint){carHint.setPosition(car.x,car.y-51).setVisible(true);}
-      if(this.carParkRing){this.carParkRing.clear().lineStyle(2,0x6ee7b7,0.85).strokeEllipse(car.x,car.y,70,75).setVisible(true);}
    }
    const cameraZoom=car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
