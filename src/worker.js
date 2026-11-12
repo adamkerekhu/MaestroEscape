@@ -58,7 +58,7 @@ class Explore extends Phaser.Scene{
  preload(){
    this.load.crossOrigin="anonymous";
    this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
-   for(const dir of ["down","up","left","right"])for(let i=1;i<=6;i++)this.load.image(dir+i,BASE+"Assets/Images/Player/Blue/blue_"+dir+"_walk/step"+i+".png");
+   this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
@@ -69,9 +69,9 @@ class Explore extends Phaser.Scene{
    mapSize={w:image.width,h:image.height};
    const gfx=this.add.graphics().setDepth(2);
    for(const p of locs){gfx.fillStyle(p.color,0.3).fillCircle(p.x,p.y,33);gfx.lineStyle(3,p.color,0.95).strokeCircle(p.x,p.y,33);labels.push(this.add.text(p.x,p.y-49,p.name,{fontFamily:"Arial",fontSize:"23px",fontStyle:"bold",color:"#fff6d9",stroke:"#141722",strokeThickness:5}).setOrigin(.5).setDepth(4))}
-   character=this.add.sprite(player.x,player.y,"down1").setDepth(5);
-   character.setScale(0.38);character.setOrigin(0.5,0.8);
-   for(const dir of ["down","up","left","right"])this.anims.create({key:"walk-"+dir,frames:[1,2,3,4,5,6].map(i=>({key:dir+i})),frameRate:12,repeat:-1});
+   character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
+   character.setScale(0.54);character.setOrigin(0.5,1.0);
+   for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",interact);
    this.input.keyboard.on("keydown-R",()=>this.respawn());
@@ -97,7 +97,7 @@ class Explore extends Phaser.Scene{
       if(!intersects(player.x,player.y+dy))player.y+=dy;
       const face=Math.abs(dx)>Math.abs(dy)?dx>0?"right":"left":dy>0?"down":"up";
       if(player.face!==face||!character.anims.isPlaying){character.play("walk-"+face,true);player.face=face;}
-   }else{character.anims.stop();character.setTexture(player.face+"1");}
+   }else{character.anims.stop();character.setFrame({down:0,up:8,right:16,left:24}[player.face]??0);}
    character.setPosition(player.x,player.y);
    coords.textContent=Math.round(player.x)+", "+Math.round(player.y);
  }
