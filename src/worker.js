@@ -70,7 +70,7 @@ let overrides={};try{const raw=JSON.parse(localStorage.getItem("maestroescape.ga
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
-const PUB_DOOR={x:825,y:547};
+const PUB_DOOR={x:784,y:551};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
 let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
@@ -96,9 +96,9 @@ function addShopfronts(scene){
  }
 }
 const SHOPS={
- dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:355,y:196},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
- spar:{label:"SPAR",door:{x:951,y:635},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
- gyros:{label:"Mester Gyros",door:{x:274,y:194},size:{w:768,h:480},spawn:{x:304,y:444},exit:{x:304,y:466},image:null,walls:[[22,12,678,21],[14,14,21,401],[707,30,24,387],[23,442,207,22],[423,442,287,22],[84,90,484,190],[576,83,107,204],[55,295,138,113],[430,307,110,109],[572,305,98,114]]}
+ dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:400,y:278},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
+ spar:{label:"SPAR",door:{x:916,y:649},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
+ gyros:{label:"Mester Gyros",door:{x:275,y:191},size:{w:768,h:480},spawn:{x:304,y:444},exit:{x:304,y:466},image:null,walls:[[22,12,678,21],[14,14,21,401],[707,30,24,387],[23,442,207,22],[423,442,287,22],[84,90,484,190],[576,83,107,204],[55,295,138,113],[430,307,110,109],[572,305,98,114]]}
 };
 const interiorWalls=[
 [177,222,490,160],[140,396,136,268],[417,564,163,250],
@@ -148,7 +148,7 @@ function enterShop(shop){
  if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
  character.setScale(shopCharacterScale(shop));mapSize={...shop.size};
- streetImage.setVisible(false);setStreetfronts(false);if(interiorImage)interiorImage.setVisible(false);
+ streetImage.setVisible(false);if(interiorImage)interiorImage.setVisible(false);
  for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
  if(carSprite)carSprite.setVisible(false);
  if(octaviaSprite)octaviaSprite.setVisible(false);
@@ -178,7 +178,7 @@ function enterPub(){
 function leavePub(){
  insidePub=false;activeShop=null;character.setScale(cfg("character.streetScale"));mapSize={w:1600,h:992};
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
- interiorImage.setVisible(false);streetImage.setVisible(true);setStreetfronts(true);
+ interiorImage.setVisible(false);streetImage.setVisible(true);
  if(carSprite)carSprite.setVisible(true);
  if(octaviaSprite)octaviaSprite.setVisible(true);
  if(tramSprite)tramSprite.setVisible(true);
@@ -302,7 +302,7 @@ class Explore extends Phaser.Scene{
        {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
        stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
    }
-   addShopfronts(this);
+   // The supplied 1600×992 aerial map already contains the building facades.
    for(const [name,shop] of Object.entries(SHOPS)){
      if(this.textures.exists("shop_"+name)){
        shop.image=this.add.image(0,0,"shop_"+name).setOrigin(0,0)
