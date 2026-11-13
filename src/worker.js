@@ -6,7 +6,7 @@ const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"
 const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MaestroEscape · Game Settings</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}#vehicle-editor{margin:0 0 20px;padding:18px;border:1px solid #465a73;border-radius:12px;background:#1b2638}#vehicle-editor h2{margin:0 0 8px}#parking-map{display:block;width:100%;height:auto;aspect-ratio:1600/992;touch-action:none;background:#253347;border:1px solid #58677d;border-radius:8px;cursor:grab}#parking-map.dragging{cursor:grabbing}.parking-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.parking-toolbar label{display:flex;align-items:center;gap:7px}.parking-toolbar select{background:#182337;color:#fff;border:1px solid #58677d;padding:8px;border-radius:7px}.parking-toolbar input[type=range]{width:min(240px,45vw)}#parking-info{font-size:13px;color:#cbd7e8}.parking-hint{font-size:13px;color:#b5c0d0}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
 <canvas id="parking-map" width="1600" height="992" aria-label="Drag vehicle positions on the map"></canvas>
-<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save">Save positions</button></div><p id="parking-info"></p></section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
+<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
@@ -16,30 +16,52 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  const root=document.getElementById("sections"),notice=document.getElementById("notice");
  const lookup=Object.fromEntries(groups.flatMap(group=>group.fields.map(field=>[field.key,field])));
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
- let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0;
+ let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0,savePromise=Promise.resolve(),storageReady=false;
  try {
    const remote=await fetch("/api/settings",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable");return r.json()});
    values=normalize({...defaults,...remote.settings});
    lastPersisted=JSON.stringify(values);
+   storageReady=true;
    if(!remote.initialized&&Object.keys(saved).length){
      values=normalize({...defaults,...saved});
      await push();
      notice.textContent="Imported earlier device settings to the shared configuration.";
    }
- }catch(error){notice.textContent="Cloud settings unavailable. Changes cannot be saved.";console.error(error);}
- async function push(){
+ }catch(error){notice.textContent="Shared storage error: "+error.message;console.error(error);}
+ async function push(force=false){
+   clearTimeout(saveHandle);
    const payload=JSON.stringify(values);
-   if(payload===lastPersisted)return;
-   notice.textContent="Saving shared settings…";
-   try{
-     const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:payload});
-     if(!response.ok)throw Error("Save failed: "+response.status);
-     lastPersisted=payload;
-     localStorage.setItem(KEY,payload);
-     notice.textContent="Saved for all devices. Return to the game to apply.";
-   }catch(error){notice.textContent="Save failed. Check your connection and try again.";console.error(error);}
+   if(!force&&payload===lastPersisted)return savePromise;
+   // Sequence writes so a previous delayed request cannot overwrite a newer vehicle position.
+   const execute=async()=>{
+     notice.textContent="Saving settings to Cloudflare…";
+     try{
+       const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:payload,cache:"no-store"});
+       if(!response.ok)throw new Error("server returned "+response.status+": "+(await response.text()).slice(0,120));
+       const committed=await response.json();
+       if(!committed.ok)throw new Error("server did not confirm the save");
+       const check=await fetch("/api/settings",{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+       if(!check.ok)throw new Error("verification returned "+check.status);
+       const persisted=await check.json();
+       const expected=JSON.parse(payload);
+       const keys=["vehicle.skoda.spawnX","vehicle.skoda.spawnY","vehicle.skoda.angle","vehicle.octavia.spawnX","vehicle.octavia.spawnY","vehicle.octavia.angle"];
+       if(keys.some(key=>Number(persisted.settings?.[key])!==Number(expected[key])))
+         throw new Error("saved positions do not match the server");
+       lastPersisted=payload;
+       try{localStorage.setItem(KEY,payload)}catch(error){console.warn("Local backup unavailable",error)}
+       storageReady=true;
+       notice.textContent="✓ Verified and saved for all devices. Reload the game to use these locations.";
+       return true;
+     }catch(error){
+       notice.textContent="Could not save: "+error.message+". Positions are NOT saved yet.";
+       console.error("Shared settings save failure",error);
+       return false;
+     }
+   };
+   savePromise=savePromise.then(execute,execute);
+   return savePromise;
  }
- function store(){notice.textContent="Saving…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),350);}
+ function store(){notice.textContent="Unsaved changes…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);}
  function draw(){root.innerHTML="";for(const group of groups){const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
@@ -87,12 +109,16 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    values["vehicle."+dragging+".spawnY"]=Math.round(Math.max(0,Math.min(992,p.y)));
    dragged=true;drawParking();
  });
- const stopDrag=()=>{if(!dragging)return;dragging=null;canvas.classList.remove("dragging");if(dragged){store();draw();}dragged=false;};
+ const stopDrag=()=>{if(!dragging)return;dragging=null;canvas.classList.remove("dragging");if(dragged){store();draw();drawParking();}dragged=false;};
  canvas.addEventListener("pointerup",stopDrag);canvas.addEventListener("pointercancel",stopDrag);canvas.addEventListener("lostpointercapture",stopDrag);
  selection.addEventListener("change",drawParking);
  angleSlider.addEventListener("input",()=>{values["vehicle."+selection.value+".angle"]=Number(angleSlider.value);drawParking();});
  angleSlider.addEventListener("change",()=>{store();draw();});
- document.getElementById("parking-save").addEventListener("click",()=>{clearTimeout(saveHandle);void push();});
+ document.getElementById("parking-save").addEventListener("click",async()=>{
+   const button=document.getElementById("parking-save");
+   button.disabled=true;button.textContent="Saving…";
+   try{await push(true)}finally{button.disabled=false;button.textContent="Save positions to all devices";}
+ });
 
  document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking()};
  document.getElementById("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(values,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="maestroescape-settings.json";a.click();URL.revokeObjectURL(url);};
@@ -496,7 +522,7 @@ class Explore extends Phaser.Scene{
 document.getElementById("reset").onclick=()=>scene?.respawn();
 (async()=>{
  try{
-   const response=await fetch("/api/settings",{cache:"no-store"});
+   const response=await fetch("/api/settings",{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
    if(!response.ok)throw new Error("Shared settings unavailable");
    const data=await response.json();
    if(data.settings&&typeof data.settings==="object")overrides=data.settings;
