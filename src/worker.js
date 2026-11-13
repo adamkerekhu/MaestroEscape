@@ -380,7 +380,9 @@ const applyRemoteSettings=data=>{
    }
    character?.setScale?.(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
    tramSprite?.setDisplaySize?.(cfg("tram.width"),cfg("tram.length"));
-   npcRefreshSettings();
+   const previous=JSON.parse(before||"{}");
+   if(Object.keys(overrides).some(key=>key.startsWith("npc.")&&Number(overrides[key])!==Number(previous[key])))
+     npcRefreshSettings();
  }
 };
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
@@ -463,7 +465,8 @@ const NPC_ROUTINES={
  spar_shopper_2:{route:[[20,0],[20,-35],[0,-35],[0,0]],idleMs:3300,walkSpeed:26,walkFrameMs:230,seatMs:4200}
 };
 const NPC_WORK_MS={maestro_bartender:2600,spar_cashier:2100,tobacco_cashier:2800,gyros_employee:1850};
-const NPC_STEP_RADIUS=9;
+// NPCs use a narrow feet-only collision footprint so staff can stand beside shelves and counters.
+const NPC_STEP_RADIUS=7;
 function npcFloorPassable(interior,x,y){
  const area=interior==="pub"?INTERIOR_SIZE:SHOPS[interior]?.size;
  const walls=interior==="pub"?interiorWalls:SHOPS[interior]?.walls;
@@ -582,6 +585,22 @@ function npcTick(dt){
  }
 }
 
+// Interaction positions are on the public side of counters. NPC sprites stay on the staff side.
+// The offset follows each worker if an editor changes their saved position.
+const NPC_SERVICE_OFFSETS={
+ maestro_bartender:{x:0,y:188},
+ spar_cashier:{x:-53,y:40},
+ tobacco_cashier:{x:0,y:9},
+ gyros_employee:{x:0,y:24}
+};
+function npcInteractionPoint(entity){
+ const offset=NPC_SERVICE_OFFSETS[entity.definition.id];
+ return offset?{x:entity.x+offset.x,y:entity.y+offset.y}:entity;
+}
+function npcInteractionDistance(entity){
+ const p=npcInteractionPoint(entity);
+ return Math.hypot(player.x-p.x,player.y-p.y);
+}
 function npcInteriorKey(){return !insidePub?null:(activeShop?Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop):"pub");}
 function showInteriorNPCs(interior){
  for(const def of NPC_DEFINITIONS){
@@ -590,6 +609,7 @@ function showInteriorNPCs(interior){
   const visible=interior===def.interior;
   entity.sprite.setVisible(visible&&npcCurrentEnabled(def.id));
   entity.label.setVisible(visible&&npcCurrentEnabled(def.id));
+  if(!visible&&entity.sprite.anims.isPlaying)entity.sprite.anims.stop();
  }
 }
 function initializeNPCs(scene){
@@ -713,7 +733,7 @@ function npcNearestTarget(){
  let closest=null,best=limit;
  for(const entity of npcEntities.values()){
   if(entity.definition.interior!==interior||!entity.sprite.visible)continue;
-  const distance=Math.hypot(player.x-entity.x,player.y-entity.y);
+  const distance=npcInteractionDistance(entity);
   if(distance<best){closest=entity;best=distance;}
  }
  return closest;
@@ -741,7 +761,7 @@ function npcCloseDialogue(){
 }
 function npcOpenDialogue(entity){
  if(!entity||npcDialogue||!insidePub||entity.definition.interior!==npcInteriorKey())return;
- if(Math.hypot(player.x-entity.x,player.y-entity.y)>cfg("npc.interactRadius"))return;
+ if(!npcCurrentEnabled(entity.definition.id)||npcInteractionDistance(entity)>cfg("npc.interactRadius"))return;
  npcDialogue=entity;
  entity.savedNpcState=entity.state;
  entity.savedNpcClock=entity.stateClock;
@@ -776,7 +796,7 @@ function npcChooseAction(entity,action){
  if(now-npcActionAt<cfg("npc.interactCooldownMs"))return;
  npcActionAt=now;
  if(entity!==npcDialogue||!insidePub||npcInteriorKey()!==entity.definition.interior
-    ||Math.hypot(player.x-entity.x,player.y-entity.y)>cfg("npc.interactRadius")){
+    ||!npcCurrentEnabled(entity.definition.id)||npcInteractionDistance(entity)>cfg("npc.interactRadius")){
   npcCloseDialogue();return;
  }
  if(action==="talk"){
@@ -804,7 +824,15 @@ function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
 function intersects(x,y){
  const w=13,h=11;
  if(x<25||y<25||x>mapSize.w-25||y>mapSize.h-25)return true;
- if(insidePub)return (activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh);
+ if(insidePub){
+  if((activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh))return true;
+  const room=npcInteriorKey(),r=20;
+  // Avoid trapping an already-overlapping player: allow steps that increase separation.
+  return Array.from(npcEntities.values()).some(n=>
+   n.definition.interior===room&&npcCurrentEnabled(n.definition.id)&&
+   Math.hypot(x-n.x,y-n.y)<r&&
+   Math.hypot(x-n.x,y-n.y)+.01<Math.hypot(player.x-n.x,player.y-n.y));
+ }
  // The bike rack is on a sidewalk incorrectly covered by the broad building polygon.
  if(x>=635&&x<=765&&y>=785&&y<=935)return false;
  return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
@@ -945,7 +973,7 @@ function interact(){
  if(npcDialogue){npcCloseDialogue();return;}
  if(insidePub){
   const nearest=npcNearestTarget();
-  if(nearest&&Math.hypot(player.x-nearest.x,player.y-nearest.y)<npcExitDistance()
+  if(nearest&&npcInteractionDistance(nearest)<npcExitDistance()
      &&npcExitDistance()>=70){npcOpenDialogue(nearest);return;}
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(near(player,exit.x,exit.y,96))leavePub();
