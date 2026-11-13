@@ -273,6 +273,8 @@ function intersects(x,y){
  const w=13,h=11;
  if(x<25||y<25||x>mapSize.w-25||y>mapSize.h-25)return true;
  if(insidePub)return (activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh);
+ // The bike rack is on a sidewalk incorrectly covered by the broad building polygon.
+ if(x>=635&&x<=765&&y>=785&&y<=935)return false;
  return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
 }
 function enterShop(shop){
@@ -373,7 +375,7 @@ class VehicleController {
    x:px+fw.x*halfL*f+side.x*halfW*t,
    y:py+fw.y*halfL*f+side.y*halfW*t
   })));
-  const blocked=p=>p.x<18||p.y<18||p.x>mapSize.w-18||p.y>mapSize.h-18?true:bicycle&&p.x>=635&&p.x<=755&&p.y>=795&&p.y<=925?false:collisionPolygons.some(poly=>insidePolygon(p.x,p.y,poly));
+  const blocked=p=>p.x<18||p.y<18||p.x>mapSize.w-18||p.y>mapSize.h-18?true:bicycle&&p.x>=635&&p.x<=765&&p.y>=785&&p.y<=935?false:collisionPolygons.some(poly=>insidePolygon(p.x,p.y,poly));
   if(corners.some(blocked)){v.speed*=-.08;return;}
   v.x=px;v.y=py;
  }
