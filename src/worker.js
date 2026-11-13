@@ -245,6 +245,7 @@ const tramPeriodMs=()=>cfg("tram.interval")*1000;
 const tramRunMs=()=>Math.max(1000,Math.min(cfg("tram.travelTime")*1000,tramPeriodMs()-TRAM_DWELL_MS-250));
 const tramFirstLegRatio=Math.hypot(TRAM_STOP.x-TRAM_START.x,TRAM_STOP.y-TRAM_START.y)/Math.hypot(TRAM_END.x-TRAM_START.x,TRAM_END.y-TRAM_START.y);
 const TRAM_ANGLE=Math.atan2(TRAM_END.x-TRAM_START.x,-(TRAM_END.y-TRAM_START.y));
+let riderSprite=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const touchInput={x:0,y:0};
 const joystick=document.getElementById("joystick"),knob=document.getElementById("joystick-knob");
@@ -332,6 +333,11 @@ function enterOrExitCar(){
   const choice=registeredVehicles().filter(v=>v.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
   if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){show("Move closer to a car or Bubi bike.");return;}
   activeVehicle=choice.model;choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
+  if(riderSprite){
+    riderSprite.anims.stop();riderSprite.setFrame(0);
+    riderSprite.setVisible(choice.model.type==="bike");
+    if(choice.model.type==="bike")updateBikeRider(choice.model,false);
+  }
   scene.cameras.main.startFollow(choice.sprite,true,.13,.13);status.textContent="Riding: "+choice.label;
   show(choice.label+" · W pedal/accelerate · S brake · A/D steer · E dismount.");
  }else{
@@ -340,8 +346,31 @@ function enterOrExitCar(){
   const pos=offsets.map(([x,y])=>({x:vehicle.x+x,y:vehicle.y+y})).find(p=>!intersects(p.x,p.y));
   if(!pos){show("No safe dismount location. Move farther.");return;}
   vehicle.driver=false;vehicle.speed=0;vehicle.wheelTurn=0;activeVehicle=null;
+  if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
   player.x=pos.x;player.y=pos.y;character.setPosition(player.x,player.y).setVisible(true);
   scene.cameras.main.startFollow(character,true,.13,.13);status.textContent="On foot";show("Dismounted.");
+ }
+}
+// The playable avatar is drawn on top of the bicycle and rotates with its heading.
+// The eight-frame walking strip supplies animated legs for pedalling.
+function updateBikeRider(bike,pedalling){
+ if(!riderSprite)return;
+ const length=cfg("vehicle."+bike.id+".length");
+ const width=cfg("vehicle."+bike.id+".width");
+ const riderHeight=Phaser.Math.Clamp(length*.78,18,54);
+ const riderWidth=Phaser.Math.Clamp(Math.max(width*.94,riderHeight*.62),12,35);
+ riderSprite.setDisplaySize(riderWidth,riderHeight);
+ // Slightly rearward of the handlebars, keeping the rider seated on the frame.
+ const backwards=length*.06;
+ riderSprite.setPosition(bike.x-Math.sin(bike.angle)*backwards,
+                         bike.y+Math.cos(bike.angle)*backwards)
+            .setRotation(bike.angle).setVisible(true);
+ if(pedalling){
+   if(!riderSprite.anims.isPlaying)riderSprite.play("walk-down",true);
+   riderSprite.anims.timeScale=Phaser.Math.Clamp(.75+Math.abs(bike.speed)/95,.75,2.1);
+ }else{
+   if(riderSprite.anims.isPlaying)riderSprite.anims.stop();
+   riderSprite.setFrame(0);
  }
 }
 // VehicleController ported from KulturalisDigitalisPolgariKor/src/entities/Vehicle.ts.
@@ -446,6 +475,8 @@ class Explore extends Phaser.Scene{
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(cfg("character.streetScale"));character.setOrigin(0.5,1.0);
+   riderSprite=this.add.sprite(0,0,"maestro",0).setDepth(8)
+     .setOrigin(.5,.54).setVisible(false);
    if(!this.textures.exists("skoda")){
      // Render an obvious, interactable placeholder if the remote image fails.
      const fallback=this.make.graphics({x:0,y:0},false);
@@ -483,6 +514,7 @@ class Explore extends Phaser.Scene{
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
+   if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
    car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
    octavia.x=cfg("vehicle.octavia.spawnX");octavia.y=cfg("vehicle.octavia.spawnY");octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
    bikes.forEach((bike,i)=>{bike.x=cfg("vehicle."+bike.id+".spawnX");bike.y=cfg("vehicle."+bike.id+".spawnY");bike.angle=cfg("vehicle."+bike.id+".angle")*Math.PI/180;bike.speed=0;bike.wheelTurn=0;bikeSprites[i]?.setPosition(bike.x,bike.y).setRotation(bike.angle);});
@@ -525,6 +557,10 @@ class Explore extends Phaser.Scene{
      if(sprite&&controller){
        controller.update(dx,dy,Math.min(.04,delta/1000));
        sprite.setPosition(activeVehicle.x,activeVehicle.y).setRotation(activeVehicle.angle);
+       if(activeVehicle.type==="bike"){
+         const pedalling=dy < -.12; // W / up-arrow / mobile joystick forward
+         updateBikeRider(activeVehicle,pedalling);
+       }else if(riderSprite)riderSprite.setVisible(false);
        coords.textContent=(activeVehicle.type==="bike"?"🚲 ":"🚗 ")+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
      }
    }
