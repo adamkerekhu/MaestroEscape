@@ -318,6 +318,7 @@ h1{margin:0;font-size:22px;letter-spacing:.04em;color:#ffcb7b}header p{margin:3p
 #npc-dialogue .npc-reason{color:#b6c2d1;font-size:11px;margin-top:3px}
 #npc-dialogue button.npc-close{background:#37435a;text-align:center}
 #npc-dialogue[hidden],#npc-prompt[hidden]{display:none!important}
+#npc-dialogue:not([hidden]) ~ #mobile-controls{z-index:10} /* Keep the mobile E action operable to close dialogue. */
 @media(hover:none) and (pointer:coarse){#npc-prompt{bottom:3%;font-size:11px}#npc-dialogue .dialogue-panel{max-height:84%}}
 #splash{position:absolute;inset:0;display:grid;place-items:center;background:#131b29;z-index:2;text-align:center;padding:20px;font-size:18px}
 #instructions{max-width:1360px;margin:12px auto;padding:0 12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aebbc8}
@@ -381,8 +382,10 @@ const applyRemoteSettings=data=>{
    character?.setScale?.(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
    tramSprite?.setDisplaySize?.(cfg("tram.width"),cfg("tram.length"));
    const previous=JSON.parse(before||"{}");
-   if(Object.keys(overrides).some(key=>key.startsWith("npc.")&&Number(overrides[key])!==Number(previous[key])))
+   if(Object.keys(overrides).some(key=>key.startsWith("npc.")&&Number(overrides[key])!==Number(previous[key]))){
+     if(npcDialogue)npcCloseDialogue(); // A remote edit cannot strand an open conversation.
      npcRefreshSettings();
+   }
  }
 };
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
