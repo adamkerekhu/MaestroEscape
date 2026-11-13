@@ -4,22 +4,46 @@
 const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"}]}];
 const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67};
 const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MaestroEscape · Game Settings</title><style>
-:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are saved in this browser.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored on this device, not in the server.</footer></main><script>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
+
  let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{}
  const root=document.getElementById("sections"),notice=document.getElementById("notice");
  const lookup=Object.fromEntries(groups.flatMap(group=>group.fields.map(field=>[field.key,field])));
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
- let values=normalize({...defaults,...saved});
- function store(){localStorage.setItem(KEY,JSON.stringify(values));notice.textContent="Saved automatically. Return to the game to apply.";}
+ let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0;
+ try {
+   const remote=await fetch("/api/settings",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable");return r.json()});
+   values=normalize({...defaults,...remote.settings});
+   lastPersisted=JSON.stringify(values);
+   if(!remote.initialized&&Object.keys(saved).length){
+     values=normalize({...defaults,...saved});
+     await push();
+     notice.textContent="Imported earlier device settings to the shared configuration.";
+   }
+ }catch(error){notice.textContent="Cloud settings unavailable. Changes cannot be saved.";console.error(error);}
+ async function push(){
+   const payload=JSON.stringify(values);
+   if(payload===lastPersisted)return;
+   notice.textContent="Saving shared settings…";
+   try{
+     const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:payload});
+     if(!response.ok)throw Error("Save failed: "+response.status);
+     lastPersisted=payload;
+     localStorage.setItem(KEY,payload);
+     notice.textContent="Saved for all devices. Return to the game to apply.";
+   }catch(error){notice.textContent="Save failed. Check your connection and try again.";console.error(error);}
+ }
+ function store(){notice.textContent="Saving…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),350);}
  function draw(){root.innerHTML="";for(const group of groups){const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
  document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw()};
  document.getElementById("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(values,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="maestroescape-settings.json";a.click();URL.revokeObjectURL(url);};
+ document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();};
  const file=document.getElementById("file");document.getElementById("import").onclick=()=>file.click();file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||typeof data!=="object"||Array.isArray(data))throw Error("Invalid file");values=normalize({...defaults,...data});store();draw();}catch{notice.textContent="Unable to import: invalid settings JSON."}file.value="";};
- draw();notice.textContent="Changes save automatically.";
+ draw();if(!notice.textContent.includes("unavailable")&&!notice.textContent.includes("Imported"))notice.textContent="Shared settings loaded. Changes save automatically.";
 })();
 </script></body></html>`;
 const HTML = String.raw`<!doctype html>
@@ -38,25 +62,21 @@ kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white
 #msg{font-weight:bold;color:#f5cf89}button{border:1px solid #59677c;background:#273448;color:white;padding:7px 11px;border-radius:7px;cursor:pointer}
 @media(max-width:620px){header{flex-direction:column;align-items:flex-start}#hud{flex-wrap:wrap}}
 a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7px 11px;border-radius:7px;text-decoration:none;white-space:nowrap}
-#mobile-controls{display:none;max-width:1360px;margin:10px auto;padding:0 16px;align-items:center;justify-content:space-between;gap:22px;touch-action:none;user-select:none;-webkit-user-select:none}
-#mobile-controls .dpad{display:grid;grid-template-columns:repeat(3,58px);grid-template-rows:repeat(2,58px);gap:7px}
-#mobile-controls button{width:58px;height:58px;font-size:22px;font-weight:800;border-radius:12px;background:#34445e;border:1px solid #7185a5;color:white;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-#mobile-controls button.active{background:#557d9b;transform:scale(.96)}
-#mobile-controls .action{width:78px;height:78px;border-radius:50%;background:#b98339;color:#fff;font-size:28px}
-@media(max-width:760px){#mobile-controls{display:flex}#instructions>div{display:none}}
+#mobile-controls{display:none;position:absolute;inset:0;z-index:3;pointer-events:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#joystick{position:absolute;left:3.5%;bottom:6%;width:clamp(70px,18vmin,124px);height:clamp(70px,18vmin,124px);border-radius:50%;background:#19253888;border:2px solid #dce8fa88;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent}
+#joystick-knob{width:44%;height:44%;position:absolute;left:28%;top:28%;border-radius:50%;background:#c3d7ecdd;box-shadow:0 2px 8px #09131f99;pointer-events:none;transform:translate(0,0)}
+#mobile-controls .action{position:absolute;right:4%;bottom:8%;width:clamp(65px,13vmin,94px);height:clamp(65px,13vmin,94px);border-radius:50%;border:2px solid #fff2ca9e;background:#a96a2bcc;color:#fff8dc;font-size:clamp(24px,5vmin,34px);font-weight:800;pointer-events:auto;touch-action:none;-webkit-tap-highlight-color:transparent}
+#screen{touch-action:pan-x pan-y}
+@media(hover:none) and (pointer:coarse){#mobile-controls{display:block}#instructions>div{display:none}}
+@media(max-width:900px) and (orientation:landscape) and (pointer:coarse){header{padding:3px 10px}header p{display:none}h1{font-size:15px}#hud{font-size:11px;gap:5px}#screen{height:calc(100dvh - 82px);width:auto;max-width:100%;aspect-ratio:16/9;margin:auto}#joystick{bottom:5%}}
 
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
-<div id="mobile-controls" aria-label="Touch game controls">
- <div class="dpad">
-  <span></span><button type="button" data-control="w" aria-label="Move up">W</button><span></span>
-  <button type="button" data-control="a" aria-label="Move left">A</button>
-  <button type="button" data-control="s" aria-label="Move down">S</button>
-  <button type="button" data-control="d" aria-label="Move right">D</button>
- </div>
- <button type="button" class="action" data-control="e" aria-label="Interact">E</button>
+<div id="mobile-controls" aria-label="Touch controls">
+ <div id="joystick" role="application" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
+ <button type="button" class="action" id="mobile-interact" aria-label="Interact">E</button>
 </div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
@@ -66,7 +86,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 if(!window.Phaser){document.getElementById('splash').textContent="Could not load Phaser. Check internet access.";return;}
 const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const configDefaults=__MAESTRO_DEFAULT_SETTINGS__;
-let overrides={};try{const raw=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"{}");if(raw&&typeof raw==="object")overrides=raw;}catch{}
+let overrides={};
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
@@ -124,18 +144,25 @@ const tramRunMs=()=>Math.max(1000,Math.min(cfg("tram.travelTime")*1000,tramPerio
 const tramFirstLegRatio=Math.hypot(TRAM_STOP.x-TRAM_START.x,TRAM_STOP.y-TRAM_START.y)/Math.hypot(TRAM_END.x-TRAM_START.x,TRAM_END.y-TRAM_START.y);
 const TRAM_ANGLE=Math.atan2(TRAM_END.x-TRAM_START.x,-(TRAM_END.y-TRAM_START.y));
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
-const touchInput={w:false,a:false,s:false,d:false};
-for(const button of document.querySelectorAll("#mobile-controls button")){
- const code=button.dataset.control;
- const release=event=>{if(code!=="e"){touchInput[code]=false;button.classList.remove("active");}event.preventDefault();};
- button.addEventListener("pointerdown",event=>{
-  event.preventDefault();
-  button.setPointerCapture(event.pointerId);
-  if(code==="e"){if(scene)interact();return;}
-  touchInput[code]=true;button.classList.add("active");
- });
- for(const type of ["pointerup","pointercancel","lostpointercapture"])button.addEventListener(type,release);
+const touchInput={x:0,y:0};
+const joystick=document.getElementById("joystick"),knob=document.getElementById("joystick-knob");
+let joystickPointer=null;
+function joystickMove(event){
+ const box=joystick.getBoundingClientRect();
+ const midX=box.left+box.width/2,midY=box.top+box.height/2;
+ const dx=event.clientX-midX,dy=event.clientY-midY,limit=box.width*.30;
+ const distance=Math.hypot(dx,dy);
+ const scale=distance>limit?limit/distance:1;
+ touchInput.x=dx*scale/limit;touchInput.y=dy*scale/limit;
+ knob.style.transform="translate("+dx*scale+"px,"+dy*scale+"px)";
 }
+function joystickRelease(){joystickPointer=null;touchInput.x=0;touchInput.y=0;knob.style.transform="translate(0,0)";}
+joystick.addEventListener("pointerdown",event=>{event.preventDefault();joystickPointer=event.pointerId;joystick.setPointerCapture(event.pointerId);joystickMove(event);});
+joystick.addEventListener("pointermove",event=>{if(event.pointerId===joystickPointer){event.preventDefault();joystickMove(event);}});
+joystick.addEventListener("pointerup",joystickRelease);
+joystick.addEventListener("pointercancel",joystickRelease);
+joystick.addEventListener("lostpointercapture",joystickRelease);
+document.getElementById("mobile-interact").addEventListener("pointerdown",event=>{event.preventDefault();if(scene)interact();});
 
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
@@ -384,8 +411,8 @@ class Explore extends Phaser.Scene{
        tramSprite.setPosition(x,y).setRotation(TRAM_ANGLE).setVisible(true);
      }else tramSprite.setVisible(false);
    }
-   let dx=Number(keys.D.isDown||keys.RIGHT.isDown||touchInput.d)-Number(keys.A.isDown||keys.LEFT.isDown||touchInput.a);
-   let dy=Number(keys.S.isDown||keys.DOWN.isDown||touchInput.s)-Number(keys.W.isDown||keys.UP.isDown||touchInput.w);
+   let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
+   let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
    if(activeVehicle){
      const sprite=activeVehicle===car?carSprite:octaviaSprite;
@@ -412,12 +439,52 @@ class Explore extends Phaser.Scene{
  }
 }
 document.getElementById("reset").onclick=()=>scene?.respawn();
-new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
+(async()=>{
+ try{
+   const response=await fetch("/api/settings",{cache:"no-store"});
+   if(!response.ok)throw new Error("Shared settings unavailable");
+   const data=await response.json();
+   if(data.settings&&typeof data.settings==="object")overrides=data.settings;
+ }catch(error){console.error("Using default settings",error);show("Shared settings unavailable; using defaults.");}
+ new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
+})();
 })();
 </script></body></html>`;
-export default {
+
+export class GameSettings {
+ constructor(ctx,env){this.ctx=ctx;this.env=env;}
  async fetch(request){
+  if(request.method==="GET"){
+   const current=await this.ctx.storage.get("settings");
+   return Response.json({settings:current||SETTINGS_DEFAULTS,initialized:!!current},{headers:{"cache-control":"no-store"}});
+  }
+  if(request.method==="PUT"){
+   try{
+     const input=await request.json();
+     if(!input||typeof input!=="object"||Array.isArray(input))return new Response("Invalid settings",{status:400});
+     const fields=Object.fromEntries(SETTINGS_GROUPS.flatMap(g=>g.fields.map(f=>[f.key,f])));
+     const clean={...SETTINGS_DEFAULTS};
+     for(const [key,field] of Object.entries(fields)){
+       const raw=input[key],value=raw===undefined?field.value:Number(raw);
+       if(!Number.isFinite(value))return new Response("Invalid value: "+key,{status:400});
+       clean[key]=Math.min(field.max,Math.max(field.min,value));
+     }
+     await this.ctx.storage.put("settings",clean);
+     return Response.json({settings:clean,ok:true});
+   }catch(error){return new Response("Invalid settings request",{status:400});}
+  }
+  return new Response("Method not allowed",{status:405});
+ }
+}
+
+export default {
+ async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==="/api/settings"){
+    if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage unavailable"},{status:503});
+    const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
+    return stub.fetch(new Request("https://settings.internal/",{method:request.method,headers:request.headers,body:request.method==="PUT"?request.body:undefined}));
+  }
   if(url.pathname==="/settings")return new Response(SETTINGS_HTML,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/settings/schema")return Response.json({groups:SETTINGS_GROUPS,defaults:SETTINGS_DEFAULTS});
   if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-with-skoda",vehicle:"Skoda Superb 2.0TDI"});

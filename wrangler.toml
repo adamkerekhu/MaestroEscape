@@ -11,3 +11,11 @@ new_sqlite_classes = ["GameRoom"]
 [[migrations]]
 tag = "maestro-escape-remove-gameroom-v2"
 deleted_classes = ["GameRoom"]
+
+[[durable_objects.bindings]]
+name = "SETTINGS_STORE"
+class_name = "GameSettings"
+
+[[migrations]]
+tag = "maestro-escape-shared-settings-v3"
+new_sqlite_classes = ["GameSettings"]
