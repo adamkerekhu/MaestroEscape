@@ -325,7 +325,7 @@ class Explore extends Phaser.Scene{
      carSprite=this.add.image(car.x,car.y,"skoda-fallback").setDepth(6).setDisplaySize(cfg("vehicle.skoda.width"),cfg("vehicle.skoda.length")).setRotation(car.angle);
      show("Skoda picture unavailable, but the car can still be driven.");
    }else{
-     carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
+     carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(cfg("vehicle.skoda.width"),cfg("vehicle.skoda.length")).setRotation(car.angle);
    }
    vehicleController=new VehicleController(car,carSprite);
    if(this.textures.exists("octavia")){
@@ -343,7 +343,7 @@ class Explore extends Phaser.Scene{
    this.input.keyboard.on("keydown-R",()=>this.respawn());
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
-   this.cameras.main.setZoom(2.03);
+   this.cameras.main.setZoom(cfg("camera.streetZoom"));
    this.input.mouse?.disableContextMenu();
    loadOriginalCollision().then(()=>this.respawn());
  }
