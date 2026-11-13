@@ -228,11 +228,140 @@ const interiorWalls=[
 [1154,50,26,166],[851,0,329,46],[842,45,26,154]
 ];
 
-// Phase 1: data-driven, stationary scene-local NPC renders. No task grants or movement.
+// Phase 2: deterministic local NPC behavior; no purchases, multiplayer authority or task grants.
 // NPC sheets in Assets/NPCs are 4x4 frames (48x60): down,left,right,up; 4 frames each.
-const NPC_DEFINITIONS=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker","x":413,"y":210,"face":"down","scale":2},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian","x":342,"y":511,"face":"left","scale":2},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian","x":648,"y":707,"face":"right","scale":2},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian","x":1043,"y":774,"face":"up","scale":2},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker","x":478,"y":224,"face":"down","scale":0.99},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian","x":233,"y":249,"face":"right","scale":0.99},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian","x":624,"y":243,"face":"left","scale":0.99},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker","x":519,"y":416,"face":"down","scale":0.89},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker","x":294,"y":291,"face":"down","scale":1.12}];
+const NPC_DEFINITIONS=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker","x":413,"y":210,"face":"down","scale":2},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian","x":342,"y":511,"face":"left","scale":2},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian","x":648,"y":707,"face":"right","scale":2},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian","x":1043,"y":774,"face":"up","scale":2},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker","x":478,"y":224,"face":"down","scale":0.99},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian","x":233,"y":249,"face":"right","scale":0.99},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian","x":636,"y":243,"face":"left","scale":0.99},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker","x":519,"y":416,"face":"down","scale":0.89},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker","x":294,"y":291,"face":"down","scale":1.12}];
 const NPC_FACING={down:0,left:4,right:8,up:12};
 const npcEntities=new Map();
+
+// Authorable, deliberately short paths on unobstructed interior floor.
+// A route is attempted only after its entire segment passes collision checking.
+const NPC_ROUTINES={
+ maestro_regular_1:{route:[[36,0],[36,32],[0,32],[0,0]],idleMs:3700,walkSpeed:35,walkFrameMs:210,seatMs:7500},
+ maestro_regular_2:{route:[[38,0],[38,25],[0,25],[0,0]],idleMs:4500,walkSpeed:32,walkFrameMs:225,seatMs:8400},
+ maestro_regular_3:{route:[[-35,0],[-35,-28],[0,-28],[0,0]],idleMs:5000,walkSpeed:34,walkFrameMs:220,seatMs:9200},
+ spar_shopper_1:{route:[[-25,0],[-25,27],[0,27],[0,0]],idleMs:2400,walkSpeed:24,walkFrameMs:230,seatMs:4000},
+ spar_shopper_2:{route:[[20,0],[20,-35],[0,-35],[0,0]],idleMs:3300,walkSpeed:26,walkFrameMs:230,seatMs:4200}
+};
+const NPC_WORK_MS={maestro_bartender:2600,spar_cashier:2100,tobacco_cashier:2800,gyros_employee:1850};
+const NPC_STEP_RADIUS=9;
+function npcFloorPassable(interior,x,y){
+ const area=interior==="pub"?INTERIOR_SIZE:SHOPS[interior]?.size;
+ const walls=interior==="pub"?interiorWalls:SHOPS[interior]?.walls;
+ if(!area||!walls||x<18||y<18||x>area.w-18||y>area.h-18)return false;
+ const r=NPC_STEP_RADIUS;
+ return !walls.some(([bx,by,bw,bh])=>x+r>bx&&x-r<bx+bw&&y+r>by&&y-r<by+bh);
+}
+function npcSegmentClear(interior,x1,y1,x2,y2){
+ const length=Math.hypot(x2-x1,y2-y1),samples=Math.max(1,Math.ceil(length/5));
+ for(let step=0;step<=samples;step++){
+  const t=step/samples;
+  if(!npcFloorPassable(interior,x1+(x2-x1)*t,y1+(y2-y1)*t))return false;
+ }
+ return true;
+}
+function npcCanOccupy(entity,x,y){
+ if(!npcFloorPassable(entity.definition.interior,x,y))return false;
+ if(Math.hypot(player.x-x,player.y-y)<23&&insidePub&&npcInteriorKey()===entity.definition.interior)return false;
+ for(const other of npcEntities.values()){
+  if(other===entity||other.definition.interior!==entity.definition.interior)continue;
+  if(Math.hypot(other.x-x,other.y-y)<22)return false;
+ }
+ return true;
+}
+function npcSetFacing(entity,facing,walking=false){
+ if(entity.facing!==facing||entity.walking!==walking){
+  entity.facing=facing;entity.walking=walking;
+  entity.sprite.anims.stop();
+ }
+ const key="npc_"+entity.definition.id;
+ const anim=key+"_walk_"+facing;
+ if(walking&&entity.loaded&&scene?.anims?.exists(anim)){
+  if(entity.sprite.anims.currentAnim?.key!==anim||!entity.sprite.anims.isPlaying)
+   entity.sprite.play(anim,true);
+ }else{
+  entity.sprite.anims.stop();
+  entity.sprite.setFrame(NPC_FACING[facing]);
+ }
+}
+function npcApplyVisual(entity){
+ entity.sprite.setPosition(entity.x,entity.y).setDepth(5+entity.y/2000);
+ entity.label.setPosition(entity.x,entity.y-(entity.loaded?60:72)*entity.sprite.scaleY-10);
+ entity.label.setDepth(8+entity.y/2000);
+}
+function npcPickRoute(entity){
+ const routine=NPC_ROUTINES[entity.definition.id];
+ if(!routine)return false;
+ // Patrol is local and repeatable, not random. Skip any blocked target.
+ for(let attempt=0;attempt<routine.route.length;attempt++){
+  const index=(entity.routeIndex+attempt)%routine.route.length;
+  const offset=routine.route[index],target={x:entity.home.x+offset[0],y:entity.home.y+offset[1]};
+  if(Math.hypot(target.x-entity.x,target.y-entity.y)<5)continue;
+  if(!npcSegmentClear(entity.definition.interior,entity.x,entity.y,target.x,target.y))continue;
+  if(!npcCanOccupy(entity,target.x,target.y))continue;
+  entity.target=target;
+  entity.routeIndex=(index+1)%routine.route.length;
+  entity.state="walking";
+  return true;
+ }
+ return false;
+}
+function npcTick(dt){
+ const current=npcInteriorKey();
+ if(!current)return; // No invisible off-screen background wandering.
+ const stepMs=Math.min(Math.max(0,dt),45);
+ for(const entity of npcEntities.values()){
+  if(entity.definition.interior!==current)continue;
+  const routine=NPC_ROUTINES[entity.definition.id];
+  entity.stateClock+=stepMs;
+  if(!routine){
+   // Counter workers never leave the staff side.
+   const cycle=NPC_WORK_MS[entity.definition.id]||2300;
+   entity.state=entity.stateClock%cycle<cycle*.68?"working":"idle";
+   npcSetFacing(entity,entity.definition.face,false);
+   // Frame 1 provides a restrained working/handling gesture when supported.
+   if(entity.loaded&&entity.state==="working"&&Math.floor(entity.stateClock/620)%2)
+    entity.sprite.setFrame(NPC_FACING[entity.facing]+1);
+   npcApplyVisual(entity);
+   continue;
+  }
+  if(entity.state==="walking"&&entity.target){
+   const distance=Math.hypot(entity.target.x-entity.x,entity.target.y-entity.y);
+   if(distance<3){
+    entity.x=entity.target.x;entity.y=entity.target.y;entity.target=null;
+    entity.state=entity.definition.interior==="pub"?"sitting":"idle";
+    entity.waitMs=entity.definition.interior==="pub"?routine.seatMs:routine.idleMs;
+    entity.stateClock=0;
+    npcSetFacing(entity,entity.definition.face,false);
+   }else{
+    const step=Math.min(distance,routine.walkSpeed*stepMs/1000);
+    const nx=entity.x+(entity.target.x-entity.x)*step/distance;
+    const ny=entity.y+(entity.target.y-entity.y)*step/distance;
+    if(npcCanOccupy(entity,nx,ny)&&npcSegmentClear(current,entity.x,entity.y,nx,ny)){
+     entity.x=nx;entity.y=ny;
+     const facing=Math.abs(entity.target.x-entity.x)>Math.abs(entity.target.y-entity.y)?
+       (entity.target.x>entity.x?"right":"left"):(entity.target.y>entity.y?"down":"up");
+     npcSetFacing(entity,facing,true);
+    }else{
+     entity.target=null;entity.state="waiting";entity.waitMs=1500;entity.stateClock=0;
+     npcSetFacing(entity,entity.definition.face,false);
+    }
+   }
+  }else if(entity.stateClock>=entity.waitMs){
+   entity.stateClock=0;
+   if(!npcPickRoute(entity)){
+    entity.state="waiting";entity.waitMs=routine.idleMs;
+    npcSetFacing(entity,entity.definition.face,false);
+   }
+  }else{
+   // Civilians alternate between waiting, browsing and seated/idle pauses.
+   entity.state=entity.definition.interior==="pub"?"sitting":"idle";
+   npcSetFacing(entity,entity.definition.face,false);
+  }
+  npcApplyVisual(entity);
+ }
+}
+
 function npcInteriorKey(){return !insidePub?null:(activeShop?Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop):"pub");}
 function showInteriorNPCs(interior){
  for(const def of NPC_DEFINITIONS){
@@ -257,7 +386,25 @@ function initializeNPCs(scene){
     {fontFamily:"Arial",fontSize:"13px",color:"#ffffff",stroke:"#101923",strokeThickness:3,
      backgroundColor:"#152030bb",padding:{x:4,y:2}})
     .setOrigin(.5,1).setDepth(8).setVisible(false);
-  npcEntities.set(def.id,{definition:def,sprite,label});
+  // Initial worker positions are fixed; civilian routes are validated against floors.
+  const routine=NPC_ROUTINES[def.id];
+  const entity={definition:def,sprite,label,loaded,x:def.x,y:def.y,
+    home:{x:def.x,y:def.y},facing:def.face,walking:false,routeIndex:0,
+    target:null,state:routine?(def.interior==="pub"?"sitting":"idle"):"working",
+    stateClock:0,waitMs:routine?(routine.seatMs||routine.idleMs):0};
+  // For civilians whose authoring anchor crosses a shelf edge, search near the seat
+  // without relocating counter employees into customer-only floor areas.
+  if(routine&&!npcFloorPassable(def.interior,entity.x,entity.y)){
+   let found=false;
+   for(let r=8;r<=80&&!found;r+=8)for(let a=0;a<16;a++){
+    const angle=a*Math.PI/8,nx=def.x+Math.cos(angle)*r,ny=def.y+Math.sin(angle)*r;
+    if(npcFloorPassable(def.interior,nx,ny)){
+     entity.x=nx;entity.y=ny;entity.home={x:nx,y:ny};found=true;break;
+    }
+   }
+  }
+  npcApplyVisual(entity);
+  npcEntities.set(def.id,entity);
  }
 }
 
@@ -506,6 +653,16 @@ class Explore extends Phaser.Scene{
    }
    mapSize={w:1600,h:992};
    initializeNPCs(this);
+   for(const def of NPC_DEFINITIONS){
+    const key="npc_"+def.id;
+    if(!this.textures.exists(key))continue;
+    for(const [face,start] of Object.entries(NPC_FACING)){
+     const anim=key+"_walk_"+face;
+     if(!this.anims.exists(anim))this.anims.create({key:anim,
+       frames:this.anims.generateFrameNumbers(key,{start,end:start+3}),
+       frameRate:5,repeat:-1});
+    }
+   }
    const gfx=this.add.graphics().setDepth(2);
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
@@ -562,6 +719,7 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
+   npcTick(delta);
    // Tram follows the diagonal tracks, stops at the platform for 3 seconds, and repeats.
    if(tramSprite){
      const phase=time%tramPeriodMs();
