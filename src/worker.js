@@ -49,6 +49,27 @@ const PUB_DOOR={x:825,y:547};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
 let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
+function shopZoom(shop){return Math.max(1280/shop.size.w,720/shop.size.h);}
+function shopCharacterScale(shop){return 1.296*0.825/shopZoom(shop);}
+function setStreetfronts(visible){
+ for(const shop of Object.values(SHOPS))if(shop.front)shop.front.setVisible(visible);
+}
+function addShopfronts(scene){
+ const styles={dohanybolt:{color:0x4d4a32,awning:0xf2d48a},spar:{color:0xb52235,awning:0xecebea},gyros:{color:0xb64b2b,awning:0xffc65e}};
+ for(const [id,shop] of Object.entries(SHOPS)){
+  const st=styles[id],container=scene.add.container(shop.door.x,shop.door.y).setDepth(3);
+  const g=scene.add.graphics();
+  // Place a compact storefront directly over the existing building's street edge.
+  g.fillStyle(0x171b21,0.95).fillRoundedRect(-47,-17,94,34,4);
+  g.fillStyle(st.color,1).fillRoundedRect(-44,-15,88,21,3);
+  for(let i=0;i<6;i++){g.fillStyle(i%2?0xffffff:st.awning,0.95).fillRect(-44+i*14.7,7,14.7,7);}
+  g.fillStyle(0x384955,1).fillRect(-9,14,18,13);
+  g.lineStyle(1,0xcad2d6,1).strokeRect(-9,14,18,13);
+  const label=scene.add.text(0,-6,SHOP_NAMES[id],{fontFamily:"Arial",fontSize:id==="gyros"?"10px":"12px",fontStyle:"bold",color:"#ffffff",stroke:"#1b1b1b",strokeThickness:2}).setOrigin(.5);
+  container.add([g,label]);container.setRotation(-0.35);shop.front=container;
+ }
+}
 const SHOPS={
  dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:355,y:196},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
  spar:{label:"SPAR",door:{x:951,y:635},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
@@ -95,12 +116,12 @@ function enterShop(shop){
  if(!shop.image){show(shop.label+" map is loading. Please try again.");return;}
  if(car.driver){show("Exit the Skoda first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
- character.setScale(1.296);mapSize={...shop.size};
- streetImage.setVisible(false);if(interiorImage)interiorImage.setVisible(false);
+ character.setScale(shopCharacterScale(shop));mapSize={...shop.size};
+ streetImage.setVisible(false);setStreetfronts(false);if(interiorImage)interiorImage.setVisible(false);
  for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
  if(carSprite)carSprite.setVisible(false);
  player.x=shop.spawn.x;player.y=shop.spawn.y;character.setPosition(player.x,player.y);
- scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(0.825);
+ scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(shopZoom(shop));
  status.textContent="Inside "+shop.label;
  show("Inside "+shop.label+". Press E near the entrance to exit.");
 }
@@ -110,7 +131,7 @@ function enterPub(){
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=null;
  character.setScale(1.296);
  mapSize={...INTERIOR_SIZE};
- streetImage.setVisible(false);interiorImage.setVisible(true);
+ streetImage.setVisible(false);setStreetfronts(false);interiorImage.setVisible(true);
  if(carSprite)carSprite.setVisible(false);
  player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
  character.setPosition(player.x,player.y);
@@ -122,7 +143,7 @@ function enterPub(){
 function leavePub(){
  insidePub=false;activeShop=null;character.setScale(0.324);mapSize={w:1600,h:992};
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
- interiorImage.setVisible(false);streetImage.setVisible(true);
+ interiorImage.setVisible(false);streetImage.setVisible(true);setStreetfronts(true);
  if(carSprite)carSprite.setVisible(true);
  if(exitHint)exitHint.setVisible(false);
  player.x=streetPos.x;player.y=streetPos.y;
@@ -238,6 +259,7 @@ class Explore extends Phaser.Scene{
        {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
        stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
    }
+   addShopfronts(this);
    for(const [name,shop] of Object.entries(SHOPS)){
      if(this.textures.exists("shop_"+name)){
        shop.image=this.add.image(0,0,"shop_"+name).setOrigin(0,0)
@@ -294,7 +316,7 @@ class Explore extends Phaser.Scene{
       coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
    }else{
    }
-   const cameraZoom=insidePub?0.825:car.driver?DRIVING_ZOOM:2.03;
+   const cameraZoom=insidePub?(activeShop?shopZoom(activeShop):0.825):car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(car.driver)return;
    if(exitHint)exitHint.setVisible(insidePub && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
