@@ -333,11 +333,11 @@ function enterOrExitCar(){
   const choice=registeredVehicles().filter(v=>v.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
   if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){show("Move closer to a car or Bubi bike.");return;}
   activeVehicle=choice.model;choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
-  if(riderSprite){
-    riderSprite.anims.stop();riderSprite.setFrame(0);
-    riderSprite.setVisible(choice.model.type==="bike");
-    if(choice.model.type==="bike")updateBikeRider(choice.model,false);
-  }
+  if(choice.model.type==="bike"){
+    // Hide the empty bicycle only while the combined rider+bike sprite is visible.
+    if(riderSprite){choice.sprite.setVisible(false);riderSprite.anims.stop();riderSprite.setFrame(0);updateBikeRider(choice.model,false);}
+    else choice.sprite.setVisible(true);
+  }else if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
   scene.cameras.main.startFollow(choice.sprite,true,.13,.13);status.textContent="Riding: "+choice.label;
   show(choice.label+" · W pedal/accelerate · S brake · A/D steer · E dismount.");
  }else{
@@ -347,6 +347,7 @@ function enterOrExitCar(){
   if(!pos){show("No safe dismount location. Move farther.");return;}
   vehicle.driver=false;vehicle.speed=0;vehicle.wheelTurn=0;activeVehicle=null;
   if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
+  if(vehicle.type==="bike"){const parked=bikeSprites[bikes.indexOf(vehicle)];if(parked)parked.setVisible(true);}
   player.x=pos.x;player.y=pos.y;character.setPosition(player.x,player.y).setVisible(true);
   scene.cameras.main.startFollow(character,true,.13,.13);status.textContent="On foot";show("Dismounted.");
  }
@@ -357,19 +358,16 @@ function updateBikeRider(bike,pedalling){
  if(!riderSprite)return;
  const length=cfg("vehicle."+bike.id+".length");
  const width=cfg("vehicle."+bike.id+".width");
- const riderHeight=Phaser.Math.Clamp(length*.78,18,54);
- const riderWidth=Phaser.Math.Clamp(Math.max(width*.94,riderHeight*.62),12,35);
- riderSprite.setDisplaySize(riderWidth,riderHeight);
- // Slightly rearward of the handlebars, keeping the rider seated on the frame.
- const backwards=length*.06;
- riderSprite.setPosition(bike.x-Math.sin(bike.angle)*backwards,
-                         bike.y+Math.cos(bike.angle)*backwards)
+ // A single combined sprite: no separate character drawn over the frame.
+ riderSprite.setDisplaySize(width*1.85,length*1.2)
+            .setPosition(bike.x,bike.y)
             .setRotation(bike.angle).setVisible(true);
  if(pedalling){
-   if(!riderSprite.anims.isPlaying)riderSprite.play("walk-down",true);
-   riderSprite.anims.timeScale=Phaser.Math.Clamp(.75+Math.abs(bike.speed)/95,.75,2.1);
+   if(!riderSprite.anims.isPlaying||riderSprite.anims.currentAnim?.key!=="bubi-pedal")
+     riderSprite.play("bubi-pedal");
+   riderSprite.anims.timeScale=Phaser.Math.Clamp(.75+Math.abs(bike.speed)/95,.75,2);
  }else{
-   if(riderSprite.anims.isPlaying)riderSprite.anims.stop();
+   riderSprite.anims.stop();
    riderSprite.setFrame(0);
  }
 }
@@ -448,6 +446,7 @@ class Explore extends Phaser.Scene{
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
    this.load.image("bubi","/assets/bubi.webp");
+   this.load.spritesheet("bubi-rider","/assets/bubi-rider.webp",{frameWidth:112,frameHeight:224});
    this.load.image("tram","/assets/tram.webp");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
@@ -475,8 +474,7 @@ class Explore extends Phaser.Scene{
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(cfg("character.streetScale"));character.setOrigin(0.5,1.0);
-   riderSprite=this.add.sprite(0,0,"maestro",0).setDepth(8)
-     .setOrigin(.5,.54).setVisible(false);
+   riderSprite=this.textures.exists("bubi-rider")?this.add.sprite(0,0,"bubi-rider",0).setDepth(8).setOrigin(.5).setVisible(false):null;
    if(!this.textures.exists("skoda")){
      // Render an obvious, interactable placeholder if the remote image fails.
      const fallback=this.make.graphics({x:0,y:0},false);
@@ -501,6 +499,7 @@ class Explore extends Phaser.Scene{
      tramSprite=this.add.image(TRAM_START.x,TRAM_START.y,"tram").setDepth(4)
        .setDisplaySize(cfg("tram.width"),cfg("tram.length")).setRotation(TRAM_ANGLE);
    }
+   if(this.textures.exists("bubi-rider"))this.anims.create({key:"bubi-pedal",frames:this.anims.generateFrameNumbers("bubi-rider",{start:0,end:3}),frameRate:7,repeat:-1});
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:cfg("character.animationFps"),repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
@@ -515,6 +514,7 @@ class Explore extends Phaser.Scene{
    let x=SPAWN.x,y=SPAWN.y;
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
+   for(const sprite of bikeSprites)if(sprite)sprite.setVisible(true);
    car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
    octavia.x=cfg("vehicle.octavia.spawnX");octavia.y=cfg("vehicle.octavia.spawnY");octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
    bikes.forEach((bike,i)=>{bike.x=cfg("vehicle."+bike.id+".spawnX");bike.y=cfg("vehicle."+bike.id+".spawnY");bike.angle=cfg("vehicle."+bike.id+".angle")*Math.PI/180;bike.speed=0;bike.wheelTurn=0;bikeSprites[i]?.setPosition(bike.x,bike.y).setRotation(bike.angle);});
@@ -558,8 +558,8 @@ class Explore extends Phaser.Scene{
        controller.update(dx,dy,Math.min(.04,delta/1000));
        sprite.setPosition(activeVehicle.x,activeVehicle.y).setRotation(activeVehicle.angle);
        if(activeVehicle.type==="bike"){
-         const pedalling=dy < -.12; // W / up-arrow / mobile joystick forward
-         updateBikeRider(activeVehicle,pedalling);
+         // W / up-arrow / joystick forward pedals; idle frame is shown while coasting.
+         updateBikeRider(activeVehicle,dy < -.12);
        }else if(riderSprite)riderSprite.setVisible(false);
        coords.textContent=(activeVehicle.type==="bike"?"🚲 ":"🚗 ")+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
      }
@@ -655,6 +655,11 @@ export default {
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/"+vehicle+".webp");
     if(!upstream.ok)return new Response("Vehicle asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
+  }
+  if(url.pathname==="/assets/bubi-rider.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_rider_4frames.webp");
+    if(!upstream.ok)return new Response("Riding sprites unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
   if(url.pathname==="/assets/bubi.webp"){const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_bike.webp");if(!upstream.ok)return new Response("Bubi asset unavailable",{status:502});return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});}
   if(url.pathname==="/assets/world.webp"){
