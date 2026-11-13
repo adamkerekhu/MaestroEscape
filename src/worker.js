@@ -1,26 +1,54 @@
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
 // Original Pygame source remains available in the repository.
-const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Placement and size","description":"Adjust each bike individually or drag it on the map. These values are shared across devices.","fields":[{"key":"vehicle.bike1.width","label":"Bubi 1 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike1.length","label":"Bubi 1 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnX","label":"Bubi 1 spawnX","value":670,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnY","label":"Bubi 1 spawnY","value":850,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike1.angle","label":"Bubi 1 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike2.width","label":"Bubi 2 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike2.length","label":"Bubi 2 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnX","label":"Bubi 2 spawnX","value":688,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnY","label":"Bubi 2 spawnY","value":860,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike2.angle","label":"Bubi 2 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike3.width","label":"Bubi 3 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike3.length","label":"Bubi 3 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnX","label":"Bubi 3 spawnX","value":706,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnY","label":"Bubi 3 spawnY","value":870,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike3.angle","label":"Bubi 3 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Driving","description":"Separate pedal acceleration, top speed, steering and friction.","fields":[{"key":"bike.acceleration","label":"Pedal acceleration","value":100,"min":20,"max":300,"step":5,"unit":"px/s²"},{"key":"bike.topSpeed","label":"Maximum cycling speed","value":125,"min":30,"max":270,"step":5,"unit":"px/s"},{"key":"bike.turnRate","label":"Bike steering rate","value":3.5,"min":0.3,"max":8,"step":0.1,"unit":"rad/s"},{"key":"bike.drag","label":"Bike coasting drag","value":1.5,"min":0.1,"max":6,"step":0.1,"unit":"×"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"},{"key":"npc.interactRadius","label":"NPC dialogue reach","value":108,"min":40,"max":190,"step":2,"unit":"px"},{"key":"npc.interactCooldownMs","label":"NPC action cooldown","value":450,"min":150,"max":2000,"step":50,"unit":"ms"}]}];
-const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135,"vehicle.bike1.width":15,"vehicle.bike1.length":34,"vehicle.bike1.spawnX":670,"vehicle.bike1.spawnY":850,"vehicle.bike1.angle":135,"vehicle.bike2.width":15,"vehicle.bike2.length":34,"vehicle.bike2.spawnX":688,"vehicle.bike2.spawnY":860,"vehicle.bike2.angle":135,"vehicle.bike3.width":15,"vehicle.bike3.length":34,"vehicle.bike3.spawnX":706,"vehicle.bike3.spawnY":870,"vehicle.bike3.angle":135,"bike.acceleration":100,"bike.topSpeed":125,"bike.turnRate":3.5,"bike.drag":1.5,"npc.interactRadius":108,"npc.interactCooldownMs":450};
+const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Placement and size","description":"Adjust each bike individually or drag it on the map. These values are shared across devices.","fields":[{"key":"vehicle.bike1.width","label":"Bubi 1 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike1.length","label":"Bubi 1 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnX","label":"Bubi 1 spawnX","value":670,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnY","label":"Bubi 1 spawnY","value":850,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike1.angle","label":"Bubi 1 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike2.width","label":"Bubi 2 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike2.length","label":"Bubi 2 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnX","label":"Bubi 2 spawnX","value":688,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnY","label":"Bubi 2 spawnY","value":860,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike2.angle","label":"Bubi 2 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike3.width","label":"Bubi 3 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike3.length","label":"Bubi 3 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnX","label":"Bubi 3 spawnX","value":706,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnY","label":"Bubi 3 spawnY","value":870,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike3.angle","label":"Bubi 3 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Driving","description":"Separate pedal acceleration, top speed, steering and friction.","fields":[{"key":"bike.acceleration","label":"Pedal acceleration","value":100,"min":20,"max":300,"step":5,"unit":"px/s²"},{"key":"bike.topSpeed","label":"Maximum cycling speed","value":125,"min":30,"max":270,"step":5,"unit":"px/s"},{"key":"bike.turnRate","label":"Bike steering rate","value":3.5,"min":0.3,"max":8,"step":0.1,"unit":"rad/s"},{"key":"bike.drag","label":"Bike coasting drag","value":1.5,"min":0.1,"max":6,"step":0.1,"unit":"×"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"},{"key":"npc.interactRadius","label":"NPC dialogue reach","value":108,"min":40,"max":190,"step":2,"unit":"px"},{"key":"npc.interactCooldownMs","label":"NPC action cooldown","value":450,"min":150,"max":2000,"step":50,"unit":"ms"}]},{"title":"NPCs","description":"Nine interior NPC placements and behaviour. Use the visual NPC editor.","fields":[{"key":"npc.maestro_bartender.x","label":"X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.y","label":"Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.homeX","label":"Home X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.homeY","label":"Home Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":0,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.maestro_bartender.scale","label":"Sprite scale","value":2,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.maestro_bartender.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.maestro_bartender.speed","label":"Walking speed","value":25,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.maestro_bartender.idleMs","label":"Rest time","value":2500,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.maestro_bartender.wp1X","label":"Waypoint 1 X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp1Y","label":"Waypoint 1 Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp2X","label":"Waypoint 2 X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp2Y","label":"Waypoint 2 Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp3X","label":"Waypoint 3 X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp3Y","label":"Waypoint 3 Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp4X","label":"Waypoint 4 X","value":413,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_bartender.wp4Y","label":"Waypoint 4 Y","value":210,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.x","label":"X","value":342,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.y","label":"Y","value":511,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.homeX","label":"Home X","value":342,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.homeY","label":"Home Y","value":511,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":1,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.maestro_regular_1.scale","label":"Sprite scale","value":2,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.maestro_regular_1.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.maestro_regular_1.speed","label":"Walking speed","value":35,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.maestro_regular_1.idleMs","label":"Rest time","value":7500,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.maestro_regular_1.wp1X","label":"Waypoint 1 X","value":378,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp1Y","label":"Waypoint 1 Y","value":511,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp2X","label":"Waypoint 2 X","value":378,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp2Y","label":"Waypoint 2 Y","value":543,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp3X","label":"Waypoint 3 X","value":342,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp3Y","label":"Waypoint 3 Y","value":543,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp4X","label":"Waypoint 4 X","value":342,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_1.wp4Y","label":"Waypoint 4 Y","value":511,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.x","label":"X","value":648,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.y","label":"Y","value":707,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.homeX","label":"Home X","value":648,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.homeY","label":"Home Y","value":707,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":2,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.maestro_regular_2.scale","label":"Sprite scale","value":2,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.maestro_regular_2.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.maestro_regular_2.speed","label":"Walking speed","value":32,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.maestro_regular_2.idleMs","label":"Rest time","value":8400,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.maestro_regular_2.wp1X","label":"Waypoint 1 X","value":686,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp1Y","label":"Waypoint 1 Y","value":707,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp2X","label":"Waypoint 2 X","value":686,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp2Y","label":"Waypoint 2 Y","value":732,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp3X","label":"Waypoint 3 X","value":648,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp3Y","label":"Waypoint 3 Y","value":732,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp4X","label":"Waypoint 4 X","value":648,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_2.wp4Y","label":"Waypoint 4 Y","value":707,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.x","label":"X","value":1043,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.y","label":"Y","value":774,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.homeX","label":"Home X","value":1043,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.homeY","label":"Home Y","value":774,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":3,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.maestro_regular_3.scale","label":"Sprite scale","value":2,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.maestro_regular_3.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.maestro_regular_3.speed","label":"Walking speed","value":34,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.maestro_regular_3.idleMs","label":"Rest time","value":9200,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.maestro_regular_3.wp1X","label":"Waypoint 1 X","value":1008,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp1Y","label":"Waypoint 1 Y","value":774,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp2X","label":"Waypoint 2 X","value":1008,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp2Y","label":"Waypoint 2 Y","value":746,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp3X","label":"Waypoint 3 X","value":1043,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp3Y","label":"Waypoint 3 Y","value":746,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp4X","label":"Waypoint 4 X","value":1043,"min":0,"max":1448,"step":1,"unit":"px"},{"key":"npc.maestro_regular_3.wp4Y","label":"Waypoint 4 Y","value":774,"min":0,"max":1086,"step":1,"unit":"px"},{"key":"npc.spar_cashier.x","label":"X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.y","label":"Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_cashier.homeX","label":"Home X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.homeY","label":"Home Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_cashier.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":0,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.spar_cashier.scale","label":"Sprite scale","value":0.99,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.spar_cashier.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.spar_cashier.speed","label":"Walking speed","value":25,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.spar_cashier.idleMs","label":"Rest time","value":2500,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.spar_cashier.wp1X","label":"Waypoint 1 X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp1Y","label":"Waypoint 1 Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp2X","label":"Waypoint 2 X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp2Y","label":"Waypoint 2 Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp3X","label":"Waypoint 3 X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp3Y","label":"Waypoint 3 Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp4X","label":"Waypoint 4 X","value":478,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_cashier.wp4Y","label":"Waypoint 4 Y","value":224,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.x","label":"X","value":233,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.y","label":"Y","value":249,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.homeX","label":"Home X","value":233,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.homeY","label":"Home Y","value":249,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":2,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.spar_shopper_1.scale","label":"Sprite scale","value":0.99,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.spar_shopper_1.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.spar_shopper_1.speed","label":"Walking speed","value":24,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.spar_shopper_1.idleMs","label":"Rest time","value":4000,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.spar_shopper_1.wp1X","label":"Waypoint 1 X","value":208,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp1Y","label":"Waypoint 1 Y","value":249,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp2X","label":"Waypoint 2 X","value":208,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp2Y","label":"Waypoint 2 Y","value":276,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp3X","label":"Waypoint 3 X","value":233,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp3Y","label":"Waypoint 3 Y","value":276,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp4X","label":"Waypoint 4 X","value":233,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_1.wp4Y","label":"Waypoint 4 Y","value":249,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.x","label":"X","value":636,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.y","label":"Y","value":243,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.homeX","label":"Home X","value":636,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.homeY","label":"Home Y","value":243,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":1,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.spar_shopper_2.scale","label":"Sprite scale","value":0.99,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.spar_shopper_2.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.spar_shopper_2.speed","label":"Walking speed","value":26,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.spar_shopper_2.idleMs","label":"Rest time","value":4200,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.spar_shopper_2.wp1X","label":"Waypoint 1 X","value":656,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp1Y","label":"Waypoint 1 Y","value":243,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp2X","label":"Waypoint 2 X","value":656,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp2Y","label":"Waypoint 2 Y","value":208,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp3X","label":"Waypoint 3 X","value":636,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp3Y","label":"Waypoint 3 Y","value":208,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp4X","label":"Waypoint 4 X","value":636,"min":0,"max":736,"step":1,"unit":"px"},{"key":"npc.spar_shopper_2.wp4Y","label":"Waypoint 4 Y","value":243,"min":0,"max":384,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.x","label":"X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.y","label":"Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.homeX","label":"Home X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.homeY","label":"Home Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":0,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.tobacco_cashier.scale","label":"Sprite scale","value":0.89,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.tobacco_cashier.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.tobacco_cashier.speed","label":"Walking speed","value":25,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.tobacco_cashier.idleMs","label":"Rest time","value":2500,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.tobacco_cashier.wp1X","label":"Waypoint 1 X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp1Y","label":"Waypoint 1 Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp2X","label":"Waypoint 2 X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp2Y","label":"Waypoint 2 Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp3X","label":"Waypoint 3 X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp3Y","label":"Waypoint 3 Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp4X","label":"Waypoint 4 X","value":519,"min":0,"max":608,"step":1,"unit":"px"},{"key":"npc.tobacco_cashier.wp4Y","label":"Waypoint 4 Y","value":416,"min":0,"max":832,"step":1,"unit":"px"},{"key":"npc.gyros_employee.x","label":"X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.y","label":"Y","value":291,"min":0,"max":480,"step":1,"unit":"px"},{"key":"npc.gyros_employee.homeX","label":"Home X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.homeY","label":"Home Y","value":291,"min":0,"max":480,"step":1,"unit":"px"},{"key":"npc.gyros_employee.facing","label":"Facing (0 down, 1 left, 2 right, 3 up)","value":0,"min":0,"max":3,"step":1,"unit":""},{"key":"npc.gyros_employee.scale","label":"Sprite scale","value":1.12,"min":0.3,"max":3.5,"step":0.05,"unit":"×"},{"key":"npc.gyros_employee.enabled","label":"Visible","value":1,"min":0,"max":1,"step":1,"unit":""},{"key":"npc.gyros_employee.speed","label":"Walking speed","value":25,"min":5,"max":90,"step":1,"unit":"px/s"},{"key":"npc.gyros_employee.idleMs","label":"Rest time","value":2500,"min":500,"max":20000,"step":100,"unit":"ms"},{"key":"npc.gyros_employee.wp1X","label":"Waypoint 1 X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp1Y","label":"Waypoint 1 Y","value":291,"min":0,"max":480,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp2X","label":"Waypoint 2 X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp2Y","label":"Waypoint 2 Y","value":291,"min":0,"max":480,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp3X","label":"Waypoint 3 X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp3Y","label":"Waypoint 3 Y","value":291,"min":0,"max":480,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp4X","label":"Waypoint 4 X","value":294,"min":0,"max":768,"step":1,"unit":"px"},{"key":"npc.gyros_employee.wp4Y","label":"Waypoint 4 Y","value":291,"min":0,"max":480,"step":1,"unit":"px"}]}];
+const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135,"vehicle.bike1.width":15,"vehicle.bike1.length":34,"vehicle.bike1.spawnX":670,"vehicle.bike1.spawnY":850,"vehicle.bike1.angle":135,"vehicle.bike2.width":15,"vehicle.bike2.length":34,"vehicle.bike2.spawnX":688,"vehicle.bike2.spawnY":860,"vehicle.bike2.angle":135,"vehicle.bike3.width":15,"vehicle.bike3.length":34,"vehicle.bike3.spawnX":706,"vehicle.bike3.spawnY":870,"vehicle.bike3.angle":135,"bike.acceleration":100,"bike.topSpeed":125,"bike.turnRate":3.5,"bike.drag":1.5,"npc.interactRadius":108,"npc.interactCooldownMs":450,"npc.maestro_bartender.x":413,"npc.maestro_bartender.y":210,"npc.maestro_bartender.homeX":413,"npc.maestro_bartender.homeY":210,"npc.maestro_bartender.facing":0,"npc.maestro_bartender.scale":2,"npc.maestro_bartender.enabled":1,"npc.maestro_bartender.speed":25,"npc.maestro_bartender.idleMs":2500,"npc.maestro_bartender.wp1X":413,"npc.maestro_bartender.wp1Y":210,"npc.maestro_bartender.wp2X":413,"npc.maestro_bartender.wp2Y":210,"npc.maestro_bartender.wp3X":413,"npc.maestro_bartender.wp3Y":210,"npc.maestro_bartender.wp4X":413,"npc.maestro_bartender.wp4Y":210,"npc.maestro_regular_1.x":342,"npc.maestro_regular_1.y":511,"npc.maestro_regular_1.homeX":342,"npc.maestro_regular_1.homeY":511,"npc.maestro_regular_1.facing":1,"npc.maestro_regular_1.scale":2,"npc.maestro_regular_1.enabled":1,"npc.maestro_regular_1.speed":35,"npc.maestro_regular_1.idleMs":7500,"npc.maestro_regular_1.wp1X":378,"npc.maestro_regular_1.wp1Y":511,"npc.maestro_regular_1.wp2X":378,"npc.maestro_regular_1.wp2Y":543,"npc.maestro_regular_1.wp3X":342,"npc.maestro_regular_1.wp3Y":543,"npc.maestro_regular_1.wp4X":342,"npc.maestro_regular_1.wp4Y":511,"npc.maestro_regular_2.x":648,"npc.maestro_regular_2.y":707,"npc.maestro_regular_2.homeX":648,"npc.maestro_regular_2.homeY":707,"npc.maestro_regular_2.facing":2,"npc.maestro_regular_2.scale":2,"npc.maestro_regular_2.enabled":1,"npc.maestro_regular_2.speed":32,"npc.maestro_regular_2.idleMs":8400,"npc.maestro_regular_2.wp1X":686,"npc.maestro_regular_2.wp1Y":707,"npc.maestro_regular_2.wp2X":686,"npc.maestro_regular_2.wp2Y":732,"npc.maestro_regular_2.wp3X":648,"npc.maestro_regular_2.wp3Y":732,"npc.maestro_regular_2.wp4X":648,"npc.maestro_regular_2.wp4Y":707,"npc.maestro_regular_3.x":1043,"npc.maestro_regular_3.y":774,"npc.maestro_regular_3.homeX":1043,"npc.maestro_regular_3.homeY":774,"npc.maestro_regular_3.facing":3,"npc.maestro_regular_3.scale":2,"npc.maestro_regular_3.enabled":1,"npc.maestro_regular_3.speed":34,"npc.maestro_regular_3.idleMs":9200,"npc.maestro_regular_3.wp1X":1008,"npc.maestro_regular_3.wp1Y":774,"npc.maestro_regular_3.wp2X":1008,"npc.maestro_regular_3.wp2Y":746,"npc.maestro_regular_3.wp3X":1043,"npc.maestro_regular_3.wp3Y":746,"npc.maestro_regular_3.wp4X":1043,"npc.maestro_regular_3.wp4Y":774,"npc.spar_cashier.x":478,"npc.spar_cashier.y":224,"npc.spar_cashier.homeX":478,"npc.spar_cashier.homeY":224,"npc.spar_cashier.facing":0,"npc.spar_cashier.scale":0.99,"npc.spar_cashier.enabled":1,"npc.spar_cashier.speed":25,"npc.spar_cashier.idleMs":2500,"npc.spar_cashier.wp1X":478,"npc.spar_cashier.wp1Y":224,"npc.spar_cashier.wp2X":478,"npc.spar_cashier.wp2Y":224,"npc.spar_cashier.wp3X":478,"npc.spar_cashier.wp3Y":224,"npc.spar_cashier.wp4X":478,"npc.spar_cashier.wp4Y":224,"npc.spar_shopper_1.x":233,"npc.spar_shopper_1.y":249,"npc.spar_shopper_1.homeX":233,"npc.spar_shopper_1.homeY":249,"npc.spar_shopper_1.facing":2,"npc.spar_shopper_1.scale":0.99,"npc.spar_shopper_1.enabled":1,"npc.spar_shopper_1.speed":24,"npc.spar_shopper_1.idleMs":4000,"npc.spar_shopper_1.wp1X":208,"npc.spar_shopper_1.wp1Y":249,"npc.spar_shopper_1.wp2X":208,"npc.spar_shopper_1.wp2Y":276,"npc.spar_shopper_1.wp3X":233,"npc.spar_shopper_1.wp3Y":276,"npc.spar_shopper_1.wp4X":233,"npc.spar_shopper_1.wp4Y":249,"npc.spar_shopper_2.x":636,"npc.spar_shopper_2.y":243,"npc.spar_shopper_2.homeX":636,"npc.spar_shopper_2.homeY":243,"npc.spar_shopper_2.facing":1,"npc.spar_shopper_2.scale":0.99,"npc.spar_shopper_2.enabled":1,"npc.spar_shopper_2.speed":26,"npc.spar_shopper_2.idleMs":4200,"npc.spar_shopper_2.wp1X":656,"npc.spar_shopper_2.wp1Y":243,"npc.spar_shopper_2.wp2X":656,"npc.spar_shopper_2.wp2Y":208,"npc.spar_shopper_2.wp3X":636,"npc.spar_shopper_2.wp3Y":208,"npc.spar_shopper_2.wp4X":636,"npc.spar_shopper_2.wp4Y":243,"npc.tobacco_cashier.x":519,"npc.tobacco_cashier.y":416,"npc.tobacco_cashier.homeX":519,"npc.tobacco_cashier.homeY":416,"npc.tobacco_cashier.facing":0,"npc.tobacco_cashier.scale":0.89,"npc.tobacco_cashier.enabled":1,"npc.tobacco_cashier.speed":25,"npc.tobacco_cashier.idleMs":2500,"npc.tobacco_cashier.wp1X":519,"npc.tobacco_cashier.wp1Y":416,"npc.tobacco_cashier.wp2X":519,"npc.tobacco_cashier.wp2Y":416,"npc.tobacco_cashier.wp3X":519,"npc.tobacco_cashier.wp3Y":416,"npc.tobacco_cashier.wp4X":519,"npc.tobacco_cashier.wp4Y":416,"npc.gyros_employee.x":294,"npc.gyros_employee.y":291,"npc.gyros_employee.homeX":294,"npc.gyros_employee.homeY":291,"npc.gyros_employee.facing":0,"npc.gyros_employee.scale":1.12,"npc.gyros_employee.enabled":1,"npc.gyros_employee.speed":25,"npc.gyros_employee.idleMs":2500,"npc.gyros_employee.wp1X":294,"npc.gyros_employee.wp1Y":291,"npc.gyros_employee.wp2X":294,"npc.gyros_employee.wp2Y":291,"npc.gyros_employee.wp3X":294,"npc.gyros_employee.wp3Y":291,"npc.gyros_employee.wp4X":294,"npc.gyros_employee.wp4Y":291};
 const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MaestroEscape · Game Settings</title><style>
-:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}#vehicle-editor{margin:0 0 20px;padding:18px;border:1px solid #465a73;border-radius:12px;background:#1b2638}#vehicle-editor h2{margin:0 0 8px}#parking-map{display:block;width:100%;height:auto;aspect-ratio:1600/992;touch-action:none;background:#253347;border:1px solid #58677d;border-radius:8px;cursor:grab}#parking-map.dragging{cursor:grabbing}.parking-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.parking-toolbar label{display:flex;align-items:center;gap:7px}.parking-toolbar select{background:#182337;color:#fff;border:1px solid #58677d;padding:8px;border-radius:7px}.parking-toolbar input[type=range]{width:min(240px,45vw)}#parking-info{font-size:13px;color:#cbd7e8}.parking-hint{font-size:13px;color:#b5c0d0}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}#vehicle-editor{margin:0 0 20px;padding:18px;border:1px solid #465a73;border-radius:12px;background:#1b2638}#vehicle-editor h2{margin:0 0 8px}#parking-map{display:block;width:100%;height:auto;aspect-ratio:1600/992;touch-action:none;background:#253347;border:1px solid #58677d;border-radius:8px;cursor:grab}#parking-map.dragging{cursor:grabbing}.parking-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.parking-toolbar label{display:flex;align-items:center;gap:7px}.parking-toolbar select{background:#182337;color:#fff;border:1px solid #58677d;padding:8px;border-radius:7px}.parking-toolbar input[type=range]{width:min(240px,45vw)}#parking-info{font-size:13px;color:#cbd7e8}.parking-hint{font-size:13px;color:#b5c0d0}
+#npc-editor{margin:0 0 20px;padding:18px;border:1px solid #566477;border-radius:12px;background:#1b2638}
+#npc-editor h2{margin:0 0 6px}
+#npc-map{display:block;width:100%;height:auto;max-height:620px;object-fit:contain;border:1px solid #627389;border-radius:8px;background:#101827;touch-action:none;cursor:crosshair}
+#npc-editor .npc-fields{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+#npc-editor label{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+#npc-editor select,#npc-editor input{background:#111b2d;border:1px solid #60738c;border-radius:6px;color:white;padding:7px;max-width:160px}
+#npc-editor input[type=checkbox]{width:18px;height:18px}
+#npc-editor p{color:#bfccdc;font-size:13px}
+#npc-editor #npc-map-status{color:#fad087}
+</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
 <canvas id="parking-map" width="1600" height="992" aria-label="Drag vehicle positions on the map"></canvas>
-<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option><option value="bike1">Bubi Bike 1</option><option value="bike2">Bubi Bike 2</option><option value="bike3">Bubi Bike 3</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
+<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option><option value="bike1">Bubi Bike 1</option><option value="bike2">Bubi Bike 2</option><option value="bike3">Bubi Bike 3</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><section id="npc-editor"><h2>NPCs · shared placement editor</h2>
+<p>Drag the selected NPC on the correct interior map. Switch mode to drag its home point or one of four patrol waypoints. Scene assignment is fixed to prevent NPCs appearing in the wrong building.</p>
+<div class="npc-fields"><label>Interior <select id="npc-scene"><option value="pub">Maestro Pub</option><option value="spar">SPAR</option><option value="dohanybolt">Dohánybolt</option><option value="gyros">Mester Gyros</option></select></label>
+<label>NPC <select id="npc-select"></select></label>
+<label>Edit <select id="npc-mode"><option value="spawn">Position</option><option value="home">Home</option><option value="wp1">Waypoint 1</option><option value="wp2">Waypoint 2</option><option value="wp3">Waypoint 3</option><option value="wp4">Waypoint 4</option></select></label></div>
+<canvas id="npc-map" width="1448" height="1086" aria-label="NPC interior placement map"></canvas>
+<div class="npc-fields"><label>X <input type="number" id="npc-x" step="1"></label><label>Y <input type="number" id="npc-y" step="1"></label>
+<label>Facing <select id="npc-facing"><option value="0">Down</option><option value="1">Left</option><option value="2">Right</option><option value="3">Up</option></select></label>
+<label>Size <input id="npc-scale" type="number" min=".3" max="3.5" step=".05"></label>
+<label>Enabled <input id="npc-enabled" type="checkbox"></label>
+<label>Walk speed <input id="npc-speed" type="number" min="5" max="90" step="1"></label>
+<label>Rest time (ms) <input id="npc-idle" type="number" min="500" max="20000" step="100"></label></div>
+<div class="npc-fields"><button type="button" id="npc-save" class="primary">Save NPC settings to all devices</button><button type="button" id="npc-reload">Reload from server</button><button type="button" id="npc-reset">Reset selected NPC</button></div>
+<p id="npc-map-status">Edit positions on the map. Changes require saving.</p>
+</section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
+ const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
+ const npcAreas={"pub":{"w":1448,"h":1086,"asset":"/assets/interior.webp"},"spar":{"w":736,"h":384,"asset":"/assets/shop-spar.webp"},"dohanybolt":{"w":608,"h":832,"asset":"/assets/shop-dohanybolt.webp"},"gyros":{"w":768,"h":480,"asset":"/assets/shop-gyros.webp"}};
+
 
  let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{}
  const root=document.getElementById("sections"),notice=document.getElementById("notice");
  const lookup=Object.fromEntries(groups.flatMap(group=>group.fields.map(field=>[field.key,field])));
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
- let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0,savePromise=Promise.resolve(),storageReady=false;
+ let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0,savePromise=Promise.resolve(),storageReady=false,revision=0;
  try {
    const remote=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable: HTTP "+r.status);return r.json()});
    values=normalize({...defaults,...remote.settings});
    lastPersisted=JSON.stringify(values);
+   revision=Number(remote.revision)||0;
    storageReady=true;
    // Never overwrite shared settings with another device\u0027s local cache.
  }catch(error){notice.textContent="Shared storage error: "+error.message;console.error(error);}
@@ -32,7 +60,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    const execute=async()=>{
      notice.textContent="Saving settings to Cloudflare…";
      try{
-       const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json"},body:payload,cache:"no-store"});
+       const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json","X-Settings-Revision":String(revision)},body:payload,cache:"no-store"});
        if(!response.ok)throw new Error("server returned "+response.status+": "+(await response.text()).slice(0,120));
        const committed=await response.json();
        if(!committed.ok)throw new Error("server did not confirm the save");
@@ -40,16 +68,17 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
        if(!check.ok)throw new Error("verification returned "+check.status);
        const persisted=await check.json();
        const expected=JSON.parse(payload);
-       const keys=["skoda","octavia","bike1","bike2","bike3"].flatMap(id=>["spawnX","spawnY","angle"].map(part=>"vehicle."+id+"."+part));
+       const keys=Object.keys(expected);
        if(keys.some(key=>Number(persisted.settings?.[key])!==Number(expected[key])))
-         throw new Error("saved positions do not match the server");
+         throw new Error("saved settings do not match the server");
+       revision=Number(persisted.revision)||Number(committed.revision)||revision;
        lastPersisted=payload;
        try{localStorage.setItem(KEY,payload)}catch(error){console.warn("Local backup unavailable",error)}
        storageReady=true;
-       notice.textContent="✓ Verified and saved for all devices. Reload the game to use these locations.";
+       notice.textContent="✓ All settings verified on server and saved for every device.";
        return true;
      }catch(error){
-       notice.textContent="Could not save: "+error.message+". Positions are NOT saved yet.";
+       notice.textContent="Could not save: "+error.message+". Settings are NOT saved yet. Reload from server if another device changed them.";
        console.error("Shared settings save failure",error);
        return false;
      }
@@ -58,7 +87,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    return savePromise;
  }
  function store(){notice.textContent="Unsaved changes…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);}
- function draw(){root.innerHTML="";for(const group of groups){const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
+ function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
  const carIds=["skoda","octavia","bike1","bike2","bike3"];
@@ -116,10 +145,155 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    try{await push(true)}finally{button.disabled=false;button.textContent="Save positions to all devices";}
  });
 
- document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking()};
+
+ // NPC editor reuses the existing numeric settings schema and the same shared PUT/GET.
+ const npcScene=document.getElementById("npc-scene"),npcSelect=document.getElementById("npc-select");
+ const npcMode=document.getElementById("npc-mode"),npcCanvas=document.getElementById("npc-map"),npcContext=npcCanvas.getContext("2d");
+ const npcX=document.getElementById("npc-x"),npcY=document.getElementById("npc-y");
+ const npcFacing=document.getElementById("npc-facing"),npcScale=document.getElementById("npc-scale");
+ const npcEnabled=document.getElementById("npc-enabled"),npcSpeed=document.getElementById("npc-speed"),npcIdle=document.getElementById("npc-idle");
+ const npcStatus=document.getElementById("npc-map-status");
+ const npcImages={};
+ const npcMaps={};
+ const npcFaces=["down","left","right","up"];
+ const npcKey=(id,key)=>"npc."+id+"."+key;
+ let npcPointer=null,npcActiveId="maestro_bartender";
+ function npcSelection(){return npcMetadata.find(n=>n.id===npcActiveId)||npcMetadata[0]}
+ function npcKeysForMode(){const mode=npcMode.value;return mode==="spawn"?["x","y"]:mode==="home"?["homeX","homeY"]:[mode+"X",mode+"Y"]}
+ function npcGetPoint(id,mode){
+  const pair=mode==="spawn"?["x","y"]:mode==="home"?["homeX","homeY"]:[mode+"X",mode+"Y"];
+  return {x:values[npcKey(id,pair[0])],y:values[npcKey(id,pair[1])]};
+ }
+ function npcSetValue(key,value){
+  const field=lookup[key],v=Number(value);
+  if(!field||!Number.isFinite(v))return false;
+  values[key]=Math.min(field.max,Math.max(field.min,v));
+  return true;
+ }
+ function npcSetScene(){
+  const current=npcSelection();
+  npcScene.value=current.interior;
+  npcSelect.replaceChildren();
+  for(const n of npcMetadata.filter(n=>n.interior===current.interior)){
+   const option=document.createElement("option");option.value=n.id;option.textContent=n.name;npcSelect.append(option);
+  }
+  npcSelect.value=current.id;
+  const map=npcAreas[current.interior];
+  npcCanvas.width=map.w;npcCanvas.height=map.h;
+  if(!npcMaps[current.interior]){
+   const image=new Image();image.onload=npcRender;image.onerror=npcRender;image.src=map.asset;npcMaps[current.interior]=image;
+  }
+  for(const n of npcMetadata.filter(n=>n.interior===current.interior)){
+   if(!npcImages[n.id]){
+    const image=new Image();image.onload=npcRender;image.onerror=npcRender;
+    image.src="/assets/npc/"+n.id+".webp";npcImages[n.id]=image;
+   }
+  }
+  npcUpdateControls();npcRender();
+ }
+ function npcUpdateControls(){
+  const id=npcActiveId,[xKey,yKey]=npcKeysForMode();
+  npcX.value=values[npcKey(id,xKey)];npcY.value=values[npcKey(id,yKey)];
+  npcFacing.value=values[npcKey(id,"facing")];npcScale.value=values[npcKey(id,"scale")];
+  npcEnabled.checked=!!values[npcKey(id,"enabled")];
+  npcSpeed.value=values[npcKey(id,"speed")];npcIdle.value=values[npcKey(id,"idleMs")];
+ }
+ function npcRender(){
+  if(!npcCanvas.width)return;
+  const map=npcAreas[npcScene.value],background=npcMaps[npcScene.value];
+  npcContext.clearRect(0,0,map.w,map.h);
+  if(background?.complete&&background.naturalWidth)npcContext.drawImage(background,0,0,map.w,map.h);
+  else{npcContext.fillStyle="#28364b";npcContext.fillRect(0,0,map.w,map.h);}
+  for(const def of npcMetadata.filter(n=>n.interior===npcScene.value)){
+   const id=def.id,spawn=npcGetPoint(id,"spawn"),enabled=!!values[npcKey(id,"enabled")];
+   const selected=id===npcActiveId,scale=values[npcKey(id,"scale")],img=npcImages[id],face=values[npcKey(id,"facing")];
+   npcContext.save();
+   npcContext.globalAlpha=enabled?1:.4;
+   if(img?.complete&&img.naturalWidth){
+    const w=48*scale,h=60*scale;
+    npcContext.drawImage(img,0,face*60,48,60,spawn.x-w/2,spawn.y-h,w,h);
+   }else{
+    npcContext.fillStyle=selected?"#ffd27a":"#85e5d9";npcContext.beginPath();
+    npcContext.arc(spawn.x,spawn.y-12,13*scale,0,Math.PI*2);npcContext.fill();
+   }
+   npcContext.globalAlpha=1;
+   npcContext.lineWidth=selected?4:2;
+   npcContext.strokeStyle=selected?"#ffe16c":"#9debd9";
+   npcContext.beginPath();npcContext.arc(spawn.x,spawn.y,selected?16:11,0,Math.PI*2);npcContext.stroke();
+   if(selected){
+    const home=npcGetPoint(id,"home");npcContext.strokeStyle="#66e7ff";npcContext.setLineDash([6,4]);
+    npcContext.beginPath();npcContext.moveTo(spawn.x,spawn.y);npcContext.lineTo(home.x,home.y);npcContext.stroke();npcContext.setLineDash([]);
+    const markers=[["home","H"],["wp1","1"],["wp2","2"],["wp3","3"],["wp4","4"]];
+    for(const [mode,label] of markers){
+     const p=npcGetPoint(id,mode);
+     npcContext.fillStyle=mode===npcMode.value?"#ffdf67":"#89ddff";
+     npcContext.beginPath();npcContext.arc(p.x,p.y,mode===npcMode.value?13:9,0,Math.PI*2);npcContext.fill();
+     npcContext.fillStyle="#152030";npcContext.font="bold 14px Arial";npcContext.textAlign="center";npcContext.textBaseline="middle";npcContext.fillText(label,p.x,p.y);
+    }
+   }
+   npcContext.restore();
+  }
+  npcStatus.textContent=npcSelection().name+" · "+npcScene.value+" · "+npcMode.value+" · drag to move. Unsaved edits are not yet shared.";
+ }
+ function npcCanvasPoint(event){
+  const rect=npcCanvas.getBoundingClientRect();
+  return {x:Math.round((event.clientX-rect.left)*npcCanvas.width/rect.width),
+          y:Math.round((event.clientY-rect.top)*npcCanvas.height/rect.height)};
+ }
+ npcCanvas.addEventListener("pointerdown",event=>{
+  event.preventDefault();npcPointer=event.pointerId;npcCanvas.setPointerCapture(event.pointerId);
+  npcMovePointer(event);
+ });
+ function npcMovePointer(event){
+  if(event.pointerId!==npcPointer)return;
+  const point=npcCanvasPoint(event),keys=npcKeysForMode();
+  npcSetValue(npcKey(npcActiveId,keys[0]),point.x);
+  npcSetValue(npcKey(npcActiveId,keys[1]),point.y);
+  npcUpdateControls();npcRender();
+ }
+ npcCanvas.addEventListener("pointermove",npcMovePointer);
+ function npcStopPointer(){if(npcPointer===null)return;npcPointer=null;store();}
+ npcCanvas.addEventListener("pointerup",npcStopPointer);npcCanvas.addEventListener("pointercancel",npcStopPointer);
+ npcCanvas.addEventListener("lostpointercapture",npcStopPointer);
+ npcScene.addEventListener("change",()=>{
+  npcActiveId=npcMetadata.find(n=>n.interior===npcScene.value).id;npcSetScene();
+ });
+ npcSelect.addEventListener("change",()=>{npcActiveId=npcSelect.value;npcUpdateControls();npcRender();});
+ npcMode.addEventListener("change",()=>{npcUpdateControls();npcRender();});
+ const numericNPCFields=[
+  [npcX,()=>npcKeysForMode()[0]],[npcY,()=>npcKeysForMode()[1]],
+  [npcFacing,()=>"facing"],[npcScale,()=>"scale"],[npcSpeed,()=>"speed"],[npcIdle,()=>"idleMs"]
+ ];
+ for(const [input,key] of numericNPCFields)input.addEventListener("change",()=>{
+  if(npcSetValue(npcKey(npcActiveId,key()),input.value)){npcUpdateControls();npcRender();store();}
+ });
+ npcEnabled.addEventListener("change",()=>{npcSetValue(npcKey(npcActiveId,"enabled"),npcEnabled.checked?1:0);npcRender();store();});
+ document.getElementById("npc-save").addEventListener("click",async()=>{
+  const button=document.getElementById("npc-save");button.disabled=true;
+  npcStatus.textContent="Saving NPC settings to Cloudflare…";
+  try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Save failed; see error above.";}
+  finally{button.disabled=false;}
+ });
+ document.getElementById("npc-reload").addEventListener("click",async()=>{
+  try{
+   const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store"});
+   if(!response.ok)throw Error("HTTP "+response.status);
+   const data=await response.json();values=normalize({...defaults,...data.settings});
+   lastPersisted=JSON.stringify(values);revision=Number(data.revision)||0;
+   draw();drawParking();npcSetScene();notice.textContent="Reloaded configuration from server.";npcStatus.textContent="Reloaded NPC positions from server.";
+  }catch(error){npcStatus.textContent="Reload failed: "+error.message;}
+ });
+ document.getElementById("npc-reset").addEventListener("click",()=>{
+  if(!confirm("Reset "+npcSelection().name+" to its default placement, size, home and waypoints?"))return;
+  for(const key of Object.keys(defaults))if(key.startsWith("npc."+npcActiveId+"."))values[key]=defaults[key];
+  npcUpdateControls();npcRender();store();
+ });
+ npcSetScene();
+
+ document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking();npcSetScene()};
  document.getElementById("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(values,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="maestroescape-settings.json";a.click();URL.revokeObjectURL(url);};
- document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();drawParking();};
- const file=document.getElementById("file");document.getElementById("import").onclick=()=>file.click();file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||typeof data!=="object"||Array.isArray(data))throw Error("Invalid file");values=normalize({...defaults,...data});store();draw();drawParking();}catch{notice.textContent="Unable to import: invalid settings JSON."}file.value="";};
+ document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();drawParking();npcSetScene();};
+ const file=document.getElementById("file");document.getElementById("import").onclick=()=>file.click();file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||typeof data!=="object"||Array.isArray(data))throw Error("Invalid file");values=normalize({...defaults,...data});store();draw();drawParking();npcSetScene();}catch{notice.textContent="Unable to import: invalid settings JSON."}file.value="";};
  draw();drawParking();if(!notice.textContent.includes("unavailable")&&!notice.textContent.includes("Imported"))notice.textContent="Shared settings loaded. Changes save automatically.";
 })();
 </script></body></html>`;
@@ -206,6 +380,7 @@ const applyRemoteSettings=data=>{
    }
    character?.setScale?.(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
    tramSprite?.setDisplaySize?.(cfg("tram.width"),cfg("tram.length"));
+   npcRefreshSettings();
  }
 };
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
@@ -254,6 +429,29 @@ const interiorWalls=[
 const NPC_DEFINITIONS=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker","x":413,"y":210,"face":"down","scale":2},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian","x":342,"y":511,"face":"left","scale":2},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian","x":648,"y":707,"face":"right","scale":2},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian","x":1043,"y":774,"face":"up","scale":2},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker","x":478,"y":224,"face":"down","scale":0.99},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian","x":233,"y":249,"face":"right","scale":0.99},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian","x":636,"y":243,"face":"left","scale":0.99},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker","x":519,"y":416,"face":"down","scale":0.89},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker","x":294,"y":291,"face":"down","scale":1.12}];
 const NPC_FACING={down:0,left:4,right:8,up:12};
 const npcEntities=new Map();
+
+const NPC_CONFIG_IDS=["maestro_bartender","maestro_regular_1","maestro_regular_2","maestro_regular_3","spar_cashier","spar_shopper_1","spar_shopper_2","tobacco_cashier","gyros_employee"];
+const NPC_SCENE_IDS={"maestro_bartender":"pub","maestro_regular_1":"pub","maestro_regular_2":"pub","maestro_regular_3":"pub","spar_cashier":"spar","spar_shopper_1":"spar","spar_shopper_2":"spar","tobacco_cashier":"dohanybolt","gyros_employee":"gyros"};
+const NPC_DIRECTIONS=["down","left","right","up"];
+function npcConfig(id,key){return cfg("npc."+id+"."+key)}
+function npcCurrentEnabled(id){return npcConfig(id,"enabled")!==0}
+function npcRefreshSettings(){
+ if(!npcEntities.size)return;
+ for(const entity of npcEntities.values()){
+  const id=entity.definition.id,selectedFace=NPC_DIRECTIONS[Math.round(npcConfig(id,"facing"))]||"down";
+  entity.x=npcConfig(id,"x");entity.y=npcConfig(id,"y");
+  entity.home={x:npcConfig(id,"homeX"),y:npcConfig(id,"homeY")};
+  entity.initialFacing=selectedFace;
+  entity.routeIndex=0;entity.target=null;entity.stateClock=0;
+  entity.sprite.setScale(npcConfig(id,"scale")*(entity.loaded?1:.60));
+  npcSetFacing(entity,selectedFace,false);
+  entity.state=NPC_ROUTINES[id]?"idle":"working";
+  entity.waitMs=npcConfig(id,"idleMs");
+  npcApplyVisual(entity);
+ }
+ showInteriorNPCs(npcInteriorKey());
+}
+
 
 // Authorable, deliberately short paths on unobstructed interior floor.
 // A route is attempted only after its entire segment passes collision checking.
@@ -314,9 +512,10 @@ function npcPickRoute(entity){
  const routine=NPC_ROUTINES[entity.definition.id];
  if(!routine)return false;
  // Patrol is local and repeatable, not random. Skip any blocked target.
- for(let attempt=0;attempt<routine.route.length;attempt++){
-  const index=(entity.routeIndex+attempt)%routine.route.length;
-  const offset=routine.route[index],target={x:entity.home.x+offset[0],y:entity.home.y+offset[1]};
+ for(let attempt=0;attempt<4;attempt++){
+  const index=(entity.routeIndex+attempt)%4;
+  const number=index+1;
+  const target={x:npcConfig(entity.definition.id,"wp"+number+"X"),y:npcConfig(entity.definition.id,"wp"+number+"Y")};
   if(Math.hypot(target.x-entity.x,target.y-entity.y)<5)continue;
   if(!npcSegmentClear(entity.definition.interior,entity.x,entity.y,target.x,target.y))continue;
   if(!npcCanOccupy(entity,target.x,target.y))continue;
@@ -332,14 +531,14 @@ function npcTick(dt){
  if(!current)return; // No invisible off-screen background wandering.
  const stepMs=Math.min(Math.max(0,dt),45);
  for(const entity of npcEntities.values()){
-  if(entity.definition.interior!==current)continue;
+  if(entity.definition.interior!==current||!npcCurrentEnabled(entity.definition.id))continue;
   const routine=NPC_ROUTINES[entity.definition.id];
   entity.stateClock+=stepMs;
   if(!routine){
    // Counter workers never leave the staff side.
-   const cycle=NPC_WORK_MS[entity.definition.id]||2300;
+   const cycle=Math.max(500,npcConfig(entity.definition.id,"idleMs"));
    entity.state=entity.stateClock%cycle<cycle*.68?"working":"idle";
-   npcSetFacing(entity,entity.definition.face,false);
+   npcSetFacing(entity,entity.initialFacing,false);
    // Frame 1 provides a restrained working/handling gesture when supported.
    if(entity.loaded&&entity.state==="working"&&Math.floor(entity.stateClock/620)%2)
     entity.sprite.setFrame(NPC_FACING[entity.facing]+1);
@@ -351,11 +550,11 @@ function npcTick(dt){
    if(distance<3){
     entity.x=entity.target.x;entity.y=entity.target.y;entity.target=null;
     entity.state=entity.definition.interior==="pub"?"sitting":"idle";
-    entity.waitMs=entity.definition.interior==="pub"?routine.seatMs:routine.idleMs;
+    entity.waitMs=npcConfig(entity.definition.id,"idleMs");
     entity.stateClock=0;
     npcSetFacing(entity,entity.definition.face,false);
    }else{
-    const step=Math.min(distance,routine.walkSpeed*stepMs/1000);
+    const step=Math.min(distance,npcConfig(entity.definition.id,"speed")*stepMs/1000);
     const nx=entity.x+(entity.target.x-entity.x)*step/distance;
     const ny=entity.y+(entity.target.y-entity.y)*step/distance;
     if(npcCanOccupy(entity,nx,ny)&&npcSegmentClear(current,entity.x,entity.y,nx,ny)){
@@ -371,13 +570,13 @@ function npcTick(dt){
   }else if(entity.stateClock>=entity.waitMs){
    entity.stateClock=0;
    if(!npcPickRoute(entity)){
-    entity.state="waiting";entity.waitMs=routine.idleMs;
+    entity.state="waiting";entity.waitMs=npcConfig(entity.definition.id,"idleMs");
     npcSetFacing(entity,entity.definition.face,false);
    }
   }else{
    // Civilians alternate between waiting, browsing and seated/idle pauses.
    entity.state=entity.definition.interior==="pub"?"sitting":"idle";
-   npcSetFacing(entity,entity.definition.face,false);
+   npcSetFacing(entity,entity.initialFacing,false);
   }
   npcApplyVisual(entity);
  }
@@ -389,8 +588,8 @@ function showInteriorNPCs(interior){
   const entity=npcEntities.get(def.id);
   if(!entity)continue;
   const visible=interior===def.interior;
-  entity.sprite.setVisible(visible);
-  entity.label.setVisible(visible);
+  entity.sprite.setVisible(visible&&npcCurrentEnabled(def.id));
+  entity.label.setVisible(visible&&npcCurrentEnabled(def.id));
  }
 }
 function initializeNPCs(scene){
@@ -409,13 +608,15 @@ function initializeNPCs(scene){
     .setOrigin(.5,1).setDepth(8).setVisible(false);
   // Initial worker positions are fixed; civilian routes are validated against floors.
   const routine=NPC_ROUTINES[def.id];
-  const entity={definition:def,sprite,label,loaded,x:def.x,y:def.y,
-    home:{x:def.x,y:def.y},facing:def.face,walking:false,routeIndex:0,
+  const entity={definition:def,sprite,label,loaded,x:npcConfig(def.id,"x"),y:npcConfig(def.id,"y"),
+    home:{x:npcConfig(def.id,"homeX"),y:npcConfig(def.id,"homeY")},facing:NPC_DIRECTIONS[npcConfig(def.id,"facing")]||def.face,initialFacing:NPC_DIRECTIONS[npcConfig(def.id,"facing")]||def.face,walking:false,routeIndex:0,
     target:null,state:routine?(def.interior==="pub"?"sitting":"idle"):"working",
-    stateClock:0,waitMs:routine?(routine.seatMs||routine.idleMs):0};
+    stateClock:0,waitMs:npcConfig(def.id,"idleMs")};
+  sprite.setScale(npcConfig(def.id,"scale")*(loaded?1:.60));
+  entity.label.setVisible(false);
   // For civilians whose authoring anchor crosses a shelf edge, search near the seat
   // without relocating counter employees into customer-only floor areas.
-  if(routine&&!npcFloorPassable(def.interior,entity.x,entity.y)){
+  if(false&&routine&&!npcFloorPassable(def.interior,entity.x,entity.y)){
    let found=false;
    for(let r=8;r<=80&&!found;r+=8)for(let a=0;a<16;a++){
     const angle=a*Math.PI/8,nx=def.x+Math.cos(angle)*r,ny=def.y+Math.sin(angle)*r;
@@ -809,6 +1010,7 @@ class Explore extends Phaser.Scene{
    }
    mapSize={w:1600,h:992};
    initializeNPCs(this);
+   npcRefreshSettings();
    for(const def of NPC_DEFINITIONS){
     const key="npc_"+def.id;
     if(!this.textures.exists(key))continue;
@@ -977,7 +1179,12 @@ export class GameSettings {
        if(!Number.isFinite(value))return new Response("Invalid value: "+key,{status:400});
        clean[key]=Math.min(field.max,Math.max(field.min,value));
      }
-     const revision=(await this.ctx.storage.get("revision")||0)+1;
+     // Validate stable per-NPC scene and numeric coordinates against schema bounds.
+     const currentRevision=await this.ctx.storage.get("revision")||0;
+     const requestedRevision=request.headers.get("X-Settings-Revision");
+     if(requestedRevision!==null&&Number(requestedRevision)!==currentRevision)
+       return Response.json({error:"Settings changed on another device",revision:currentRevision},{status:409,headers:{"cache-control":"no-store"}});
+     const revision=currentRevision+1;
      await this.ctx.storage.put({settings:clean,revision});
      return Response.json({settings:clean,revision,ok:true},{headers:{"cache-control":"no-store"}});
    }catch(error){return new Response("Invalid settings request",{status:400});}
