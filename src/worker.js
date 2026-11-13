@@ -227,6 +227,40 @@ const interiorWalls=[
 [295,844,665,242],[1381,326,67,400],[295,808,540,32],
 [1154,50,26,166],[851,0,329,46],[842,45,26,154]
 ];
+
+// Phase 1: data-driven, stationary scene-local NPC renders. No task grants or movement.
+// NPC sheets in Assets/NPCs are 4x4 frames (48x60): down,left,right,up; 4 frames each.
+const NPC_DEFINITIONS=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker","x":413,"y":210,"face":"down","scale":2},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian","x":342,"y":511,"face":"left","scale":2},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian","x":648,"y":707,"face":"right","scale":2},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian","x":1043,"y":774,"face":"up","scale":2},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker","x":478,"y":224,"face":"down","scale":0.99},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian","x":233,"y":249,"face":"right","scale":0.99},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian","x":624,"y":243,"face":"left","scale":0.99},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker","x":519,"y":416,"face":"down","scale":0.89},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker","x":294,"y":291,"face":"down","scale":1.12}];
+const NPC_FACING={down:0,left:4,right:8,up:12};
+const npcEntities=new Map();
+function npcInteriorKey(){return !insidePub?null:(activeShop?Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop):"pub");}
+function showInteriorNPCs(interior){
+ for(const def of NPC_DEFINITIONS){
+  const entity=npcEntities.get(def.id);
+  if(!entity)continue;
+  const visible=interior===def.interior;
+  entity.sprite.setVisible(visible);
+  entity.label.setVisible(visible);
+ }
+}
+function initializeNPCs(scene){
+ if(npcEntities.size)return; // One Phaser scene, one entity per stable NPC ID.
+ for(const def of NPC_DEFINITIONS){
+  const key="npc_"+def.id;
+  const loaded=scene.textures.exists(key);
+  const sprite=loaded?scene.add.sprite(def.x,def.y,key,NPC_FACING[def.face]):
+    scene.add.sprite(def.x,def.y,"maestro",0);
+  // Sprite feet anchored at world location, consistent with the player.
+  sprite.setOrigin(.5,1).setScale(loaded?def.scale:def.scale*.60)
+   .setDepth(5+def.y/2000).setVisible(false).setData("npcId",def.id);
+  const label=scene.add.text(def.x,def.y-(loaded?60*def.scale:72*def.scale)-10,def.name,
+    {fontFamily:"Arial",fontSize:"13px",color:"#ffffff",stroke:"#101923",strokeThickness:3,
+     backgroundColor:"#152030bb",padding:{x:4,y:2}})
+    .setOrigin(.5,1).setDepth(8).setVisible(false);
+  npcEntities.set(def.id,{definition:def,sprite,label});
+ }
+}
+
 const PARKING={get x(){return cfg("vehicle.skoda.spawnX")},get y(){return cfg("vehicle.skoda.spawnY")}};
 // Uses the same forward-speed / steering model as the original Vehicle.ts controller.
 const car={x:PARKING.x,y:PARKING.y,angle:cfg("vehicle.skoda.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false,frame:3};
@@ -283,7 +317,7 @@ function enterShop(shop){
  if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
  character.setScale(shopCharacterScale(shop));mapSize={...shop.size};
- streetImage.setVisible(false);if(interiorImage)interiorImage.setVisible(false);
+ streetImage.setVisible(false);showInteriorNPCs(npcInteriorKey());if(interiorImage)interiorImage.setVisible(false);
  for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
  if(carSprite)carSprite.setVisible(false);
  if(octaviaSprite)octaviaSprite.setVisible(false);
@@ -300,7 +334,7 @@ function enterPub(){
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=null;
  character.setScale(cfg("building.pub.scale"));
  mapSize={...INTERIOR_SIZE};
- streetImage.setVisible(false);setStreetfronts(false);interiorImage.setVisible(true);
+ streetImage.setVisible(false);setStreetfronts(false);interiorImage.setVisible(true);showInteriorNPCs("pub");
  if(carSprite)carSprite.setVisible(false);
  if(octaviaSprite)octaviaSprite.setVisible(false);
  for(const sprite of bikeSprites)sprite.setVisible(false);
@@ -315,7 +349,7 @@ function enterPub(){
 function leavePub(){
  insidePub=false;activeShop=null;character.setScale(cfg("character.streetScale"));mapSize={w:1600,h:992};
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
- interiorImage.setVisible(false);streetImage.setVisible(true);
+ interiorImage.setVisible(false);streetImage.setVisible(true);showInteriorNPCs(null);
  if(carSprite)carSprite.setVisible(true);
  if(octaviaSprite)octaviaSprite.setVisible(true);
  for(const sprite of bikeSprites)sprite.setVisible(true);
@@ -442,6 +476,7 @@ class Explore extends Phaser.Scene{
    this.load.image("world","/assets/world.webp");
    this.load.image("interior","/assets/interior.webp");
    for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
+   for(const def of NPC_DEFINITIONS)this.load.spritesheet("npc_"+def.id,"/assets/npc/"+def.id+".webp",{frameWidth:48,frameHeight:60});
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
@@ -470,6 +505,7 @@ class Explore extends Phaser.Scene{
      }
    }
    mapSize={w:1600,h:992};
+   initializeNPCs(this);
    const gfx=this.add.graphics().setDepth(2);
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
@@ -512,6 +548,7 @@ class Explore extends Phaser.Scene{
  }
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
+   showInteriorNPCs(npcInteriorKey());
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
    for(const sprite of bikeSprites)if(sprite)sprite.setVisible(true);
@@ -662,6 +699,13 @@ export default {
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
   if(url.pathname==="/assets/bubi.webp"){const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_bike.webp");if(!upstream.ok)return new Response("Bubi asset unavailable",{status:502});return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});}
+  if(/^\\/assets\\/npc\\/[a-z0-9_]+\\.webp$/.test(url.pathname)){
+    const id=url.pathname.slice("/assets/npc/".length,-5);
+    if(!NPC_DEFINITIONS.some(n=>n.id===id))return new Response("Unknown NPC",{status:404});
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/NPCs/"+id+".webp");
+    if(!upstream.ok)return new Response("NPC asset unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
+  }
   if(url.pathname==="/assets/world.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_map_new.webp");
     if(!upstream.ok)return new Response("Map image unavailable",{status:502});
