@@ -73,11 +73,11 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
-<div id="screen"><div id="splash">Loading original game map and animated sprites…</div></div>
+<div id="screen"><div id="splash">Loading original game map and animated sprites…</div>
 <div id="mobile-controls" aria-label="Touch controls">
  <div id="joystick" role="application" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
  <button type="button" class="action" id="mobile-interact" aria-label="Interact">E</button>
-</div>
+</div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
