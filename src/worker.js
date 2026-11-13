@@ -483,7 +483,7 @@ function npcCanOccupy(entity,x,y){
  if(!npcFloorPassable(entity.definition.interior,x,y))return false;
  if(Math.hypot(player.x-x,player.y-y)<23&&insidePub&&npcInteriorKey()===entity.definition.interior)return false;
  for(const other of npcEntities.values()){
-  if(other===entity||other.definition.interior!==entity.definition.interior)continue;
+  if(other===entity||other.definition.interior!==entity.definition.interior||!npcCurrentEnabled(other.definition.id))continue;
   if(Math.hypot(other.x-x,other.y-y)<22)return false;
  }
  return true;
@@ -552,7 +552,7 @@ function npcTick(dt){
     entity.state=entity.definition.interior==="pub"?"sitting":"idle";
     entity.waitMs=npcConfig(entity.definition.id,"idleMs");
     entity.stateClock=0;
-    npcSetFacing(entity,entity.definition.face,false);
+    npcSetFacing(entity,entity.initialFacing,false);
    }else{
     const step=Math.min(distance,npcConfig(entity.definition.id,"speed")*stepMs/1000);
     const nx=entity.x+(entity.target.x-entity.x)*step/distance;
@@ -564,14 +564,14 @@ function npcTick(dt){
      npcSetFacing(entity,facing,true);
     }else{
      entity.target=null;entity.state="waiting";entity.waitMs=1500;entity.stateClock=0;
-     npcSetFacing(entity,entity.definition.face,false);
+     npcSetFacing(entity,entity.initialFacing,false);
     }
    }
   }else if(entity.stateClock>=entity.waitMs){
    entity.stateClock=0;
    if(!npcPickRoute(entity)){
     entity.state="waiting";entity.waitMs=npcConfig(entity.definition.id,"idleMs");
-    npcSetFacing(entity,entity.definition.face,false);
+    npcSetFacing(entity,entity.initialFacing,false);
    }
   }else{
    // Civilians alternate between waiting, browsing and seated/idle pauses.
@@ -732,7 +732,7 @@ function npcCloseDialogue(){
   entity.stateClock=entity.savedNpcClock||0;
   entity.waitMs=entity.savedNpcWait||0;
   entity.savedNpcState=null;
-  npcSetFacing(entity,entity.definition.face,false);
+  npcSetFacing(entity,entity.initialFacing,false);
  }
  npcDialogue=null;
  npcModal.hidden=true;
