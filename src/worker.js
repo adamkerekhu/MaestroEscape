@@ -70,7 +70,7 @@ let overrides={};try{const raw=JSON.parse(localStorage.getItem("maestroescape.ga
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
-const PUB_DOOR={x:784,y:551};
+const PUB_DOOR={x:784,y:548};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
 let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
@@ -96,9 +96,9 @@ function addShopfronts(scene){
  }
 }
 const SHOPS={
- dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:400,y:278},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
- spar:{label:"SPAR",door:{x:916,y:649},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
- gyros:{label:"Mester Gyros",door:{x:275,y:191},size:{w:768,h:480},spawn:{x:304,y:444},exit:{x:304,y:466},image:null,walls:[[22,12,678,21],[14,14,21,401],[707,30,24,387],[23,442,207,22],[423,442,287,22],[84,90,484,190],[576,83,107,204],[55,295,138,113],[430,307,110,109],[572,305,98,114]]}
+ dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:480,y:347},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
+ spar:{label:"SPAR",door:{x:946,y:741},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
+ gyros:{label:"Mester Gyros",door:{x:222,y:160},size:{w:768,h:480},spawn:{x:304,y:444},exit:{x:304,y:466},image:null,walls:[[22,12,678,21],[14,14,21,401],[707,30,24,387],[23,442,207,22],[423,442,287,22],[84,90,484,190],[576,83,107,204],[55,295,138,113],[430,307,110,109],[572,305,98,114]]}
 };
 const interiorWalls=[
 [177,222,490,160],[140,396,136,268],[417,564,163,250],
@@ -281,7 +281,7 @@ class Explore extends Phaser.Scene{
  constructor(){super("Explore")}
  preload(){
    this.load.crossOrigin="anonymous";
-   this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
+   this.load.image("world","/assets/world.webp");
    this.load.image("interior","/assets/interior.webp");
    for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
@@ -294,7 +294,7 @@ class Explore extends Phaser.Scene{
    scene=this;
    const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Map failed to load. Check the published map asset.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
-   streetImage=image.setDepth(0);
+   streetImage=image.setDepth(0).setDisplaySize(1600,992);
    if(this.textures.exists("interior")){
      interiorImage=this.add.image(0,0,"interior").setOrigin(0,0)
        .setDisplaySize(INTERIOR_SIZE.w,INTERIOR_SIZE.h).setDepth(1).setVisible(false);
@@ -309,7 +309,7 @@ class Explore extends Phaser.Scene{
           .setDisplaySize(shop.size.w,shop.size.h).setDepth(1).setVisible(false);
      }
    }
-   mapSize={w:image.width,h:image.height};
+   mapSize={w:1600,h:992};
    const gfx=this.add.graphics().setDepth(2);
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
@@ -417,6 +417,11 @@ export default {
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/"+vehicle+".webp");
     if(!upstream.ok)return new Response("Vehicle asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
+  }
+  if(url.pathname==="/assets/world.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_map_new.webp");
+    if(!upstream.ok)return new Response("Map image unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
   if(url.pathname==="/assets/interior.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_interior.webp");
