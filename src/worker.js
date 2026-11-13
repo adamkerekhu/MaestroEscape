@@ -227,10 +227,10 @@ const interiorWalls=[
 [295,844,665,242],[1381,326,67,400],[295,808,540,32],
 [1154,50,26,166],[851,0,329,46],[842,45,26,154]
 ];
-const PARKING={x:cfg("vehicle.skoda.spawnX"),y:cfg("vehicle.skoda.spawnY")};
+const PARKING={get x(){return cfg("vehicle.skoda.spawnX")},get y(){return cfg("vehicle.skoda.spawnY")}};
 // Uses the same forward-speed / steering model as the original Vehicle.ts controller.
 const car={x:PARKING.x,y:PARKING.y,angle:cfg("vehicle.skoda.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false,frame:3};
-const OCTAVIA_PARKING={x:cfg("vehicle.octavia.spawnX"),y:cfg("vehicle.octavia.spawnY")};
+const OCTAVIA_PARKING={get x(){return cfg("vehicle.octavia.spawnX")},get y(){return cfg("vehicle.octavia.spawnY")}};
 const octavia={x:OCTAVIA_PARKING.x,y:OCTAVIA_PARKING.y,angle:cfg("vehicle.octavia.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};
 const DRIVING_ZOOM=()=>cfg("camera.drivingZoom");
 let vehicleController=null,octaviaController=null,activeVehicle=null;
@@ -479,8 +479,8 @@ class Explore extends Phaser.Scene{
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
-   car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
-   octavia.x=OCTAVIA_PARKING.x;octavia.y=OCTAVIA_PARKING.y;octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
+   car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
+   octavia.x=cfg("vehicle.octavia.spawnX");octavia.y=cfg("vehicle.octavia.spawnY");octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
    if(octaviaSprite)octaviaSprite.setPosition(octavia.x,octavia.y).setRotation(octavia.angle);
    if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
