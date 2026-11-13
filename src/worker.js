@@ -48,7 +48,12 @@ const SPAWN={x:859,y:577};
 const PUB_DOOR={x:825,y:547};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
-let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null;
+let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+const SHOPS={
+ dohanybolt:{label:"Nemzeti Dohánybolt",door:{x:355,y:196},size:{w:608,h:832},spawn:{x:260,y:783},exit:{x:260,y:805},image:null,walls:[[22,21,533,14],[18,22,21,673],[550,25,26,702],[29,710,156,32],[427,712,139,29],[58,76,128,605],[183,80,293,160],[171,243,260,152],[342,456,51,150],[447,443,53,172]]},
+ spar:{label:"SPAR",door:{x:951,y:635},size:{w:736,h:384},spawn:{x:120,y:288},exit:{x:120,y:310},image:null,walls:[[149,20,536,20],[678,23,26,294],[235,321,446,23],[151,30,24,160],[205,56,147,83],[365,59,175,78],[259,161,140,58],[441,163,153,53],[493,232,121,80]]},
+ gyros:{label:"Mester Gyros",door:{x:274,y:194},size:{w:768,h:480},spawn:{x:304,y:444},exit:{x:304,y:466},image:null,walls:[[22,12,678,21],[14,14,21,401],[707,30,24,387],[23,442,207,22],[423,442,287,22],[84,90,484,190],[576,83,107,204],[55,295,138,113],[430,307,110,109],[572,305,98,114]]}
+};
 const interiorWalls=[
 [177,222,490,160],[140,396,136,268],[417,564,163,250],
 [717,233,147,119],[682,509,132,154],[965,472,111,152],
@@ -83,13 +88,26 @@ function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
 function intersects(x,y){
  const w=13,h=11;
  if(x<25||y<25||x>mapSize.w-25||y>mapSize.h-25)return true;
- if(insidePub)return interiorWalls.some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh);
+ if(insidePub)return (activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh);
  return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
+}
+function enterShop(shop){
+ if(!shop.image){show(shop.label+" map is loading. Please try again.");return;}
+ if(car.driver){show("Exit the Skoda first.");return;}
+ streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
+ character.setScale(1.296);mapSize={...shop.size};
+ streetImage.setVisible(false);if(interiorImage)interiorImage.setVisible(false);
+ for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
+ if(carSprite)carSprite.setVisible(false);
+ player.x=shop.spawn.x;player.y=shop.spawn.y;character.setPosition(player.x,player.y);
+ scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(0.825);
+ status.textContent="Inside "+shop.label;
+ show("Inside "+shop.label+". Press E near the entrance to exit.");
 }
 function enterPub(){
  if(!interiorImage){show("Interior map could not be loaded.");return;}
  if(car.driver){show("Exit the Skoda first.");return;}
- streetPos={x:player.x,y:player.y};insidePub=true;
+ streetPos={x:player.x,y:player.y};insidePub=true;activeShop=null;
  character.setScale(1.296);
  mapSize={...INTERIOR_SIZE};
  streetImage.setVisible(false);interiorImage.setVisible(true);
@@ -102,7 +120,8 @@ function enterPub(){
  show("You're inside! Walk around. Press E near the bottom-left exit to leave.");
 }
 function leavePub(){
- insidePub=false;character.setScale(0.324);mapSize={w:1600,h:992};
+ insidePub=false;activeShop=null;character.setScale(0.324);mapSize={w:1600,h:992};
+ for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
  interiorImage.setVisible(false);streetImage.setVisible(true);
  if(carSprite)carSprite.setVisible(true);
  if(exitHint)exitHint.setVisible(false);
@@ -170,12 +189,14 @@ class VehicleController {
 }
 function interact(){
  if(insidePub){
-  if(near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,92))leavePub();
-  else show("The exit is at the lower-left corner of the pub.");
+  const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
+  if(near(player,exit.x,exit.y,96))leavePub();
+  else show("Return to the entrance and press E to exit.");
   return;
  }
  if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}
- if(near(player,PUB_DOOR.x,PUB_DOOR.y,83)){enterPub();return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
+ if(near(player,PUB_DOOR.x,PUB_DOOR.y,83)){enterPub();return;}
+ for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,82)){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
 const collisionPolygons=[
@@ -200,6 +221,7 @@ class Explore extends Phaser.Scene{
    this.load.crossOrigin="anonymous";
    this.load.image("world","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Maps/maestro_map.webp");
    this.load.image("interior","/assets/interior.webp");
+   for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
@@ -215,6 +237,12 @@ class Explore extends Phaser.Scene{
      exitHint=this.add.text(INTERIOR_EXIT.x+22,INTERIOR_EXIT.y-30,"EXIT [E]",
        {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
        stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
+   }
+   for(const [name,shop] of Object.entries(SHOPS)){
+     if(this.textures.exists("shop_"+name)){
+       shop.image=this.add.image(0,0,"shop_"+name).setOrigin(0,0)
+          .setDisplaySize(shop.size.w,shop.size.h).setDepth(1).setVisible(false);
+     }
    }
    mapSize={w:image.width,h:image.height};
    const gfx=this.add.graphics().setDepth(2);
@@ -269,7 +297,7 @@ class Explore extends Phaser.Scene{
    const cameraZoom=insidePub?0.825:car.driver?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(car.driver)return;
-   if(exitHint)exitHint.setVisible(insidePub && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
+   if(exitHint)exitHint.setVisible(insidePub && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
    if(distance){
       const amount=(keys.SHIFT.isDown?300:205)*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
@@ -289,6 +317,12 @@ export default {
  async fetch(request){
   const url=new URL(request.url);
   if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-with-skoda",vehicle:"Skoda Superb 2.0TDI"});
+  if(/^\/assets\/shop-(dohanybolt|spar|gyros)\.webp$/.test(url.pathname)){
+    const shopName=url.pathname.slice(13,-5);
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/shops/"+shopName+".webp");
+    if(!upstream.ok)return new Response("Shop map unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
+  }
   if(url.pathname==="/assets/interior.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_interior.webp");
     if(!upstream.ok)return new Response("Interior image unavailable",{status:502});
