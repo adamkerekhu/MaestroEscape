@@ -32,7 +32,7 @@ These checks were performed by source inspection and JavaScript harness/mocked D
 
 ## Automated regression suite
 
-Run `npm run check` to perform `node --check` and the eight Node built-in tests in `tests/npc-regression.test.mjs`. A GitHub Actions workflow, `.github/workflows/npc-regression.yml`, runs the same command on pushes and pull requests to `main`. At authoring time a completed Actions run could not be independently confirmed.
+Run `npm run check` to perform `node --check` and the eight Node built-in tests in `tests/npc-regression.test.mjs`. A GitHub Actions workflow, `.github/workflows/npc-regression.yml`, runs the same command on pushes and pull requests to `main`. Confirmed GitHub Actions run 43476292369 for commit 02042071: all eight regression tests passed, zero failed. Logs: https://github.com/adamkerekhu/MaestroEscape/actions/runs/43476292369
 
 ## Manual acceptance tests still required
 
