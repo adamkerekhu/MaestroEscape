@@ -1,12 +1,12 @@
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
 // Original Pygame source remains available in the repository.
-const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"}]}];
-const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135};
+const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Placement and size","description":"Adjust each bike individually or drag it on the map. These values are shared across devices.","fields":[{"key":"vehicle.bike1.width","label":"Bubi 1 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike1.length","label":"Bubi 1 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnX","label":"Bubi 1 spawnX","value":670,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnY","label":"Bubi 1 spawnY","value":850,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike1.angle","label":"Bubi 1 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike2.width","label":"Bubi 2 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike2.length","label":"Bubi 2 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnX","label":"Bubi 2 spawnX","value":688,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnY","label":"Bubi 2 spawnY","value":860,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike2.angle","label":"Bubi 2 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike3.width","label":"Bubi 3 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike3.length","label":"Bubi 3 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnX","label":"Bubi 3 spawnX","value":706,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnY","label":"Bubi 3 spawnY","value":870,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike3.angle","label":"Bubi 3 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Driving","description":"Separate pedal acceleration, top speed, steering and friction.","fields":[{"key":"bike.acceleration","label":"Pedal acceleration","value":100,"min":20,"max":300,"step":5,"unit":"px/s²"},{"key":"bike.topSpeed","label":"Maximum cycling speed","value":125,"min":30,"max":270,"step":5,"unit":"px/s"},{"key":"bike.turnRate","label":"Bike steering rate","value":3.5,"min":0.3,"max":8,"step":0.1,"unit":"rad/s"},{"key":"bike.drag","label":"Bike coasting drag","value":1.5,"min":0.1,"max":6,"step":0.1,"unit":"×"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"}]}];
+const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135,"vehicle.bike1.width":15,"vehicle.bike1.length":34,"vehicle.bike1.spawnX":670,"vehicle.bike1.spawnY":850,"vehicle.bike1.angle":135,"vehicle.bike2.width":15,"vehicle.bike2.length":34,"vehicle.bike2.spawnX":688,"vehicle.bike2.spawnY":860,"vehicle.bike2.angle":135,"vehicle.bike3.width":15,"vehicle.bike3.length":34,"vehicle.bike3.spawnX":706,"vehicle.bike3.spawnY":870,"vehicle.bike3.angle":135,"bike.acceleration":100,"bike.topSpeed":125,"bike.turnRate":3.5,"bike.drag":1.5};
 const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MaestroEscape · Game Settings</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}#vehicle-editor{margin:0 0 20px;padding:18px;border:1px solid #465a73;border-radius:12px;background:#1b2638}#vehicle-editor h2{margin:0 0 8px}#parking-map{display:block;width:100%;height:auto;aspect-ratio:1600/992;touch-action:none;background:#253347;border:1px solid #58677d;border-radius:8px;cursor:grab}#parking-map.dragging{cursor:grabbing}.parking-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.parking-toolbar label{display:flex;align-items:center;gap:7px}.parking-toolbar select{background:#182337;color:#fff;border:1px solid #58677d;padding:8px;border-radius:7px}.parking-toolbar input[type=range]{width:min(240px,45vw)}#parking-info{font-size:13px;color:#cbd7e8}.parking-hint{font-size:13px;color:#b5c0d0}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
 <canvas id="parking-map" width="1600" height="992" aria-label="Drag vehicle positions on the map"></canvas>
-<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
+<div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option><option value="bike1">Bubi Bike 1</option><option value="bike2">Bubi Bike 2</option><option value="bike3">Bubi Bike 3</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
@@ -40,7 +40,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
        if(!check.ok)throw new Error("verification returned "+check.status);
        const persisted=await check.json();
        const expected=JSON.parse(payload);
-       const keys=["vehicle.skoda.spawnX","vehicle.skoda.spawnY","vehicle.skoda.angle","vehicle.octavia.spawnX","vehicle.octavia.spawnY","vehicle.octavia.angle"];
+       const keys=["skoda","octavia","bike1","bike2","bike3"].flatMap(id=>["spawnX","spawnY","angle"].map(part=>"vehicle."+id+"."+part));
        if(keys.some(key=>Number(persisted.settings?.[key])!==Number(expected[key])))
          throw new Error("saved positions do not match the server");
        lastPersisted=payload;
@@ -61,10 +61,10 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  function draw(){root.innerHTML="";for(const group of groups){const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
- const carIds=["skoda","octavia"];
+ const carIds=["skoda","octavia","bike1","bike2","bike3"];
  const images={};
  const background=new Image();background.onload=drawParking;background.src="/assets/world.webp";
- for(const [id,url] of [["skoda","/assets/skoda-highres.webp"],["octavia","/assets/octavia.webp"]]){
+ for(const [id,url] of [["skoda","/assets/skoda-highres.webp"],["octavia","/assets/octavia.webp"],["bike1","/assets/bubi.webp"],["bike2","/assets/bubi.webp"],["bike3","/assets/bubi.webp"]]){
    const img=new Image();images[id]=img;img.onload=drawParking;img.onerror=drawParking;img.src=url;
  }
  const selection=document.getElementById("parking-choice"),angleSlider=document.getElementById("parking-angle");
@@ -80,13 +80,13 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
      context.save();context.translate(pos.x,pos.y);context.rotate(pos.angle*Math.PI/180);
      const width=values["vehicle."+id+".width"],length=values["vehicle."+id+".length"];
      if(img&&img.complete&&img.naturalWidth)context.drawImage(img,-width/2,-length/2,width,length);
-     else{context.fillStyle=id==="skoda"?"#e1e8f1":"#d0dde7";context.fillRect(-width/2,-length/2,width,length);context.fillStyle="#374558";context.fillRect(-width*.35,-length*.19,width*.7,length*.4);}
+     else{context.fillStyle=id.startsWith("bike")?"#92cf4a":id==="skoda"?"#e1e8f1":"#d0dde7";context.fillRect(-width/2,-length/2,width,length);context.fillStyle="#374558";context.fillRect(-width*.35,-length*.19,width*.7,length*.4);}
      context.restore();
-     context.beginPath();context.arc(pos.x,pos.y,selected?Math.max(29,width*.65):Math.max(20,width*.5),0,Math.PI*2);
+     context.beginPath();context.arc(pos.x,pos.y,selected?Math.max(18,width*.65):Math.max(12,width*.5),0,Math.PI*2);
      context.strokeStyle=selected?"#ffe36d":"#53ffce";context.lineWidth=selected?5:3;context.stroke();
      context.font="bold 22px system-ui";context.lineWidth=4;context.strokeStyle="#1b2638";context.textAlign="center";
-     context.strokeText(id==="skoda"?"SKODA":"OCTAVIA",pos.x,pos.y-62);
-     context.fillStyle="#ffffff";context.fillText(id==="skoda"?"SKODA":"OCTAVIA",pos.x,pos.y-62);
+     context.strokeText(id==="skoda"?"SKODA":id==="octavia"?"OCTAVIA":"BUBI "+id.slice(-1),pos.x,pos.y-(id.startsWith("bike")?29:62));
+     context.fillStyle="#ffffff";context.fillText(id==="skoda"?"SKODA":id==="octavia"?"OCTAVIA":"BUBI "+id.slice(-1),pos.x,pos.y-(id.startsWith("bike")?29:62));
    }
    const selected=vehiclePoint(selection.value);
    angleSlider.value=selected.angle;angleText.textContent=selected.angle+"°";
@@ -155,7 +155,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
  <div id="joystick" role="application" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
  <button type="button" class="action" id="mobile-interact" aria-label="Interact">E</button>
 </div></div>
-<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit Skoda &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
+<div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script>
 (function(){
@@ -176,7 +176,7 @@ const applyRemoteSettings=data=>{
  if(badge){badge.textContent="☁ Shared settings synced";badge.title="Cloudflare settings version "+settingsRevision;}
  if(before!==JSON.stringify(overrides)&&scene?.sys?.isActive?.()){
    // Move only parked cars that remain at their previous configured starting spots.
-   for(const [id,model,sprite] of [["skoda",car,carSprite],["octavia",octavia,octaviaSprite]]){
+   for(const {id,model,sprite} of registeredVehicles()){
      if(model.driver||Math.abs(model.speed)>0.1)continue;
      const x=cfg("vehicle."+id+".spawnX"),y=cfg("vehicle."+id+".spawnY");
      model.x=x;model.y=y;model.angle=cfg("vehicle."+id+".angle")*Math.PI/180;
@@ -232,6 +232,9 @@ const PARKING={get x(){return cfg("vehicle.skoda.spawnX")},get y(){return cfg("v
 const car={x:PARKING.x,y:PARKING.y,angle:cfg("vehicle.skoda.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false,frame:3};
 const OCTAVIA_PARKING={get x(){return cfg("vehicle.octavia.spawnX")},get y(){return cfg("vehicle.octavia.spawnY")}};
 const octavia={x:OCTAVIA_PARKING.x,y:OCTAVIA_PARKING.y,angle:cfg("vehicle.octavia.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};
+const bikes=[1,2,3].map(n=>{const id="bike"+n;return {id,type:"bike",x:cfg("vehicle."+id+".spawnX"),y:cfg("vehicle."+id+".spawnY"),angle:cfg("vehicle."+id+".angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};});
+const bikeSprites=[],bikeControllers=[];
+function registeredVehicles(){return [{id:"skoda",model:car,sprite:carSprite,controller:vehicleController,label:"Skoda Superb 2.0TDI"},{id:"octavia",model:octavia,sprite:octaviaSprite,controller:octaviaController,label:"Octavia Checkengine"},...bikes.map((model,i)=>({id:model.id,model,sprite:bikeSprites[i],controller:bikeControllers[i],label:"Bubi Bike "+(i+1)}))];}
 const DRIVING_ZOOM=()=>cfg("camera.drivingZoom");
 let vehicleController=null,octaviaController=null,activeVehicle=null;
 let carSprite=null,octaviaSprite=null,tramSprite=null;
@@ -281,6 +284,7 @@ function enterShop(shop){
  for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
  if(carSprite)carSprite.setVisible(false);
  if(octaviaSprite)octaviaSprite.setVisible(false);
+ for(const sprite of bikeSprites)sprite.setVisible(false);
  if(tramSprite)tramSprite.setVisible(false);
  player.x=shop.spawn.x;player.y=shop.spawn.y;character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(shopZoom(shop));
@@ -289,13 +293,14 @@ function enterShop(shop){
 }
 function enterPub(){
  if(!interiorImage){show("Interior map could not be loaded.");return;}
- if(car.driver){show("Exit the Skoda first.");return;}
+ if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=null;
  character.setScale(cfg("building.pub.scale"));
  mapSize={...INTERIOR_SIZE};
  streetImage.setVisible(false);setStreetfronts(false);interiorImage.setVisible(true);
  if(carSprite)carSprite.setVisible(false);
  if(octaviaSprite)octaviaSprite.setVisible(false);
+ for(const sprite of bikeSprites)sprite.setVisible(false);
  if(tramSprite)tramSprite.setVisible(false);
  player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
  character.setPosition(player.x,player.y);
@@ -310,6 +315,7 @@ function leavePub(){
  interiorImage.setVisible(false);streetImage.setVisible(true);
  if(carSprite)carSprite.setVisible(true);
  if(octaviaSprite)octaviaSprite.setVisible(true);
+ for(const sprite of bikeSprites)sprite.setVisible(true);
  if(tramSprite)tramSprite.setVisible(true);
  if(exitHint)exitHint.setVisible(false);
  player.x=streetPos.x;player.y=streetPos.y;
@@ -321,25 +327,19 @@ function leavePub(){
 }
 function enterOrExitCar(){
  if(!activeVehicle){
-  const options=[{model:car,sprite:carSprite,label:"Skoda Superb 2.0TDI"},{model:octavia,sprite:octaviaSprite,label:"Octavia Checkengine"}]
-    .filter(o=>o.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y));
-  const choice=options[0];
-  if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){show("Walk closer to a car.");return;}
-  activeVehicle=choice.model;
-  choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
-  scene.cameras.main.startFollow(choice.sprite,true,0.13,0.13);
-  status.textContent="Driving: "+choice.label;
-  show(choice.label+" · W accelerate · S brake/reverse · A/D steer · E exit.");
+  const choice=registeredVehicles().filter(v=>v.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
+  if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){show("Move closer to a car or Bubi bike.");return;}
+  activeVehicle=choice.model;choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
+  scene.cameras.main.startFollow(choice.sprite,true,.13,.13);status.textContent="Riding: "+choice.label;
+  show(choice.label+" · W pedal/accelerate · S brake · A/D steer · E dismount.");
  }else{
   const vehicle=activeVehicle;
-  const offsets=[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
+  const offsets=vehicle.type==="bike"?[[22,0],[-22,0],[0,24],[0,-24],[25,25]]:[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
   const pos=offsets.map(([x,y])=>({x:vehicle.x+x,y:vehicle.y+y})).find(p=>!intersects(p.x,p.y));
-  if(!pos){show("No safe space to exit. Drive a little farther.");return;}
+  if(!pos){show("No safe dismount location. Move farther.");return;}
   vehicle.driver=false;vehicle.speed=0;vehicle.wheelTurn=0;activeVehicle=null;
   player.x=pos.x;player.y=pos.y;character.setPosition(player.x,player.y).setVisible(true);
-  scene.cameras.main.startFollow(character,true,0.13,0.13);
-  status.textContent="On foot";
-  show("Exited the car. Press E near a vehicle to drive.");
+  scene.cameras.main.startFollow(character,true,.13,.13);status.textContent="On foot";show("Dismounted.");
  }
 }
 // VehicleController ported from KulturalisDigitalisPolgariKor/src/entities/Vehicle.ts.
@@ -349,16 +349,17 @@ class VehicleController {
  constructor(vehicle,sprite){this.vehicle=vehicle;this.sprite=sprite;}
  update(inputX,inputY,dt){
   const v=this.vehicle;
-  const acceleration=cfg("vehicle.acceleration"),maxSpeed=cfg("vehicle.topSpeed");
+  const bicycle=v.type==="bike";
+  const acceleration=cfg(bicycle?"bike.acceleration":"vehicle.acceleration"),maxSpeed=cfg(bicycle?"bike.topSpeed":"vehicle.topSpeed");
   if(inputY<-.1)v.speed+=acceleration*dt;
   else if(inputY>.1)v.speed-=acceleration*dt*(v.speed>0?cfg("vehicle.braking"):.65);
-  else v.speed*=Math.max(0,1-cfg("vehicle.drag")*dt);
-  v.speed=Phaser.Math.Clamp(v.speed,-maxSpeed*.33,maxSpeed);
+  else v.speed*=Math.max(0,1-cfg(bicycle?"bike.drag":"vehicle.drag")*dt);
+  v.speed=Phaser.Math.Clamp(v.speed,-maxSpeed*(bicycle?.12:.33),maxSpeed);
   const steer=Phaser.Math.Clamp(inputX,-1,1);
   if(Math.abs(v.speed)>1){
    v.wheelTurn=Phaser.Math.Linear(v.wheelTurn,steer,Math.min(1,dt*5));
-   const grip=Phaser.Math.Clamp(Math.abs(v.speed)/75,.2,1);
-   v.angle+=v.wheelTurn*cfg("vehicle.turnRate")*dt*grip*Math.sign(v.speed);
+   const grip=Phaser.Math.Clamp(Math.abs(v.speed)/(bicycle?26:75),.2,1);
+   v.angle+=v.wheelTurn*cfg(bicycle?"bike.turnRate":"vehicle.turnRate")*dt*grip*Math.sign(v.speed);
   }else{
    v.wheelTurn=Phaser.Math.Linear(v.wheelTurn,0,Math.min(1,dt*5));
   }
@@ -367,13 +368,12 @@ class VehicleController {
   const py=v.y-Math.cos(v.angle)*v.speed*dt;
   const fw={x:Math.sin(v.angle),y:-Math.cos(v.angle)};
   const side={x:Math.cos(v.angle),y:Math.sin(v.angle)};
-  const halfW=12,halfL=25;
+  const halfW=bicycle?5:12,halfL=bicycle?12:25;
   const corners=[-1,1].flatMap(f=>[-1,1].map(t=>({
    x:px+fw.x*halfL*f+side.x*halfW*t,
    y:py+fw.y*halfL*f+side.y*halfW*t
   })));
-  const blocked=p=>p.x<18||p.y<18||p.x>mapSize.w-18||p.y>mapSize.h-18
-     || collisionPolygons.some(poly=>insidePolygon(p.x,p.y,poly));
+  const blocked=p=>p.x<18||p.y<18||p.x>mapSize.w-18||p.y>mapSize.h-18?true:bicycle&&p.x>=635&&p.x<=755&&p.y>=795&&p.y<=925?false:collisionPolygons.some(poly=>insidePolygon(p.x,p.y,poly));
   if(corners.some(blocked)){v.speed*=-.08;return;}
   v.x=px;v.y=py;
  }
@@ -385,7 +385,7 @@ function interact(){
   else show("Return to the entrance and press E to exit.");
   return;
  }
- if(activeVehicle || near(player,car.x,car.y,cfg("game.vehicleRadius")) || near(player,octavia.x,octavia.y,cfg("game.vehicleRadius"))){enterOrExitCar();return;}
+ if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){enterOrExitCar();return;}
  if(near(player,PUB_DOOR.x,PUB_DOOR.y,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
@@ -416,6 +416,7 @@ class Explore extends Phaser.Scene{
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
+   this.load.image("bubi","/assets/bubi.webp");
    this.load.image("tram","/assets/tram.webp");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
@@ -462,6 +463,7 @@ class Explore extends Phaser.Scene{
        .setDisplaySize(cfg("vehicle.octavia.width"),cfg("vehicle.octavia.length")).setRotation(octavia.angle);
      octaviaController=new VehicleController(octavia,octaviaSprite);
    }
+   if(this.textures.exists("bubi"))bikes.forEach((bike,i)=>{const sprite=this.add.image(bike.x,bike.y,"bubi").setDepth(6).setDisplaySize(cfg("vehicle."+bike.id+".width"),cfg("vehicle."+bike.id+".length")).setRotation(bike.angle);bikeSprites[i]=sprite;bikeControllers[i]=new VehicleController(bike,sprite);});
    if(this.textures.exists("tram")){
      tramSprite=this.add.image(TRAM_START.x,TRAM_START.y,"tram").setDepth(4)
        .setDisplaySize(cfg("tram.width"),cfg("tram.length")).setRotation(TRAM_ANGLE);
@@ -481,6 +483,7 @@ class Explore extends Phaser.Scene{
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
    octavia.x=cfg("vehicle.octavia.spawnX");octavia.y=cfg("vehicle.octavia.spawnY");octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
+   bikes.forEach((bike,i)=>{bike.x=cfg("vehicle."+bike.id+".spawnX");bike.y=cfg("vehicle."+bike.id+".spawnY");bike.angle=cfg("vehicle."+bike.id+".angle")*Math.PI/180;bike.speed=0;bike.wheelTurn=0;bikeSprites[i]?.setPosition(bike.x,bike.y).setRotation(bike.angle);});
    if(octaviaSprite)octaviaSprite.setPosition(octavia.x,octavia.y).setRotation(octavia.angle);
    if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
@@ -514,12 +517,13 @@ class Explore extends Phaser.Scene{
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
    if(activeVehicle){
-     const sprite=activeVehicle===car?carSprite:octaviaSprite;
-     const controller=activeVehicle===car?vehicleController:octaviaController;
+     const active=registeredVehicles().find(v=>v.model===activeVehicle);
+     const sprite=active?.sprite;
+     const controller=active?.controller;
      if(sprite&&controller){
        controller.update(dx,dy,Math.min(.04,delta/1000));
        sprite.setPosition(activeVehicle.x,activeVehicle.y).setRotation(activeVehicle.angle);
-       coords.textContent="🚗 "+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
+       coords.textContent=(activeVehicle.type==="bike"?"🚲 ":"🚗 ")+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
      }
    }
    const cameraZoom=insidePub?(activeShop?shopZoom(activeShop):cfg("building.pub.zoom")):activeVehicle?DRIVING_ZOOM():cfg("camera.streetZoom");
@@ -614,6 +618,7 @@ export default {
     if(!upstream.ok)return new Response("Vehicle asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
   }
+  if(url.pathname==="/assets/bubi.webp"){const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_bike.webp");if(!upstream.ok)return new Response("Bubi asset unavailable",{status:502});return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});}
   if(url.pathname==="/assets/world.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_map_new.webp");
     if(!upstream.ok)return new Response("Map image unavailable",{status:502});
