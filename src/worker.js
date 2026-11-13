@@ -1,8 +1,8 @@
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
 // Original Pygame source remains available in the repository.
-const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Placement and size","description":"Adjust each bike individually or drag it on the map. These values are shared across devices.","fields":[{"key":"vehicle.bike1.width","label":"Bubi 1 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike1.length","label":"Bubi 1 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnX","label":"Bubi 1 spawnX","value":670,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnY","label":"Bubi 1 spawnY","value":850,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike1.angle","label":"Bubi 1 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike2.width","label":"Bubi 2 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike2.length","label":"Bubi 2 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnX","label":"Bubi 2 spawnX","value":688,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnY","label":"Bubi 2 spawnY","value":860,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike2.angle","label":"Bubi 2 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike3.width","label":"Bubi 3 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike3.length","label":"Bubi 3 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnX","label":"Bubi 3 spawnX","value":706,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnY","label":"Bubi 3 spawnY","value":870,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike3.angle","label":"Bubi 3 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Driving","description":"Separate pedal acceleration, top speed, steering and friction.","fields":[{"key":"bike.acceleration","label":"Pedal acceleration","value":100,"min":20,"max":300,"step":5,"unit":"px/s²"},{"key":"bike.topSpeed","label":"Maximum cycling speed","value":125,"min":30,"max":270,"step":5,"unit":"px/s"},{"key":"bike.turnRate","label":"Bike steering rate","value":3.5,"min":0.3,"max":8,"step":0.1,"unit":"rad/s"},{"key":"bike.drag","label":"Bike coasting drag","value":1.5,"min":0.1,"max":6,"step":0.1,"unit":"×"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"}]}];
-const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135,"vehicle.bike1.width":15,"vehicle.bike1.length":34,"vehicle.bike1.spawnX":670,"vehicle.bike1.spawnY":850,"vehicle.bike1.angle":135,"vehicle.bike2.width":15,"vehicle.bike2.length":34,"vehicle.bike2.spawnX":688,"vehicle.bike2.spawnY":860,"vehicle.bike2.angle":135,"vehicle.bike3.width":15,"vehicle.bike3.length":34,"vehicle.bike3.spawnX":706,"vehicle.bike3.spawnY":870,"vehicle.bike3.angle":135,"bike.acceleration":100,"bike.topSpeed":125,"bike.turnRate":3.5,"bike.drag":1.5};
+const SETTINGS_GROUPS=[{"title":"Characters","description":"Walking, sprinting, animations and size outside.","fields":[{"key":"character.walkSpeed","label":"Walk speed","value":205,"min":60,"max":450,"step":5,"unit":"px/s"},{"key":"character.sprintSpeed","label":"Sprint speed","value":300,"min":80,"max":650,"step":5,"unit":"px/s"},{"key":"character.streetScale","label":"Outside character size","value":0.324,"min":0.1,"max":2.5,"step":0.01,"unit":"×"},{"key":"character.animationFps","label":"Walking animation","value":9,"min":2,"max":24,"step":1,"unit":"fps"}]},{"title":"Buildings · Individual zoom & character size","description":"Each interior is adjusted independently.","fields":[{"key":"building.pub.zoom","label":"Maestro Pub zoom","value":0.825,"min":0.35,"max":3.5,"step":0.025,"unit":"×"},{"key":"building.pub.scale","label":"Maestro Pub character","value":1.296,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.spar.zoom","label":"SPAR zoom","value":1.875,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.spar.scale","label":"SPAR character","value":0.57,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.gyros.zoom","label":"Mester Gyros zoom","value":1.667,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.gyros.scale","label":"Gyros character","value":0.642,"min":0.2,"max":3,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.zoom","label":"Dohánybolt zoom","value":2.105,"min":0.35,"max":4,"step":0.025,"unit":"×"},{"key":"building.dohanybolt.scale","label":"Dohánybolt character","value":0.508,"min":0.2,"max":3,"step":0.025,"unit":"×"}]},{"title":"Vehicles · Appearance","description":"Rendered sizes on the outdoor map.","fields":[{"key":"vehicle.skoda.width","label":"Škoda width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.skoda.length","label":"Škoda length","value":72,"min":30,"max":180,"step":1,"unit":"px"},{"key":"vehicle.octavia.width","label":"Octavia width","value":32,"min":12,"max":100,"step":1,"unit":"px"},{"key":"vehicle.octavia.length","label":"Octavia length","value":64,"min":30,"max":180,"step":1,"unit":"px"}]},{"title":"Vehicle starting positions","description":"Use the map placement editor above to drag or rotate each vehicle; coordinates are shared across devices.","fields":[{"key":"vehicle.skoda.spawnX","label":"Skoda starting X","value":697,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.skoda.spawnY","label":"Skoda starting Y","value":505,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.skoda.angle","label":"Skoda angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.octavia.spawnX","label":"Octavia starting X","value":632,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.octavia.spawnY","label":"Octavia starting Y","value":453,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.octavia.angle","label":"Octavia angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Placement and size","description":"Adjust each bike individually or drag it on the map. These values are shared across devices.","fields":[{"key":"vehicle.bike1.width","label":"Bubi 1 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike1.length","label":"Bubi 1 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnX","label":"Bubi 1 spawnX","value":670,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike1.spawnY","label":"Bubi 1 spawnY","value":850,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike1.angle","label":"Bubi 1 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike2.width","label":"Bubi 2 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike2.length","label":"Bubi 2 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnX","label":"Bubi 2 spawnX","value":688,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike2.spawnY","label":"Bubi 2 spawnY","value":860,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike2.angle","label":"Bubi 2 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"},{"key":"vehicle.bike3.width","label":"Bubi 3 width","value":15,"min":6,"max":45,"step":1,"unit":"px"},{"key":"vehicle.bike3.length","label":"Bubi 3 length","value":34,"min":16,"max":80,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnX","label":"Bubi 3 spawnX","value":706,"min":0,"max":1600,"step":1,"unit":"px"},{"key":"vehicle.bike3.spawnY","label":"Bubi 3 spawnY","value":870,"min":0,"max":992,"step":1,"unit":"px"},{"key":"vehicle.bike3.angle","label":"Bubi 3 angle","value":135,"min":0,"max":359,"step":1,"unit":"°"}]},{"title":"Bubi bikes · Driving","description":"Separate pedal acceleration, top speed, steering and friction.","fields":[{"key":"bike.acceleration","label":"Pedal acceleration","value":100,"min":20,"max":300,"step":5,"unit":"px/s²"},{"key":"bike.topSpeed","label":"Maximum cycling speed","value":125,"min":30,"max":270,"step":5,"unit":"px/s"},{"key":"bike.turnRate","label":"Bike steering rate","value":3.5,"min":0.3,"max":8,"step":0.1,"unit":"rad/s"},{"key":"bike.drag","label":"Bike coasting drag","value":1.5,"min":0.1,"max":6,"step":0.1,"unit":"×"}]},{"title":"Vehicles · Driving mechanics","description":"Applies to both cars. Braking, steering and friction can be fine-tuned.","fields":[{"key":"vehicle.acceleration","label":"Acceleration","value":175,"min":20,"max":500,"step":5,"unit":"px/s²"},{"key":"vehicle.topSpeed","label":"Maximum speed","value":245,"min":40,"max":600,"step":5,"unit":"px/s"},{"key":"vehicle.turnRate","label":"Steering sensitivity","value":2,"min":0.2,"max":6,"step":0.1,"unit":"rad/s"},{"key":"vehicle.braking","label":"Braking strength","value":1.65,"min":0.5,"max":4,"step":0.05,"unit":"×"},{"key":"vehicle.drag","label":"Coasting drag","value":1.35,"min":0.1,"max":6,"step":0.05,"unit":"×"}]},{"title":"Tram","description":"Tram passes on the tracks, pauses 3 seconds at the stop, then continues.","fields":[{"key":"tram.interval","label":"Pass frequency","value":20,"min":5,"max":120,"step":1,"unit":"sec"},{"key":"tram.travelTime","label":"Crossing duration","value":14.5,"min":3,"max":30,"step":0.5,"unit":"sec"},{"key":"tram.width","label":"Tram width","value":40,"min":20,"max":110,"step":1,"unit":"px"},{"key":"tram.length","label":"Tram length","value":144,"min":65,"max":360,"step":1,"unit":"px"}]},{"title":"Camera & Interaction","description":"Outdoor view and interaction ranges.","fields":[{"key":"camera.streetZoom","label":"Outdoor zoom","value":2.03,"min":0.5,"max":4.5,"step":0.05,"unit":"×"},{"key":"camera.drivingZoom","label":"Driving zoom","value":1.3804,"min":0.35,"max":4,"step":0.05,"unit":"×"},{"key":"game.interactRadius","label":"Shop entry reach","value":82,"min":30,"max":150,"step":1,"unit":"px"},{"key":"game.vehicleRadius","label":"Vehicle entry reach","value":67,"min":30,"max":150,"step":1,"unit":"px"},{"key":"npc.interactRadius","label":"NPC dialogue reach","value":108,"min":40,"max":190,"step":2,"unit":"px"},{"key":"npc.interactCooldownMs","label":"NPC action cooldown","value":450,"min":150,"max":2000,"step":50,"unit":"ms"}]}];
+const SETTINGS_DEFAULTS={"character.walkSpeed":205,"character.sprintSpeed":300,"character.streetScale":0.324,"character.animationFps":9,"building.pub.zoom":0.825,"building.pub.scale":1.296,"building.spar.zoom":1.875,"building.spar.scale":0.57,"building.gyros.zoom":1.667,"building.gyros.scale":0.642,"building.dohanybolt.zoom":2.105,"building.dohanybolt.scale":0.508,"vehicle.skoda.width":32,"vehicle.skoda.length":72,"vehicle.octavia.width":32,"vehicle.octavia.length":64,"vehicle.acceleration":175,"vehicle.topSpeed":245,"vehicle.turnRate":2,"vehicle.braking":1.65,"vehicle.drag":1.35,"tram.interval":20,"tram.travelTime":14.5,"tram.width":40,"tram.length":144,"camera.streetZoom":2.03,"camera.drivingZoom":1.3804,"game.interactRadius":82,"game.vehicleRadius":67,"vehicle.skoda.spawnX":697,"vehicle.skoda.spawnY":505,"vehicle.skoda.angle":135,"vehicle.octavia.spawnX":632,"vehicle.octavia.spawnY":453,"vehicle.octavia.angle":135,"vehicle.bike1.width":15,"vehicle.bike1.length":34,"vehicle.bike1.spawnX":670,"vehicle.bike1.spawnY":850,"vehicle.bike1.angle":135,"vehicle.bike2.width":15,"vehicle.bike2.length":34,"vehicle.bike2.spawnX":688,"vehicle.bike2.spawnY":860,"vehicle.bike2.angle":135,"vehicle.bike3.width":15,"vehicle.bike3.length":34,"vehicle.bike3.spawnX":706,"vehicle.bike3.spawnY":870,"vehicle.bike3.angle":135,"bike.acceleration":100,"bike.topSpeed":125,"bike.turnRate":3.5,"bike.drag":1.5,"npc.interactRadius":108,"npc.interactCooldownMs":450};
 const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MaestroEscape · Game Settings</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f4f5f8;font:15px system-ui,Arial}main{max-width:1080px;padding:22px 18px 60px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}h1{color:#ffc773;font-size:25px;margin:0}small,p{color:#aebbd0}button,a{border:1px solid #63748c;border-radius:9px;padding:11px 14px;background:#28344b;color:#fff;cursor:pointer;text-decoration:none;font:inherit}button:hover,a:hover{background:#394d66}.toolbar{display:flex;flex-wrap:wrap;gap:8px}.primary{background:#a46a27;border-color:#d9a85b}.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,450px),1fr));gap:16px}section{background:#1b2638;border:1px solid #3a485b;border-radius:12px;padding:18px}h2{margin:0 0 5px;font-size:18px;color:#ffce87}.desc{margin:0 0 17px;font-size:13px}.field{margin:0 0 15px}.field-header{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}.field-header label{font-weight:600}.valuebox{display:flex;align-items:center;gap:5px}input[type=number]{width:85px;background:#101827;color:#fff;border:1px solid #52647d;border-radius:6px;padding:6px;font:inherit}input[type=range]{width:100%;accent-color:#efb35f;cursor:pointer}.unit{color:#aebbd0;font-size:12px;width:44px}#notice{color:#f6cd86;font-weight:600}footer{padding-top:15px;color:#9aa8bc;font-size:13px}#vehicle-editor{margin:0 0 20px;padding:18px;border:1px solid #465a73;border-radius:12px;background:#1b2638}#vehicle-editor h2{margin:0 0 8px}#parking-map{display:block;width:100%;height:auto;aspect-ratio:1600/992;touch-action:none;background:#253347;border:1px solid #58677d;border-radius:8px;cursor:grab}#parking-map.dragging{cursor:grabbing}.parking-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.parking-toolbar label{display:flex;align-items:center;gap:7px}.parking-toolbar select{background:#182337;color:#fff;border:1px solid #58677d;padding:8px;border-radius:7px}.parking-toolbar input[type=range]{width:min(240px,45vw)}#parking-info{font-size:13px;color:#cbd7e8}.parking-hint{font-size:13px;color:#b5c0d0}</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
 <canvas id="parking-map" width="1600" height="992" aria-label="Drag vehicle positions on the map"></canvas>
@@ -133,6 +133,18 @@ h1{margin:0;font-size:22px;letter-spacing:.04em;color:#ffcb7b}header p{margin:3p
 #hud{display:flex;align-items:center;gap:14px;color:#d5e0e6;font-size:13px}
 #screen{margin:auto;width:min(100%,1360px);aspect-ratio:16/9;border:1px solid #39455b;overflow:hidden;position:relative;background:#19212e;border-radius:8px}
 #screen canvas{display:block;width:100%!important;height:100%!important;object-fit:contain}
+#npc-prompt{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);border:1px solid #d0a9709c;background:#141e30e8;border-radius:8px;padding:7px 13px;color:#ffe4b4;z-index:4;pointer-events:none;font-size:13px;font-weight:700;white-space:nowrap}
+#npc-dialogue{position:absolute;inset:0;z-index:9;background:#0c1329a8;display:flex;align-items:center;justify-content:center;padding:15px}
+#npc-dialogue .dialogue-panel{background:#192539;border:1px solid #7a8ba3;border-radius:13px;padding:18px;max-width:360px;width:min(100%,360px);max-height:90%;overflow-y:auto;box-shadow:0 15px 45px #0008}
+#npc-dialogue h2{margin:0 0 5px;font-size:22px;color:#ffcf88}
+#npc-dialogue p{margin:0 0 12px;line-height:1.45;color:#d7e1ef}
+#npc-dialogue .npc-action-list{display:grid;gap:8px}
+#npc-dialogue button{min-height:38px;font:inherit;white-space:normal;text-align:left}
+#npc-dialogue button:disabled{opacity:.52;cursor:not-allowed}
+#npc-dialogue .npc-reason{color:#b6c2d1;font-size:11px;margin-top:3px}
+#npc-dialogue button.npc-close{background:#37435a;text-align:center}
+#npc-dialogue[hidden],#npc-prompt[hidden]{display:none!important}
+@media(hover:none) and (pointer:coarse){#npc-prompt{bottom:3%;font-size:11px}#npc-dialogue .dialogue-panel{max-height:84%}}
 #splash{position:absolute;inset:0;display:grid;place-items:center;background:#131b29;z-index:2;text-align:center;padding:20px;font-size:18px}
 #instructions{max-width:1360px;margin:12px auto;padding:0 12px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aebbc8}
 kbd{display:inline-block;background:#323d51;border:1px solid #59677c;color:white;padding:3px 7px;border-radius:5px}
@@ -151,6 +163,15 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
 <div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div>
+<div id="npc-prompt" hidden>E · Talk</div>
+<div id="npc-dialogue" hidden role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-title">
+ <div class="dialogue-panel">
+  <h2 id="npc-dialogue-title"></h2>
+  <p id="npc-dialogue-message"></p>
+  <div id="npc-dialogue-actions" class="npc-action-list"></div>
+  <button type="button" class="npc-close" id="npc-dialogue-close">Close · Esc / E</button>
+ </div>
+</div>
 <div id="mobile-controls" aria-label="Touch controls">
  <div id="joystick" role="application" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
  <button type="button" class="action" id="mobile-interact" aria-label="Interact">E</button>
@@ -449,6 +470,134 @@ joystick.addEventListener("lostpointercapture",joystickRelease);
 document.getElementById("mobile-interact").addEventListener("pointerdown",event=>{event.preventDefault();if(scene)interact();});
 
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
+
+// Phase 3: interaction UI. Only dialogue is currently a real gameplay action.
+// Purchases / item grants require an authoritative inventory + task system (TODO).
+const NPC_DIALOGUES={
+ maestro_bartender:{intro:"Welcome to Maestro. What can I get you?",talk:["Welcome in. The evening is just getting started.","Take your time, there's plenty of room at the bar."],
+ actions:[["beer","Order beer"],["refill","Request refill"]]},
+ maestro_regular_1:{intro:"He looks up from his drink.",talk:["Been here all evening. You know how it goes.","The tram's never on time when you need it."],
+ actions:[["borrow","Borrow a cigarette"]]},
+ maestro_regular_2:{intro:"He seems ready for a chat.",talk:["Another round, another story.","Don't forget where you parked."],
+ actions:[["borrow","Borrow a cigarette"]]},
+ maestro_regular_3:{intro:"He waves from his seat.",talk:["You heading somewhere?","There's always something happening here."],
+ actions:[["borrow","Borrow a cigarette"]]},
+ spar_cashier:{intro:"Welcome to SPAR.",talk:["The checkout is open.","Anything else for you?"],
+ actions:[["shop","Browse / buy goods"]]},
+ spar_shopper_1:{intro:"Someone is browsing the shelves.",talk:["I'm just looking, thanks.","It gets busy in here around closing time."],actions:[]},
+ spar_shopper_2:{intro:"A customer turns to you.",talk:["Can't decide what to buy.","I think I forgot my shopping list."],actions:[]},
+ tobacco_cashier:{intro:"The cashier waits behind the counter.",talk:["Good evening.","What can I help you with?"],actions:[["cigarettes","Buy cigarettes"]]},
+ gyros_employee:{intro:"The grill is hot and the counter is busy.",talk:["Fresh gyros coming up.","One moment, we're preparing another batch."],
+ actions:[["kebab","Order kebab"],["collect","Collect kebab"]]}
+};
+const NPC_ACTION_UNAVAILABLE={
+ beer:"Beer ordering and inventory are not implemented yet.",
+ refill:"Refill requires a purchased beer and the drinking mechanic.",
+ borrow:"Cigarette stock, borrowing and inventory are not implemented yet.",
+ shop:"Product inventory, pricing and payment are not implemented yet.",
+ cigarettes:"Cigarette inventory, age checks and purchases are not implemented yet.",
+ kebab:"Kebab ordering and preparation timer are not implemented yet.",
+ collect:"Collection requires a real prepared order; none exists yet."
+};
+let npcDialogue=null,npcActionAt=0,npcTalkCount=0;
+const npcPrompt=document.getElementById("npc-prompt");
+const npcModal=document.getElementById("npc-dialogue");
+const npcTitle=document.getElementById("npc-dialogue-title");
+const npcMessage=document.getElementById("npc-dialogue-message");
+const npcActions=document.getElementById("npc-dialogue-actions");
+function npcNearestTarget(){
+ const interior=npcInteriorKey();
+ if(!interior||activeVehicle)return null;
+ const limit=cfg("npc.interactRadius");
+ let closest=null,best=limit;
+ for(const entity of npcEntities.values()){
+  if(entity.definition.interior!==interior||!entity.sprite.visible)continue;
+  const distance=Math.hypot(player.x-entity.x,player.y-entity.y);
+  if(distance<best){closest=entity;best=distance;}
+ }
+ return closest;
+}
+function npcExitDistance(){
+ if(!insidePub)return Infinity;
+ const point=activeShop?activeShop.exit:INTERIOR_EXIT;
+ return Math.hypot(player.x-point.x,player.y-point.y);
+}
+function npcDialogueOpen(){return !!npcDialogue;}
+function npcCloseDialogue(){
+ const entity=npcDialogue;
+ if(entity){
+  // Keep the original routine and wait timer; avoid resetting stock/progress.
+  entity.state=entity.savedNpcState||"idle";
+  entity.stateClock=entity.savedNpcClock||0;
+  entity.waitMs=entity.savedNpcWait||0;
+  entity.savedNpcState=null;
+  npcSetFacing(entity,entity.definition.face,false);
+ }
+ npcDialogue=null;
+ npcModal.hidden=true;
+ npcActions.replaceChildren();
+ npcActionAt=performance.now();
+}
+function npcOpenDialogue(entity){
+ if(!entity||npcDialogue||!insidePub||entity.definition.interior!==npcInteriorKey())return;
+ if(Math.hypot(player.x-entity.x,player.y-entity.y)>cfg("npc.interactRadius"))return;
+ npcDialogue=entity;
+ entity.savedNpcState=entity.state;
+ entity.savedNpcClock=entity.stateClock;
+ entity.savedNpcWait=entity.waitMs;
+ entity.state="interacting";
+ entity.target=null; // An interrupted walking route must not continue mid-dialogue.
+ npcSetFacing(entity,Math.abs(player.x-entity.x)>Math.abs(player.y-entity.y)
+  ?(player.x<entity.x?"left":"right"):(player.y<entity.y?"up":"down"),false);
+ const def=entity.definition,script=NPC_DIALOGUES[def.id];
+ npcTitle.textContent=def.name;
+ npcMessage.textContent=script.intro;
+ npcActions.replaceChildren();
+ const add=(label,action,reason)=>{
+  const button=document.createElement("button");
+  button.type="button";button.textContent=label;
+  if(reason){button.disabled=true;button.title=reason;
+   const hint=document.createElement("div");hint.className="npc-reason";hint.textContent=reason;
+   const group=document.createElement("div");group.append(button,hint);npcActions.append(group);
+  }else{
+   button.addEventListener("click",()=>npcChooseAction(entity,action));
+   npcActions.append(button);
+  }
+ };
+ add("Talk","talk");
+ for(const [action,label] of script.actions)add(label,action,NPC_ACTION_UNAVAILABLE[action]);
+ npcModal.hidden=false;
+ npcPrompt.hidden=true;
+ npcActionAt=performance.now();
+}
+function npcChooseAction(entity,action){
+ const now=performance.now();
+ if(now-npcActionAt<cfg("npc.interactCooldownMs"))return;
+ npcActionAt=now;
+ if(entity!==npcDialogue||!insidePub||npcInteriorKey()!==entity.definition.interior
+    ||Math.hypot(player.x-entity.x,player.y-entity.y)>cfg("npc.interactRadius")){
+  npcCloseDialogue();return;
+ }
+ if(action==="talk"){
+  const lines=NPC_DIALOGUES[entity.definition.id].talk;
+  npcMessage.textContent=lines[npcTalkCount++%lines.length];
+  return;
+ }
+ // TODO: connect to authoritative inventory, stock, timers and consumable actions.
+ npcMessage.textContent=NPC_ACTION_UNAVAILABLE[action]||"This action is unavailable.";
+}
+function npcUpdatePrompt(){
+ if(npcDialogue){npcPrompt.hidden=true;return;}
+ const closest=npcNearestTarget();
+ if(!closest||npcExitDistance()<70){npcPrompt.hidden=true;return;}
+ npcPrompt.textContent="E · Talk to "+closest.definition.name;
+ npcPrompt.hidden=false;
+}
+document.getElementById("npc-dialogue-close").addEventListener("click",npcCloseDialogue);
+window.addEventListener("keydown",event=>{
+ if(event.key==="Escape"&&npcDialogue){event.preventDefault();npcCloseDialogue();}
+});
+
 function show(text){msg.textContent=text;toastUntil=Date.now()+5000;}
 function near(o,x,y,r=78){return Math.hypot(o.x-x,o.y-y)<r;}
 function intersects(x,y){
@@ -460,6 +609,7 @@ function intersects(x,y){
  return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
 }
 function enterShop(shop){
+ npcCloseDialogue();
  if(!shop.image){show(shop.label+" map is loading. Please try again.");return;}
  if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
@@ -476,6 +626,7 @@ function enterShop(shop){
  show("Inside "+shop.label+". Press E near the entrance to exit.");
 }
 function enterPub(){
+ npcCloseDialogue();
  if(!interiorImage){show("Interior map could not be loaded.");return;}
  if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=null;
@@ -494,6 +645,7 @@ function enterPub(){
  show("You're inside! Walk around. Press E near the bottom-left exit to leave.");
 }
 function leavePub(){
+ npcCloseDialogue();
  insidePub=false;activeShop=null;character.setScale(cfg("character.streetScale"));mapSize={w:1600,h:992};
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
  interiorImage.setVisible(false);streetImage.setVisible(true);showInteriorNPCs(null);
@@ -589,7 +741,11 @@ class VehicleController {
  }
 }
 function interact(){
+ if(npcDialogue){npcCloseDialogue();return;}
  if(insidePub){
+  const nearest=npcNearestTarget();
+  if(nearest&&Math.hypot(player.x-nearest.x,player.y-nearest.y)<npcExitDistance()
+     &&npcExitDistance()>=70){npcOpenDialogue(nearest);return;}
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(near(player,exit.x,exit.y,96))leavePub();
   else show("Return to the entrance and press E to exit.");
@@ -696,7 +852,7 @@ class Explore extends Phaser.Scene{
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:cfg("character.animationFps"),repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
-   this.input.keyboard.on("keydown-R",()=>this.respawn());
+   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();this.respawn();});
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
    this.cameras.main.setZoom(cfg("camera.streetZoom"));
@@ -719,7 +875,8 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
-   npcTick(delta);
+   npcUpdatePrompt();
+   if(!npcDialogue)npcTick(delta);
    // Tram follows the diagonal tracks, stops at the platform for 3 seconds, and repeats.
    if(tramSprite){
      const phase=time%tramPeriodMs();
@@ -742,6 +899,7 @@ class Explore extends Phaser.Scene{
        tramSprite.setPosition(x,y).setRotation(TRAM_ANGLE).setVisible(true);
      }else tramSprite.setVisible(false);
    }
+   if(npcDialogue)return; // Keep character and vehicles still while an action menu is open.
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
