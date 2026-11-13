@@ -86,9 +86,14 @@ const interiorWalls=[
 const PARKING={x:697,y:505};
 // Uses the same forward-speed / steering model as the original Vehicle.ts controller.
 const car={x:PARKING.x,y:PARKING.y,angle:3*Math.PI/4,speed:0,wheelTurn:0,driver:false,frame:3};
+const OCTAVIA_PARKING={x:632,y:453};
+const octavia={x:OCTAVIA_PARKING.x,y:OCTAVIA_PARKING.y,angle:3*Math.PI/4,speed:0,wheelTurn:0,driver:false};
 const DRIVING_ZOOM=2.03*0.68;
-let vehicleController=null;
-let carSprite=null;
+let vehicleController=null,octaviaController=null,activeVehicle=null;
+let carSprite=null,octaviaSprite=null,tramSprite=null;
+const TRAM_RUN_MS=14500,TRAM_PERIOD_MS=20000;
+const TRAM_START={x:-175,y:-110},TRAM_END={x:1360,y:1150};
+const TRAM_ANGLE=Math.atan2(TRAM_END.x-TRAM_START.x,-(TRAM_END.y-TRAM_START.y));
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const touchInput={w:false,a:false,s:false,d:false};
 for(const button of document.querySelectorAll("#mobile-controls button")){
@@ -114,12 +119,14 @@ function intersects(x,y){
 }
 function enterShop(shop){
  if(!shop.image){show(shop.label+" map is loading. Please try again.");return;}
- if(car.driver){show("Exit the Skoda first.");return;}
+ if(activeVehicle){show("Exit the vehicle first.");return;}
  streetPos={x:player.x,y:player.y};insidePub=true;activeShop=shop;
  character.setScale(shopCharacterScale(shop));mapSize={...shop.size};
  streetImage.setVisible(false);setStreetfronts(false);if(interiorImage)interiorImage.setVisible(false);
  for(const other of Object.values(SHOPS))if(other.image)other.image.setVisible(other===shop);
  if(carSprite)carSprite.setVisible(false);
+ if(octaviaSprite)octaviaSprite.setVisible(false);
+ if(tramSprite)tramSprite.setVisible(false);
  player.x=shop.spawn.x;player.y=shop.spawn.y;character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(shopZoom(shop));
  status.textContent="Inside "+shop.label;
@@ -133,6 +140,8 @@ function enterPub(){
  mapSize={...INTERIOR_SIZE};
  streetImage.setVisible(false);setStreetfronts(false);interiorImage.setVisible(true);
  if(carSprite)carSprite.setVisible(false);
+ if(octaviaSprite)octaviaSprite.setVisible(false);
+ if(tramSprite)tramSprite.setVisible(false);
  player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
  character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,INTERIOR_SIZE.w,INTERIOR_SIZE.h);
@@ -145,6 +154,8 @@ function leavePub(){
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
  interiorImage.setVisible(false);streetImage.setVisible(true);setStreetfronts(true);
  if(carSprite)carSprite.setVisible(true);
+ if(octaviaSprite)octaviaSprite.setVisible(true);
+ if(tramSprite)tramSprite.setVisible(true);
  if(exitHint)exitHint.setVisible(false);
  player.x=streetPos.x;player.y=streetPos.y;
  character.setPosition(player.x,player.y);
@@ -154,22 +165,26 @@ function leavePub(){
  show("Back on Mester utca.");
 }
 function enterOrExitCar(){
- if(!carSprite)return;
- if(!car.driver){
-  if(!near(player,car.x,car.y,67)){show("Walk closer to the Skoda Superb.");return;}
-  car.driver=true;car.speed=0;car.wheelTurn=0;character.setVisible(false);
-  scene.cameras.main.startFollow(carSprite,true,0.13,0.13);
-  status.textContent="Driving: Skoda Superb 2.0TDI";
-  show("Skoda Superb 2.0TDI · W accelerate · S brake/reverse · A/D steer · E exit.");
+ if(!activeVehicle){
+  const options=[{model:car,sprite:carSprite,label:"Skoda Superb 2.0TDI"},{model:octavia,sprite:octaviaSprite,label:"Octavia Checkengine"}]
+    .filter(o=>o.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y));
+  const choice=options[0];
+  if(!choice||!near(player,choice.model.x,choice.model.y,67)){show("Walk closer to a car.");return;}
+  activeVehicle=choice.model;
+  choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
+  scene.cameras.main.startFollow(choice.sprite,true,0.13,0.13);
+  status.textContent="Driving: "+choice.label;
+  show(choice.label+" · W accelerate · S brake/reverse · A/D steer · E exit.");
  }else{
+  const vehicle=activeVehicle;
   const offsets=[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
-  const pos=offsets.map(([x,y])=>({x:car.x+x,y:car.y+y})).find(p=>!intersects(p.x,p.y));
-  if(!pos){show("Can't get out here. Drive somewhere with more space.");return;}
-  car.driver=false;car.speed=0;car.wheelTurn=0;player.x=pos.x;player.y=pos.y;
-  character.setPosition(player.x,player.y).setVisible(true);
+  const pos=offsets.map(([x,y])=>({x:vehicle.x+x,y:vehicle.y+y})).find(p=>!intersects(p.x,p.y));
+  if(!pos){show("No safe space to exit. Drive a little farther.");return;}
+  vehicle.driver=false;vehicle.speed=0;vehicle.wheelTurn=0;activeVehicle=null;
+  player.x=pos.x;player.y=pos.y;character.setPosition(player.x,player.y).setVisible(true);
   scene.cameras.main.startFollow(character,true,0.13,0.13);
   status.textContent="On foot";
-  show("Exited Skoda Superb 2.0TDI. E to enter again.");
+  show("Exited the car. Press E near a vehicle to drive.");
  }
 }
 // VehicleController ported from KulturalisDigitalisPolgariKor/src/entities/Vehicle.ts.
@@ -215,7 +230,7 @@ function interact(){
   else show("Return to the entrance and press E to exit.");
   return;
  }
- if(car.driver || near(player,car.x,car.y,67)){enterOrExitCar();return;}
+ if(activeVehicle || near(player,car.x,car.y,67) || near(player,octavia.x,octavia.y,67)){enterOrExitCar();return;}
  if(near(player,PUB_DOOR.x,PUB_DOOR.y,83)){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,82)){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
@@ -245,6 +260,8 @@ class Explore extends Phaser.Scene{
    for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
+   this.load.image("octavia","/assets/octavia.webp");
+   this.load.image("tram","/assets/tram.webp");
    this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
@@ -285,6 +302,15 @@ class Explore extends Phaser.Scene{
      carSprite=this.add.image(car.x,car.y,"skoda").setDepth(6).setDisplaySize(32,72).setRotation(car.angle);
    }
    vehicleController=new VehicleController(car,carSprite);
+   if(this.textures.exists("octavia")){
+     octaviaSprite=this.add.image(octavia.x,octavia.y,"octavia").setDepth(6)
+       .setDisplaySize(32,64).setRotation(octavia.angle);
+     octaviaController=new VehicleController(octavia,octaviaSprite);
+   }
+   if(this.textures.exists("tram")){
+     tramSprite=this.add.image(TRAM_START.x,TRAM_START.y,"tram").setDepth(4)
+       .setDisplaySize(40,144).setRotation(TRAM_ANGLE);
+   }
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:9,repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
@@ -297,28 +323,41 @@ class Explore extends Phaser.Scene{
  }
  respawn(){
    let x=SPAWN.x,y=SPAWN.y;
-   if(car.driver){car.driver=false;car.speed=0;car.wheelTurn=0;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
+   if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    car.x=PARKING.x;car.y=PARKING.y;car.frame=3;car.angle=3*Math.PI/4;car.speed=0;car.wheelTurn=0;
+   octavia.x=OCTAVIA_PARKING.x;octavia.y=OCTAVIA_PARKING.y;octavia.angle=3*Math.PI/4;octavia.speed=0;octavia.wheelTurn=0;
+   if(octaviaSprite)octaviaSprite.setPosition(octavia.x,octavia.y).setRotation(octavia.angle);
    if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
    player.x=x;player.y=y;character.setPosition(x,y);show("Spawned on a walkable point. Explore the original map.");
  }
- update(_,delta){
+ update(time,delta){
    if(!character||!keys)return;
+   // The tram passes the two tracks once every 20 seconds.
+   if(tramSprite){
+     const phase=time%TRAM_PERIOD_MS;
+     if(phase<TRAM_RUN_MS&&!insidePub){
+       const t=phase/TRAM_RUN_MS;
+       tramSprite.setPosition(Phaser.Math.Linear(TRAM_START.x,TRAM_END.x,t),
+                              Phaser.Math.Linear(TRAM_START.y,TRAM_END.y,t))
+         .setRotation(TRAM_ANGLE).setVisible(true);
+     }else tramSprite.setVisible(false);
+   }
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown||touchInput.d)-Number(keys.A.isDown||keys.LEFT.isDown||touchInput.a);
    let dy=Number(keys.S.isDown||keys.DOWN.isDown||touchInput.s)-Number(keys.W.isDown||keys.UP.isDown||touchInput.w);
    const distance=Math.hypot(dx,dy);
-   if(car.driver && carSprite){
-      const dt=Math.min(.04,delta/1000);
-      // Original controls: W throttle, S brake/reverse, A/D steering.
-      vehicleController.update(dx,dy,dt);
-      carSprite.setPosition(car.x,car.y).setRotation(car.angle);
-      coords.textContent="🚗 "+Math.round(car.x)+", "+Math.round(car.y)+" · "+Math.round(Math.abs(car.speed))+" px/s";
-   }else{
+   if(activeVehicle){
+     const sprite=activeVehicle===car?carSprite:octaviaSprite;
+     const controller=activeVehicle===car?vehicleController:octaviaController;
+     if(sprite&&controller){
+       controller.update(dx,dy,Math.min(.04,delta/1000));
+       sprite.setPosition(activeVehicle.x,activeVehicle.y).setRotation(activeVehicle.angle);
+       coords.textContent="🚗 "+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
+     }
    }
-   const cameraZoom=insidePub?(activeShop?shopZoom(activeShop):0.825):car.driver?DRIVING_ZOOM:2.03;
+   const cameraZoom=insidePub?(activeShop?shopZoom(activeShop):0.825):activeVehicle?DRIVING_ZOOM:2.03;
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
-   if(car.driver)return;
+   if(activeVehicle)return;
    if(exitHint)exitHint.setVisible(insidePub && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
    if(distance){
       const amount=(keys.SHIFT.isDown?300:205)*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
@@ -344,6 +383,12 @@ export default {
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/shops/"+shopName+".webp");
     if(!upstream.ok)return new Response("Shop map unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
+  }
+  if(url.pathname==="/assets/octavia.webp" || url.pathname==="/assets/tram.webp"){
+    const vehicle=url.pathname==="/assets/octavia.webp"?"octavia":"tram";
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/"+vehicle+".webp");
+    if(!upstream.ok)return new Response("Vehicle asset unavailable",{status:502});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
   }
   if(url.pathname==="/assets/interior.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_interior.webp");
