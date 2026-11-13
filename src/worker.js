@@ -18,15 +18,11 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
  let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0,savePromise=Promise.resolve(),storageReady=false;
  try {
-   const remote=await fetch("/api/settings",{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable");return r.json()});
+   const remote=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable: HTTP "+r.status);return r.json()});
    values=normalize({...defaults,...remote.settings});
    lastPersisted=JSON.stringify(values);
    storageReady=true;
-   if(!remote.initialized&&Object.keys(saved).length){
-     values=normalize({...defaults,...saved});
-     await push();
-     notice.textContent="Imported earlier device settings to the shared configuration.";
-   }
+   // Never overwrite shared settings with another device\u0027s local cache.
  }catch(error){notice.textContent="Shared storage error: "+error.message;console.error(error);}
  async function push(force=false){
    clearTimeout(saveHandle);
@@ -40,7 +36,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
        if(!response.ok)throw new Error("server returned "+response.status+": "+(await response.text()).slice(0,120));
        const committed=await response.json();
        if(!committed.ok)throw new Error("server did not confirm the save");
-       const check=await fetch("/api/settings",{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+       const check=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
        if(!check.ok)throw new Error("verification returned "+check.status);
        const persisted=await check.json();
        const expected=JSON.parse(payload);
@@ -153,7 +149,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
-<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
+<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div>
 <div id="mobile-controls" aria-label="Touch controls">
  <div id="joystick" role="application" aria-label="Movement joystick"><div id="joystick-knob"></div></div>
@@ -169,6 +165,28 @@ const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const configDefaults=__MAESTRO_DEFAULT_SETTINGS__;
 let overrides={};
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
+let settingsSynced=false,settingsRevision=0;
+const applyRemoteSettings=data=>{
+ if(!data||!data.settings||typeof data.settings!=="object")throw Error("Invalid shared settings response");
+ const before=JSON.stringify(overrides);
+ overrides=data.settings;
+ settingsRevision=Number(data.revision)||0;
+ settingsSynced=true;
+ const badge=document.getElementById("sync-status");
+ if(badge){badge.textContent="☁ Shared settings synced";badge.title="Cloudflare settings version "+settingsRevision;}
+ if(before!==JSON.stringify(overrides)&&scene?.sys?.isActive?.()){
+   // Move only parked cars that remain at their previous configured starting spots.
+   for(const [id,model,sprite] of [["skoda",car,carSprite],["octavia",octavia,octaviaSprite]]){
+     if(model.driver||Math.abs(model.speed)>0.1)continue;
+     const x=cfg("vehicle."+id+".spawnX"),y=cfg("vehicle."+id+".spawnY");
+     model.x=x;model.y=y;model.angle=cfg("vehicle."+id+".angle")*Math.PI/180;
+     if(sprite)sprite.setPosition(x,y).setRotation(model.angle)
+                   .setDisplaySize(cfg("vehicle."+id+".width"),cfg("vehicle."+id+".length"));
+   }
+   character?.setScale?.(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
+   tramSprite?.setDisplaySize?.(cfg("tram.width"),cfg("tram.length"));
+ }
+};
 const locs=[{name:"Maestro Pub",x:825,y:547,color:0xffc76a,info:"Maestro Pub entrance.",done:false}];
 const SPAWN={x:859,y:577};
 const PUB_DOOR={x:784,y:548};
@@ -521,13 +539,26 @@ class Explore extends Phaser.Scene{
 }
 document.getElementById("reset").onclick=()=>scene?.respawn();
 (async()=>{
- try{
-   const response=await fetch("/api/settings",{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
-   if(!response.ok)throw new Error("Shared settings unavailable");
-   const data=await response.json();
-   if(data.settings&&typeof data.settings==="object")overrides=data.settings;
- }catch(error){console.error("Using default settings",error);show("Shared settings unavailable; using defaults.");}
+ async function syncSharedSettings(){
+   const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
+   if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
+   const data=await response.json();applyRemoteSettings(data);
+   return data;
+ }
+ try{await syncSharedSettings();}
+ catch(error){
+   console.error("Shared settings unavailable",error);
+   const badge=document.getElementById("sync-status");
+   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
+   show("Settings sync offline. Retry by refreshing; this device may display defaults.");
+ }
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
+ // Regular polling keeps existing mobile tabs in sync with desktop changes.
+ setInterval(()=>{syncSharedSettings().catch(error=>{
+   const badge=document.getElementById("sync-status");
+   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
+ })},10000);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
 })();
 })();
 </script></body></html>`;
@@ -537,7 +568,8 @@ export class GameSettings {
  async fetch(request){
   if(request.method==="GET"){
    const current=await this.ctx.storage.get("settings");
-   return Response.json({settings:current||SETTINGS_DEFAULTS,initialized:!!current},{headers:{"cache-control":"no-store"}});
+   const revision=await this.ctx.storage.get("revision")||0;
+   return Response.json({settings:{...SETTINGS_DEFAULTS,...current},initialized:!!current,revision},{headers:{"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache"}});
   }
   if(request.method==="PUT"){
    try{
@@ -550,8 +582,9 @@ export class GameSettings {
        if(!Number.isFinite(value))return new Response("Invalid value: "+key,{status:400});
        clean[key]=Math.min(field.max,Math.max(field.min,value));
      }
-     await this.ctx.storage.put("settings",clean);
-     return Response.json({settings:clean,ok:true});
+     const revision=(await this.ctx.storage.get("revision")||0)+1;
+     await this.ctx.storage.put({settings:clean,revision});
+     return Response.json({settings:clean,revision,ok:true},{headers:{"cache-control":"no-store"}});
    }catch(error){return new Response("Invalid settings request",{status:400});}
   }
   return new Response("Method not allowed",{status:405});
@@ -562,7 +595,7 @@ export default {
  async fetch(request,env){
   const url=new URL(request.url);
   if(url.pathname==="/api/settings"){
-    if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage unavailable"},{status:503});
+    if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
     const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
     return stub.fetch(new Request("https://settings.internal/",{method:request.method,headers:request.headers,body:request.method==="PUT"?request.body:undefined}));
   }
