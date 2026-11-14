@@ -292,3 +292,20 @@ test("lobby rejects missing or unknown character IDs",async()=>{
  assert.ok(valid.ok);
  assert.equal(valid.snapshot.selectedCharacter,"muscular");
 });
+
+test("four character slots match planned sprites and directions survive room snapshots",async()=>{
+ const {send,get}=fixture();
+ const initial=await get(0);
+ assert.deepEqual(initial.snapshot.characters.map(c=>c.id),["maestro","casual","suit","muscular"]);
+ assert.equal(new Set(initial.snapshot.characters.map(c=>c.id)).size,4);
+ assert.ok((await send(0,"selectCharacter",{characterId:"suit"})).ok);
+ const facing=await send(0,"syncPosition",{scene:"pub",x:332,y:741,face:"left",moving:true});
+ assert.ok(facing.ok);
+ const player=facing.snapshot.players.find(q=>q.id===facing.snapshot.playerId);
+ assert.equal(player.characterId,"suit");
+ assert.equal(player.face,"left");
+ assert.equal(player.moving,true);
+ const stopped=await send(0,"syncPosition",{scene:"pub",x:332,y:741,face:"up",moving:false});
+ const after=stopped.snapshot.players.find(q=>q.id===stopped.snapshot.playerId);
+ assert.equal(after.face,"up");assert.equal(after.moving,false);
+});
