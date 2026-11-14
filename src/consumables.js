@@ -151,10 +151,44 @@ function snapshot(s,p){
   tables:C.pubTables,config:{...C,playerInteractRadius:s.playerInteractRadius??PLAYER_INTERACT_DEFAULT},serverTime:now()};
 }
 function inRange(p,point,r=C.interactRadius){return point&&p.scene&&dist(p,point)<=r;}
-function npcVendor(s,p,npc){
- const scene=C.vendors[npc];if(!scene||scene!==p.scene)return bad("Visit the correct shop");
- const point=C.servicePoints[npc];
- if(!inRange(p,point))return bad("Move closer to the counter");
+// NPC position/range must agree with the Phaser dialogue target. The client sends
+// the currently displayed NPC point, while saved settings anchor its possible area.
+const NPC_SCENES={maestro_bartender:"pub",maestro_regular_1:"pub",maestro_regular_2:"pub",
+ maestro_regular_3:"pub",spar_cashier:"spar",spar_shopper_1:"spar",spar_shopper_2:"spar",
+ tobacco_cashier:"dohanybolt",gyros_employee:"gyros"};
+const NPC_INITIAL={
+ maestro_bartender:{x:413,y:210},maestro_regular_1:{x:342,y:511},
+ maestro_regular_2:{x:648,y:707},maestro_regular_3:{x:1043,y:774},
+ spar_cashier:{x:478,y:224},spar_shopper_1:{x:233,y:249},
+ spar_shopper_2:{x:636,y:243},tobacco_cashier:{x:519,y:416},gyros_employee:{x:294,y:291}
+};
+const NPC_CONTACT_OFFSETS={
+ maestro_bartender:{x:0,y:188},spar_cashier:{x:-53,y:40},
+ tobacco_cashier:{x:0,y:9},gyros_employee:{x:0,y:24}
+};
+const npcInteractionRadius=s=>s.npcInteractionRadius??108;
+function npcConfiguredPoint(s,id){
+ const base=NPC_INITIAL[id],offset=NPC_CONTACT_OFFSETS[id]||{x:0,y:0};
+ if(!base)return null;
+ const values=s.npcPositions||{};
+ const x=Number(values[id]?.x),y=Number(values[id]?.y);
+ return {x:(Number.isFinite(x)?x:base.x)+offset.x,
+         y:(Number.isFinite(y)?y:base.y)+offset.y};
+}
+function npcInReach(s,p,id,d){
+ if(NPC_SCENES[id]!==p.scene)return false;
+ const configured=npcConfiguredPoint(s,id);
+ if(!configured)return false;
+ const submitted=d?.npcPoint;
+ const point=submitted&&Number.isFinite(Number(submitted.x))&&Number.isFinite(Number(submitted.y))
+   ?{x:Number(submitted.x),y:Number(submitted.y)}:configured;
+ // NPC patrols have short paths. Reject spoofed interactions at distant locations.
+ if(dist(point,configured)>90)return false;
+ return dist(p,point)<=npcInteractionRadius(s);
+}
+function npcVendor(s,p,npc,d){
+ if(C.vendors[npc]!==p.scene)return bad("Visit the correct shop");
+ if(!npcInReach(s,p,npc,d))return bad("Move closer to the counter");
  return null;
 }
 function itemById(s,id){return s.items.find(i=>i.id===id)}
@@ -267,7 +301,7 @@ function operation(s,p,d){
  if(!p.scene)return bad("Enter the game first");
  if(op==="orderBeer"||op==="refillBeer"||op==="orderKebab"||op==="buyPack"){
   const vendor=op==="orderKebab"?"gyros_employee":op==="buyPack"?"tobacco_cashier":"maestro_bartender";
-  const err=npcVendor(s,p,vendor);if(err)return err;
+  const err=npcVendor(s,p,vendor,d);if(err)return err;
   if(s.orders.some(q=>q.playerId===p.id&&q.vendorId===vendor))return bad("Your order is still being prepared");
   const point=vendorSpot(s,vendor);if(!point)return bad("Counter pickup spots are full");
   if(op==="buyPack"){const item=create(s,"cigarette_pack",5,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});return ok({itemId:item.id,message:"Cigarette pack ready at the counter"});}
@@ -289,8 +323,7 @@ function operation(s,p,d){
  if(op==="npcBorrow"){
   if(p.scene!=="pub")return bad("Ask inside the pub");
   const conf=s.npcStock[d.npcId];if(!conf)return bad("This person does not have cigarettes");
-  const coords={maestro_regular_1:{x:342,y:511},maestro_regular_2:{x:648,y:707},maestro_regular_3:{x:1043,y:774}}[d.npcId];
-  if(!inRange(p,coords,C.interactRadius))return bad("Move closer");
+  if(!npcInReach(s,p,d.npcId,d))return bad("Move closer to this person");
   if(!conf.share)return bad("Sorry, I don't have one to spare");
   if(conf.stock<=0)return bad("Out of cigarettes");
   const slot=freeSlot(s,p,"cigarette");if(slot===undefined)return bad("Cigarette slots are full");
@@ -383,7 +416,7 @@ function operation(s,p,d){
  return bad("Unknown action");
 }
 export class ConsumableRoom{
- constructor(ctx,env){this.ctx=ctx;this.env=env;this.playerRangeCache=null}
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null}
  async getPlayerInteractionRange(){
   if(!this.env?.SETTINGS_STORE)return PLAYER_INTERACT_DEFAULT;
   if(this.playerRangeCache&&now()-this.playerRangeCache.time<1500)return this.playerRangeCache.value;
@@ -400,12 +433,36 @@ export class ConsumableRoom{
    return this.playerRangeCache?.value??PLAYER_INTERACT_DEFAULT;
   }
  }
+ async getNpcSettings(){
+  if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{}};
+  if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<1500)return this.npcSettingsCache.data;
+  try{
+   const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
+   const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
+   if(!response.ok)throw Error("NPC settings unavailable");
+   const values=(await response.json())?.settings||{};
+   const raw=Number(values["npc.interactRadius"]);
+   const radius=Number.isFinite(raw)?Math.min(190,Math.max(40,raw)):108;
+   const positions={};
+   for(const npc of Object.keys(NPC_INITIAL)){
+    const x=Number(values["npc."+npc+".x"]),y=Number(values["npc."+npc+".y"]);
+    if(Number.isFinite(x)&&Number.isFinite(y))positions[npc]={x,y};
+   }
+   const data={radius,positions};
+   this.npcSettingsCache={data,time:now()};
+   return data;
+  }catch(err){
+   console.warn("Using last NPC interaction settings",String(err));
+   return this.npcSettingsCache?.data||{radius:108,positions:{}};
+  }
+ }
  async fetch(request){
   try{
    const input=request.method==="POST"?await request.json():{};
    const token=(request.method==="GET"?new URL(request.url).searchParams.get("token"):input.token)||"";
    if(!/^[a-zA-Z0-9_-]{20,100}$/.test(token))return Response.json(bad("Invalid session token"),{status:400});
    const playerInteractionRange=await this.getPlayerInteractionRange();
+   const npcSettings=await this.getNpcSettings();
    let initialVehicleSettings={};
    const priorRoom=await this.ctx.storage.get?.("room");
    if(this.env?.SETTINGS_STORE&&(!priorRoom||!priorRoom.vehicles)){
@@ -431,6 +488,8 @@ export class ConsumableRoom{
     }
     settle(s);
     s.playerInteractRadius=playerInteractionRange;
+    s.npcInteractionRadius=npcSettings.radius;
+    s.npcPositions=npcSettings.positions;
     let p=findPlayer(s,token);
     if(!p){
      p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,face:"down",moving:false,
