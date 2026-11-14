@@ -25,6 +25,15 @@ export const CONSUMABLE_CONFIG={
   maestro_regular_3:{share:true,stock:3}
  }
 };
+// Reserved character IDs are stable even when custom artwork is uploaded later.
+export const LOBBY_CHARACTERS=[
+ {id:"maestro",name:"Maestro",tint:0xffffff,asset:"maestro"},
+ {id:"blue",name:"Blue",tint:0x76b9ff,asset:null},
+ {id:"green",name:"Green",tint:0x91e4ac,asset:null},
+ {id:"red",name:"Red",tint:0xffa3a3,asset:null},
+ {id:"gold",name:"Gold",tint:0xffd47d,asset:null},
+ {id:"purple",name:"Purple",tint:0xc8a1fb,asset:null}
+];
 const C=CONSUMABLE_CONFIG;
 const now=()=>Date.now();
 const uid=prefix=>prefix+"_"+crypto.randomUUID();
@@ -76,7 +85,9 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
-  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,alias:q.alias,online:true,equippedId:q.id===p.id?q.equippedId:null})),
+  characters:LOBBY_CHARACTERS.map(c=>({...c,selectedBy:Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===c.id&&now()-q.lastSeen<30000)?.id||null})),
+  selectedCharacter:p.characterId||null,
+  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,alias:q.alias,characterId:q.characterId||null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
   orders:s.orders.filter(o=>o.playerId===p.id),requests:s.requests.filter(q=>q.toId===p.id||q.fromId===p.id),
   action:p.action,objectives:{...p.objectives},equippedId:p.equippedId,
   tables:C.pubTables,config:C,serverTime:now()};
@@ -112,6 +123,17 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="selectCharacter"){
+  const character=LOBBY_CHARACTERS.find(c=>c.id===d.characterId);
+  if(!character)return bad("Unknown character");
+  const occupying=Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===character.id&&now()-q.lastSeen<30000);
+  if(occupying)return bad("That character is already taken");
+  p.characterId=character.id;
+  return ok({characterId:character.id,message:"Playing as "+character.name});
+ }
+ if(op==="releaseCharacter"){
+  p.characterId=null;p.scene=null;return ok();
+ }
  if(op==="syncPosition"){
   const scene=["street","pub","spar","gyros","dohanybolt"].includes(d.scene)?d.scene:null;
   const x=Number(d.x),y=Number(d.y);
@@ -259,7 +281,7 @@ export class ConsumableRoom{
     settle(s);
     let p=findPlayer(s,token);
     if(!p){
-     p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),scene:null,x:0,y:0,
+     p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,
       lastSeen:now(),equippedId:null,action:null,objectives:{beer:0,kebab:0,cigarette:0}};
      s.players[p.id]=p;
     }
