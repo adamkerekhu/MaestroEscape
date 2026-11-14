@@ -566,7 +566,7 @@ test("player interaction range follows shared settings and rejects distant borro
   assert.equal(far.ok,false);
   assert.match(far.error,/not nearby/i);
   // The next GET refreshes the cache, so every client sees the new shared reach.
-  current+=1600;reach=60;
+  current+=16000;reach=60;
   assert.equal((await get(0)).snapshot.config.playerInteractRadius,60);
   const request=await send(0,"borrowRequest",{targetId:(await get(1)).snapshot.playerId});
   assert.equal(request.ok,true,request.error);
@@ -585,7 +585,7 @@ test("player range is bounded and remains distinct from NPC, item and vehicle ra
   assert.equal(snapshot.config.playerInteractRadius,150);
   assert.equal(snapshot.config.interactRadius,112);
   assert.equal(snapshot.config.collectRadius,82);
-  clock+=1600;configured=1;
+  clock+=16000;configured=1;
   snapshot=(await get(0)).snapshot;
   assert.equal(snapshot.config.playerInteractRadius,15);
  }finally{Date.now=old}
