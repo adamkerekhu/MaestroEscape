@@ -1672,6 +1672,10 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
   }
   // Initial local application happens before Phaser constructs its world.
   applyLocalSettingsIfNeeded(true);
+  if(new URL(location.href).searchParams.get("mode")!=="multi"){
+   settingsSynced=false;
+   setSettingsBadge("🧪 Single Player · local","No Cloudflare Durable Objects requests.");
+  }
   if(new URL(location.href).searchParams.get("mode")==="multi")try{await syncSharedSettings();}
   catch(error){
    console.error("Shared settings unavailable",error);
@@ -1685,11 +1689,12 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
    }
   });
   document.addEventListener("visibilitychange",()=>{
-   if(!document.hidden)void syncSharedSettings().catch(console.warn);
+   if(!document.hidden&&new URL(location.href).searchParams.get("mode")==="multi")
+    void syncSharedSettings().catch(console.warn);
   });
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- setInterval(()=>{
+ if(new URL(location.href).searchParams.get("mode")==="multi")setInterval(()=>{
    applyLocalSettingsIfNeeded();
    void syncSharedSettings().catch(error=>console.warn("Shared settings sync unavailable",error.message));
  },10000);
