@@ -152,7 +152,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -174,6 +174,54 @@ function create(s,type,units,location,id=null,generation=0){
  const item={id:id||uid("item"),generation,type,remainingUnits:units,maxUnits:units,location:copy(location),lit:false,revision:0};
  s.items.push(item);return item;
 }
+const GROUP_RALLY_RULES={
+ beer:{scene:"pub",label:"Group beers",icon:"🍺",radius:110},
+ cigarette:{scene:"pub",label:"Group cigarettes",icon:"🚬",radius:110},
+ kebab:{scene:"gyros",label:"Group kebab",icon:"🥙",radius:110}
+};
+const GROUP_RALLY_EXPIRES_MS=90000;
+function rallyTarget(s,type){
+ if(type==="beer"){
+  const table=C.pubTables.find(t=>t.id==="pub_left");
+  return {scene:"pub",x:table.x+table.w/2,y:table.y+table.h/2,
+   label:"Left table at Maestro"};
+ }
+ if(type==="cigarette"){
+  const contact=npcConfiguredPoint(s,"maestro_bartender")||{x:413,y:398};
+  return {scene:"pub",x:contact.x,y:contact.y,
+   label:"In front of Maestro"};
+ }
+ if(type==="kebab"){
+  const contact=npcConfiguredPoint(s,"gyros_employee")||{x:294,y:315};
+  return {scene:"gyros",x:contact.x,y:contact.y,
+   label:"Mester Gyros counter"};
+ }
+ return null;
+}
+function rallyStatus(s,rally){
+ const rule=GROUP_RALLY_RULES[rally.type];
+ const present=rally.playerIds.filter(id=>{
+  const player=s.players[id];
+  return player&&player.characterId&&!player.deadUntil&&!seatOf(s,player)&&
+   player.scene===rally.target.scene&&dist(player,rally.target)<=rule.radius;
+ });
+ return {...rally,presentIds:present,ready:present.length,required:rally.playerIds.length};
+}
+function checkRally(s){
+ const rally=s.rally;
+ if(!rally||rally.status!=="gathering")return;
+ if(now()>=rally.expiresAt){
+  rally.status="expired";rally.endedAt=now();return;
+ }
+ const state=rallyStatus(s,rally);
+ if(state.required>0&&state.ready===state.required){
+  rally.status="completed";rally.endedAt=now();
+  s.groupEvents.push({id:uid("group"),type:rally.type,
+   scene:rally.target.scene,x:rally.target.x,y:rally.target.y,
+   playerIds:rally.playerIds.slice(),at:now(),duration:3000});
+ }
+}
+
 function settle(s){
  const time=now();
  for(const player of Object.values(s.players)){
@@ -197,12 +245,20 @@ function settle(s){
   s.orders.splice(s.orders.indexOf(order),1);
  }
  s.requests=s.requests.filter(q=>q.expiresAt>time&&q.status==="pending");
+ if(!s.groupEvents)s.groupEvents=[];
+ if(!s.completions)s.completions=[];
+ s.groupEvents=s.groupEvents.filter(event=>time-event.at<12000);
+ s.completions=s.completions.slice(-120);
+ checkRally(s);
  // Dead disconnected players cannot strand pending use animations indefinitely.
  for(const p of Object.values(s.players))if(p.action&&time-p.action.startedAt>30000)p.action=null;
 }
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  completionEvents:s.completions.filter(event=>now()-event.time<9000),
+  groupEvents:(s.groupEvents||[]).filter(event=>now()-event.at<10000),
+  rally:s.rally?(s.rally.status==="gathering"?rallyStatus(s,s.rally):{...s.rally}):null,
   death:p.lastDeath||null,deadUntil:p.deadUntil||null,
   respawnRevision:p.respawnRevision||0,
   graves:(s.graves||[]).slice(),
@@ -283,6 +339,19 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="callGroup"){
+  if(!p.characterId||p.deadUntil)return bad("Select a living character to call a group");
+  if(!GROUP_RALLY_RULES[d.type])return bad("Unknown group activity");
+  if(s.rally?.status==="gathering")return bad("A group gathering is already underway");
+  const playerIds=Object.values(s.players).filter(q=>q.characterId&&!q.deadUntil&&
+   now()-q.lastSeen<12000).map(q=>q.id);
+  if(playerIds.length<2)return bad("At least two active players are needed for a group call");
+  const target=rallyTarget(s,d.type);
+  s.rally={id:uid("rally"),type:d.type,target,callerId:p.id,
+   playerIds,startedAt:now(),expiresAt:now()+GROUP_RALLY_EXPIRES_MS,status:"gathering"};
+  checkRally(s);
+  return ok({rallyId:s.rally.id,message:GROUP_RALLY_RULES[d.type].label+"! Everyone head to "+target.label});
+ }
  if(op==="tramHit"){
   if(!p.characterId||p.scene!=="street"||seatOf(s,p))return bad("Tram collision requires a walking player on the street");
   if(p.deadUntil&&now()<p.deadUntil)return bad("Already hit by tram");
@@ -303,6 +372,7 @@ function operation(s,p,d){
   s.items=s.items.filter(item=>item.location.kind!=="inventory"||item.location.playerId!==p.id);
   s.orders=s.orders.filter(order=>order.playerId!==p.id);
   s.requests=s.requests.filter(request=>request.fromId!==p.id&&request.toId!==p.id);
+  if(s.rally?.status==="gathering")s.rally.status="cancelled";
   if(!s.graves)s.graves=[];
   s.graves.push({id:death.id,x,y,at:death.at,playerId:p.id,label:"RIP"});
   if(s.graves.length>50)s.graves.splice(0,s.graves.length-50);
@@ -401,7 +471,7 @@ function operation(s,p,d){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
   s.vehicles=freshVehicles(s.vehicleSpawnSettings||{});
-  s.items=[];s.orders=[];s.requests=[];s.completions=[];s.npcStock=copy(C.npcCigarettes);
+  s.items=[];s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
  }
@@ -510,7 +580,7 @@ function operation(s,p,d){
    const oldType=i.type;
    if(oldType==="beer"){i.type="empty_glass";i.remainingUnits=0;i.maxUnits=0;i.lit=false;}
    else{s.items.splice(s.items.indexOf(i),1);if(p.equippedId===i.id)p.equippedId=null;}
-   const event={id:uid("event"),playerId:p.id,type:oldType,itemId:i.id,generation:i.generation||0,time:now()};
+   const event={id:uid("event"),playerId:p.id,type:oldType,itemId:i.id,generation:i.generation||0,time:now(),scene:p.scene,x:p.x,y:p.y,duration:2000};
    if(!s.completions.some(q=>q.itemId===i.id&&q.generation===event.generation)){
     s.completions.push(event);p.objectives[oldType]=(p.objectives[oldType]||0)+1;
    }
@@ -659,6 +729,7 @@ export class ConsumableRoom{
       }
      }
     }else if(request.method!=="GET")answer=bad("Method not allowed",405);
+    checkRally(s);
     s.revision++;
     await tx.put("room",s);
     return {...answer,snapshot:snapshot(s,p)};
