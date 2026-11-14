@@ -981,6 +981,7 @@ class VehicleController {
  }
 }
 function interact(){
+ if(gameplay&&!gameplay.hasCharacter())return;
  if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
  if(gameplay?.nearestItem()){void gameplay.interact();return;}
@@ -1073,6 +1074,7 @@ class Explore extends Phaser.Scene{
    // Pub interaction remains active, without the visual marker.
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(cfg("character.streetScale"));character.setOrigin(0.5,1.0);
+   character.setVisible(false); // Lobby requires a character selection before joining.
    riderSprite=this.textures.exists("bubi-rider")?this.add.sprite(0,0,"bubi-rider",0).setDepth(8).setOrigin(.5).setVisible(false):null;
    if(!this.textures.exists("skoda")){
      // Render an obvious, interactable placeholder if the remote image fails.
@@ -1111,11 +1113,17 @@ class Explore extends Phaser.Scene{
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
+    setCharacter:choice=>{
+      if(!choice||!character)return;
+      const key=choice.asset&&this.textures.exists("player_"+choice.id)?"player_"+choice.id:"maestro";
+      character.setTexture(key,0).setTint(choice.tint??0xffffff).setVisible(true);
+      character.setScale(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
+    },
     closeNpc:()=>{if(npcDialogue)npcCloseDialogue()},
     npcOpen:()=>!!npcDialogue
    });
    gameplay.bindScene(this);
-   loadOriginalCollision().then(()=>this.respawn());
+   loadOriginalCollision().then(()=>{this.respawn();if(!gameplay?.hasCharacter())character.setVisible(false)});
  }
  respawn(){
    if(this.hasSpawned&&gameplay)void gameplay.command("resetRound");
@@ -1135,6 +1143,7 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
+   if(gameplay&&!gameplay.hasCharacter())return;
    gameplay?.tick(time,delta);
    npcUpdatePrompt();
    if(!npcDialogue)npcTick(delta);
