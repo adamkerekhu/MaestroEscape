@@ -28,11 +28,9 @@ export const CONSUMABLE_CONFIG={
 // Reserved character IDs are stable even when custom artwork is uploaded later.
 export const LOBBY_CHARACTERS=[
  {id:"maestro",name:"Maestro",tint:0xffffff,asset:"maestro"},
- {id:"blue",name:"Blue",tint:0x76b9ff,asset:null},
- {id:"green",name:"Green",tint:0x91e4ac,asset:null},
- {id:"red",name:"Red",tint:0xffa3a3,asset:null},
- {id:"gold",name:"Gold",tint:0xffd47d,asset:null},
- {id:"purple",name:"Purple",tint:0xc8a1fb,asset:null}
+ {id:"casual",name:"Casual",tint:0xffffff,asset:"casual"},
+ {id:"suit",name:"Suit",tint:0xffffff,asset:"suit"},
+ {id:"muscular",name:"Muscular",tint:0xffffff,asset:"muscular"}
 ];
 const C=CONSUMABLE_CONFIG;
 const now=()=>Date.now();
