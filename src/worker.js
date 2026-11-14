@@ -37,7 +37,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 <p id="npc-map-status">Edit positions on the map. Changes require saving.</p>
 </section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
- const KEY="maestroescape.gameSettings.v1";
+ const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
  const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
@@ -55,6 +55,16 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    lastPersisted=JSON.stringify(values);
    revision=Number(remote.revision)||0;
    storageReady=true;
+   // Recover unfinished local changes without silently overwriting the cloud version.
+   if(localStorage.getItem(PENDING_KEY)==="1"){
+    try{
+     const pending=JSON.parse(localStorage.getItem(KEY)||"null");
+     if(pending&&typeof pending==="object"&&!Array.isArray(pending)){
+      values=normalize({...defaults,...pending});
+      notice.textContent="⚠ Unsynced settings recovered from this device. Press Save to retry Cloudflare when available.";
+     }
+    }catch(error){console.warn("Could not load pending local settings",error)}
+   }
    // Never overwrite shared settings with another device\u0027s local cache.
  }catch(error){
    // A failed Cloudflare read must never erase the settings saved on this device.
@@ -92,13 +102,13 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
          throw new Error("saved settings do not match the server");
        revision=Number(persisted.revision)||Number(committed.revision)||revision;
        lastPersisted=payload;
-       try{localStorage.setItem(KEY,payload)}catch(error){console.warn("Local backup unavailable",error)}
+       try{localStorage.setItem(KEY,payload);localStorage.removeItem(PENDING_KEY)}catch(error){console.warn("Local backup unavailable",error)}
        storageReady=true;
        notice.textContent="✓ All settings verified on server and saved for every device.";
        return true;
      }catch(error){
        let locallySaved=false;
-       try{localStorage.setItem(KEY,payload);locallySaved=true;}
+       try{localStorage.setItem(KEY,payload);localStorage.setItem(PENDING_KEY,"1");locallySaved=true;}
        catch(localError){console.error("Local settings backup failed",localError);}
        notice.textContent=locallySaved
         ?"⚠ Saved on THIS device only. Cloudflare save failed ("+error.message+"). Other devices will NOT receive these changes."
@@ -112,7 +122,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  }
  function store(){
   // Keep a local copy immediately. Cloud saves may be blocked by account quota.
-  try{localStorage.setItem(KEY,JSON.stringify(values));}catch(error){console.warn("Local backup unavailable",error)}
+  try{localStorage.setItem(KEY,JSON.stringify(values));localStorage.setItem(PENDING_KEY,"1");}catch(error){console.warn("Local backup unavailable",error)}
   notice.textContent="Saving changes…";
   clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
  }
@@ -1602,7 +1612,20 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
  async function syncSharedSettings(){
    const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
    if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
-   const data=await response.json();applyRemoteSettings(data);
+   const data=await response.json();
+   try{
+    if(localStorage.getItem("maestroescape.gameSettings.pending.v1")==="1"){
+     const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");
+     if(local&&typeof local==="object"&&!Array.isArray(local)){
+      applyRemoteSettings({settings:local,revision:data.revision});
+      settingsSynced=false;
+      const badge=document.getElementById("sync-status");
+      if(badge){badge.textContent="⚠ Local settings only";badge.title="Your changes have not been saved to Cloudflare.";}
+      return data;
+     }
+    }
+   }catch(error){console.warn("Local settings fallback unavailable",error)}
+   applyRemoteSettings(data);
    return data;
  }
  try{await syncSharedSettings();}
@@ -1610,7 +1633,15 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
    console.error("Shared settings unavailable",error);
    const badge=document.getElementById("sync-status");
    if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
-   show("Settings sync offline. Retry by refreshing; this device may display defaults.");
+   try{
+    const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");
+    if(local&&typeof local==="object"&&!Array.isArray(local)){
+     applyRemoteSettings({settings:local,revision:0});
+     settingsSynced=false;
+     if(badge){badge.textContent="⚠ Local settings only";badge.title="Cloudflare is unavailable. Settings are local to this device.";}
+    }
+   }catch(localError){console.warn("No local settings available",localError)}
+   show("Settings cloud sync offline. Using saved local settings when available.");
  }
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
