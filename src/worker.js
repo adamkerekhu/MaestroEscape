@@ -620,8 +620,11 @@ function initializeNPCs(scene){
  for(const def of NPC_DEFINITIONS){
   const key="npc_"+def.id;
   const loaded=scene.textures.exists(key);
+  // Never substitute the player avatar for an NPC. It hides missing-asset bugs
+  // and makes every NPC appear to be the same person.
   const sprite=loaded?scene.add.sprite(def.x,def.y,key,NPC_FACING[def.face]):
-    scene.add.sprite(def.x,def.y,"maestro",0);
+    scene.add.sprite(def.x,def.y,"__MISSING",0);
+  if(!loaded)console.error("NPC asset missing, not showing player as placeholder:",def.id);
   // Sprite feet anchored at world location, consistent with the player.
   sprite.setOrigin(.5,1).setScale(loaded?def.scale:def.scale*.60)
    .setDepth(5+def.y/2000).setVisible(false).setData("npcId",def.id);
@@ -1011,14 +1014,18 @@ class Explore extends Phaser.Scene{
    this.load.image("world","/assets/world.webp");
    this.load.image("interior","/assets/interior.webp");
    for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
-   for(const def of NPC_DEFINITIONS)this.load.spritesheet("npc_"+def.id,"/assets/npc/"+def.id+".webp",{frameWidth:48,frameHeight:60});
+   // The player sprite already loads successfully from jsDelivr. Load NPC sheets the same way,
+   // pinned to the immutable commit that added all nine files (avoids Worker proxy 500/cache).
+   for(const def of NPC_DEFINITIONS)this.load.spritesheet("npc_"+def.id,
+     "https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@75ddb29a71b32ff1eeff637c3188bfd1c27f1dd6/Assets/NPCs/"+def.id+".webp",
+     {frameWidth:48,frameHeight:60});
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
    this.load.image("bubi","/assets/bubi.webp");
    this.load.spritesheet("bubi-rider","/assets/bubi-rider.webp",{frameWidth:112,frameHeight:224});
    this.load.image("tram","/assets/tram.webp");
-   this.load.on("loaderror",file=>{if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
