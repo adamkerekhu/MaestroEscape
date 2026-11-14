@@ -417,7 +417,7 @@ const INTERIOR_SIZE={w:1448,h:1086};
 // Basement collision coordinates follow the uploaded gameplay_geometry.json (1792 x 896).
 const BASEMENT_SIZE={w:1792,h:896},BASEMENT_SPAWN={x:467,y:302};
 const BASEMENT_STAIRS={x:250,y:326,w:165,h:86};
-const PUB_BASEMENT_STAIRS={x:365,y:744};
+const PUB_BASEMENT_STAIRS={x:1087,y:352};
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
  [60,752,245,45],[422,755,1240,42],[75,320,345,400],
