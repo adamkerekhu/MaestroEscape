@@ -985,10 +985,31 @@ async function npcChooseAction(entity,action){
   npcMessage.textContent=lines[npcTalkCount++%lines.length];
   return;
  }
- if(!gameplay){npcMessage.textContent="Connecting to the item room…";return;}
- npcMessage.textContent="Processing "+action+"…";
- const result=await gameplay.npcAction(entity.definition.id,action);
- npcMessage.textContent=result.ok?(result.message||"Action completed"):(result.error||"Cannot complete action");
+ if(!gameplay){npcMessage.textContent="The game is still loading. Please try again.";return;}
+ const labels={beer:"Ordering beer",refill:"Refilling beer",kebab:"Ordering kebab",cigarettes:"Buying cigarettes",scratch_ticket:"Buying scratch ticket",borrow:"Borrowing cigarette",collect:"Collecting item"};
+ npcMessage.textContent=(labels[action]||"Processing request")+"…";
+ for(const button of npcActions.querySelectorAll("button"))button.disabled=true;
+ let result;
+ try{
+  // Give the player an actionable response if a server quota or network failure
+  // leaves a request pending. This does not cancel the server-side purchase.
+  result=await Promise.race([
+   gameplay.npcAction(entity.definition.id,action),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Purchase timed out. Check your inventory before trying again.")),12000))
+  ]);
+  npcMessage.textContent=result?.ok?(result.message||"Action completed"):(result?.error||"Cannot complete action");
+ }catch(error){
+  console.error("NPC interaction failed",action,error);
+  npcMessage.textContent=String(error?.message||error);
+  if(/quota|durable objects|room unavailable|timed out/i.test(npcMessage.textContent)){
+   npcMessage.textContent+="  Use Single Player mode if the multiplayer room is unavailable.";
+  }
+ }finally{
+  for(const button of npcActions.querySelectorAll("button")){
+   const requested=Array.from(NPC_DIALOGUES[entity.definition.id]?.actions||[]).find(([,label])=>label===button.textContent)?.[0];
+   button.disabled=!!(requested&&gameplay?.actionReason(requested));
+  }
+ }
  // A new order, refill or pickup may change which actions are available.
  for(const button of npcActions.querySelectorAll("button"))if(button.textContent==="Request refill"){
    const reason=gameplay.actionReason("refill");button.disabled=!!reason;button.title=reason||"";
