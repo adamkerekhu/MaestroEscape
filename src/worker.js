@@ -817,6 +817,9 @@ function npcUpdatePrompt(){
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
  const pickup=gameplay?.prompt();
  if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
+ if(gameplay?.nearbyPlayers().length&&!npcDialogue){
+  npcPrompt.textContent="E · Ask nearby player";npcPrompt.hidden=false;return;
+ }
  const closest=npcNearestTarget();
  if(!closest||npcExitDistance()<70){npcPrompt.hidden=true;return;}
  npcPrompt.textContent="E · Talk to "+closest.definition.name;
@@ -987,11 +990,13 @@ function interact(){
      &&npcExitDistance()>=70){npcOpenDialogue(nearest);return;}
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(near(player,exit.x,exit.y,96))leavePub();
+  else if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
   else if(gameplay?.tableInteract())return;
   else show("Return to the entrance and press E to exit.");
   return;
  }
  if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){enterOrExitCar();return;}
+ if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
  if(near(player,PUB_DOOR.x,PUB_DOOR.y,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
