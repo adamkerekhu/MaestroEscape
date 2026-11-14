@@ -41,6 +41,13 @@ const VEHICLE_DEFS=[
  {id:"bike3",name:"Bubi Bike 3",type:"bike",x:706,y:870,angle:135*Math.PI/180,seats:1}
 ];
 const VEHICLE_LEASE_MS=5000;
+const PLAYER_INTERACT_DEFAULT=45;
+const PLAYER_INTERACT_MIN=15;
+const PLAYER_INTERACT_MAX=150;
+const validPlayerInteractionRange=value=>{
+ const n=Number(value);
+ return Number.isFinite(n)?Math.min(PLAYER_INTERACT_MAX,Math.max(PLAYER_INTERACT_MIN,n)):PLAYER_INTERACT_DEFAULT;
+};
 function freshVehicles(settings={}){
  return Object.fromEntries(VEHICLE_DEFS.map(def=>{
   const x=Number(settings["vehicle."+def.id+".spawnX"]);
@@ -141,7 +148,7 @@ function snapshot(s,p){
   players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,vehicleId:seatOf(s,q)?.vehicle.id||null,seatIndex:seatOf(s,q)?.seat??null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
   orders:s.orders.filter(o=>o.playerId===p.id),requests:s.requests.filter(q=>q.toId===p.id||q.fromId===p.id),
   action:p.action,objectives:{...p.objectives},equippedId:p.equippedId,
-  tables:C.pubTables,config:C,serverTime:now()};
+  tables:C.pubTables,config:{...C,playerInteractRadius:s.playerInteractRadius??PLAYER_INTERACT_DEFAULT},serverTime:now()};
 }
 function inRange(p,point,r=C.interactRadius){return point&&p.scene&&dist(p,point)<=r;}
 function npcVendor(s,p,npc){
@@ -360,7 +367,7 @@ function operation(s,p,d){
  }
  if(op==="borrowRequest"){
   const target=s.players[d.targetId];
-  if(!target||target.id===p.id||now()-target.lastSeen>30000||target.scene!==p.scene||dist(p,target)>C.interactRadius)return bad("Player not nearby");
+  if(!target||target.id===p.id||now()-target.lastSeen>30000||target.scene!==p.scene||dist(p,target)>(s.playerInteractRadius??PLAYER_INTERACT_DEFAULT))return bad("Player not nearby");
   if(s.requests.some(q=>q.fromId===p.id&&q.status==="pending"))return bad("Request already pending");
   s.requests.push({id:uid("borrow"),fromId:p.id,toId:target.id,status:"pending",expiresAt:now()+C.borrowExpiryMs});
   return ok({message:"Cigarette request sent"});
@@ -370,18 +377,35 @@ function operation(s,p,d){
   if(!request||request.status!=="pending"||request.expiresAt<now())return bad("Request expired");
   const from=s.players[request.fromId];request.status="closed";
   if(!d.accept)return ok({message:"Declined"});
-  if(!from||from.scene!==p.scene||dist(from,p)>C.interactRadius)return bad("Player is no longer nearby");
+  if(!from||from.scene!==p.scene||dist(from,p)>(s.playerInteractRadius??PLAYER_INTERACT_DEFAULT))return bad("Player is no longer nearby");
   return transferCig(s,p,from);
  }
  return bad("Unknown action");
 }
 export class ConsumableRoom{
- constructor(ctx,env){this.ctx=ctx;this.env=env}
+ constructor(ctx,env){this.ctx=ctx;this.env=env;this.playerRangeCache=null}
+ async getPlayerInteractionRange(){
+  if(!this.env?.SETTINGS_STORE)return PLAYER_INTERACT_DEFAULT;
+  if(this.playerRangeCache&&now()-this.playerRangeCache.time<1500)return this.playerRangeCache.value;
+  try{
+   const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
+   const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
+   if(!response.ok)throw Error("Shared settings unavailable");
+   const data=await response.json();
+   const range=validPlayerInteractionRange(data?.settings?.["player.interactRadius"]);
+   this.playerRangeCache={value:range,time:now()};
+   return range;
+  }catch(error){
+   console.warn("Player interaction range using last known value",String(error));
+   return this.playerRangeCache?.value??PLAYER_INTERACT_DEFAULT;
+  }
+ }
  async fetch(request){
   try{
    const input=request.method==="POST"?await request.json():{};
    const token=(request.method==="GET"?new URL(request.url).searchParams.get("token"):input.token)||"";
    if(!/^[a-zA-Z0-9_-]{20,100}$/.test(token))return Response.json(bad("Invalid session token"),{status:400});
+   const playerInteractionRange=await this.getPlayerInteractionRange();
    let initialVehicleSettings={};
    const priorRoom=await this.ctx.storage.get?.("room");
    if(this.env?.SETTINGS_STORE&&(!priorRoom||!priorRoom.vehicles)){
@@ -406,6 +430,7 @@ export class ConsumableRoom{
      s.vehicles=freshVehicles(initialVehicleSettings);
     }
     settle(s);
+    s.playerInteractRadius=playerInteractionRange;
     let p=findPlayer(s,token);
     if(!p){
      p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,face:"down",moving:false,
