@@ -1489,7 +1489,7 @@ class Explore extends Phaser.Scene{
  }
  respawn(){
    if(gameplay?.isDead())return;
-   if(this.hasSpawned&&gameplay&&!gameplay.occupied)void gameplay.command("resetRound");
+   // Respawning a character is local. Never reset the multiplayer room or destroy lottery prizes.
    this.hasSpawned=true;
    let x=SPAWN.x,y=SPAWN.y;
    showInteriorNPCs(npcInteriorKey());
