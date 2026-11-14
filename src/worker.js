@@ -56,7 +56,21 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    revision=Number(remote.revision)||0;
    storageReady=true;
    // Never overwrite shared settings with another device\u0027s local cache.
- }catch(error){notice.textContent="Shared storage error: "+error.message;console.error(error);}
+ }catch(error){
+   // A failed Cloudflare read must never erase the settings saved on this device.
+   let restored=false;
+   try{
+    const local=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(local&&typeof local==="object"&&!Array.isArray(local)){
+     values=normalize({...defaults,...local});
+     restored=true;
+    }
+   }catch(localError){console.warn("Local settings recovery failed",localError);}
+   notice.textContent=restored
+    ?"⚠ Cloud unavailable. Restored settings saved on THIS device only. Changes are not synced to other players."
+    :"⚠ Cloud unavailable. Defaults shown; changes can be saved on THIS device only until Cloudflare recovers.";
+   console.error(error);
+ }
  async function push(force=false){
    clearTimeout(saveHandle);
    const payload=JSON.stringify(values);
@@ -83,7 +97,12 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
        notice.textContent="✓ All settings verified on server and saved for every device.";
        return true;
      }catch(error){
-       notice.textContent="Could not save: "+error.message+". Settings are NOT saved yet. Reload from server if another device changed them.";
+       let locallySaved=false;
+       try{localStorage.setItem(KEY,payload);locallySaved=true;}
+       catch(localError){console.error("Local settings backup failed",localError);}
+       notice.textContent=locallySaved
+        ?"⚠ Saved on THIS device only. Cloudflare save failed ("+error.message+"). Other devices will NOT receive these changes."
+        :"Could not save locally or to Cloudflare: "+error.message+". Export JSON to avoid losing changes.";
        console.error("Shared settings save failure",error);
        return false;
      }
@@ -91,7 +110,12 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    savePromise=savePromise.then(execute,execute);
    return savePromise;
  }
- function store(){notice.textContent="Unsaved changes…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);}
+ function store(){
+  // Keep a local copy immediately. Cloud saves may be blocked by account quota.
+  try{localStorage.setItem(KEY,JSON.stringify(values));}catch(error){console.warn("Local backup unavailable",error)}
+  notice.textContent="Saving changes…";
+  clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
+ }
  function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
@@ -288,7 +312,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  document.getElementById("npc-save").addEventListener("click",async()=>{
   const button=document.getElementById("npc-save");button.disabled=true;
   npcStatus.textContent="Saving NPC settings to Cloudflare…";
-  try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Save failed; see error above.";}
+  try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Cloud save failed; local backup only, see warning above.";}
   finally{button.disabled=false;}
  });
  document.getElementById("npc-reload").addEventListener("click",async()=>{
