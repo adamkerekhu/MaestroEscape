@@ -1577,7 +1577,7 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
    const data=await response.json();applyRemoteSettings(data);
    return data;
  }
- if(new URL(location.href).searchParams.get("mode")==="single"){
+ if(new URL(location.href).searchParams.get("mode")!=="multi"){
    try{const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");if(local&&typeof local==="object")applyRemoteSettings({settings:local,revision:0});}catch{}
    const badge=document.getElementById("sync-status");if(badge){badge.textContent="🧪 Single player · offline";badge.title="No Cloudflare Durable Objects requests";}
  }else try{await syncSharedSettings();}
@@ -1589,11 +1589,11 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
  }
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- if(new URL(location.href).searchParams.get("mode")!=="single")setInterval(()=>{syncSharedSettings().catch(error=>{
+ if(new URL(location.href).searchParams.get("mode")==="multi")setInterval(()=>{syncSharedSettings().catch(error=>{
    const badge=document.getElementById("sync-status");
    if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
  })},10000);
- if(new URL(location.href).searchParams.get("mode")!=="single")document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
+ if(new URL(location.href).searchParams.get("mode")==="multi")document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
 })();
 })();
 </script></body></html>`;
