@@ -933,11 +933,12 @@ function vehicleSeatMenu(choice){
    if(vehicleBusy)return;vehicleBusy=true;button.disabled=true;
    try{
     const result=await gameplay.boardVehicle(choice.id,seat);
-    if(!result.ok){show(result.error||"Seat unavailable");return}
+    if(!result.ok){show(result.error||"Seat unavailable");button.disabled=false;return}
     overlay.remove();vehicleSeatPanel=null;
     syncVehicleFromRoom();
     show(result.message||"Boarded");
-   }finally{vehicleBusy=false}
+   }catch(error){show("Cannot join vehicle: "+error.message);button.disabled=false}
+   finally{vehicleBusy=false}
   };
   panel.append(button);
  };
