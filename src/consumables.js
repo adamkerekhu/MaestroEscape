@@ -110,10 +110,16 @@ function freeSlot(s,p,type){
  const item={type},candidate=slots(item),used=new Set(playerInventory(s,p).map(i=>i.location.slot));
  return candidate.find(n=>!used.has(n));
 }
-function vendorSpot(s,vendor){
- const points=C.vendorPoints[vendor]||[];
- return points.find(point=>!s.items.some(i=>i.location.kind==="vendor"&&i.location.vendorId===vendor&&dist(i.location,point)<12)
- &&!s.orders.some(o=>o.vendorId===vendor&&dist(o.location,point)<12))||null;
+function vendorSpot(s,vendor,player){
+ // Prefer the authored counter, but never put purchased goods outside pickup range,
+ // including when a cashier has been repositioned through the shared settings.
+ const standard=(C.vendorPoints[vendor]||[]).filter(point=>dist(player,point)<C.collectRadius-8);
+ const x=player.x,y=player.y;
+ const local=[{x:x+22,y:y-8},{x:x-22,y:y-8},{x:x+22,y:y+13},{x:x-22,y:y+13}];
+ const points=[...standard,...local];
+ return points.find(point=>point.x>=15&&point.y>=15&&
+  !s.items.some(i=>i.location.kind==="vendor"&&i.location.vendorId===vendor&&dist(i.location,point)<15)
+  &&!s.orders.some(o=>o.vendorId===vendor&&dist(o.location,point)<15))||null;
 }
 function create(s,type,units,location,id=null,generation=0){
  const item={id:id||uid("item"),generation,type,remainingUnits:units,maxUnits:units,location:copy(location),lit:false,revision:0};
@@ -315,7 +321,7 @@ function operation(s,p,d){
   const vendor=op==="orderKebab"?"gyros_employee":op==="buyPack"?"tobacco_cashier":"maestro_bartender";
   const err=npcVendor(s,p,vendor,d);if(err)return err;
   if(s.orders.some(q=>q.playerId===p.id&&q.vendorId===vendor))return bad("Your order is still being prepared");
-  const point=vendorSpot(s,vendor);if(!point)return bad("Counter pickup spots are full");
+  const point=vendorSpot(s,vendor,p);if(!point)return bad("Counter pickup spots are full");
   if(op==="buyPack"){const item=create(s,"cigarette_pack",5,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});return ok({itemId:item.id,message:"Cigarette pack ready at the counter"});}
   let reuseId=null,generation=0;
   if(op==="refillBeer"){
