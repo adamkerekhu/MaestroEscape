@@ -85,7 +85,7 @@ function snapshot(s,p){
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
   characters:LOBBY_CHARACTERS.map(c=>({...c,selectedBy:Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===c.id&&now()-q.lastSeen<30000)?.id||null})),
   selectedCharacter:p.characterId||null,
-  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,alias:q.alias,characterId:q.characterId||null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
+  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
   orders:s.orders.filter(o=>o.playerId===p.id),requests:s.requests.filter(q=>q.toId===p.id||q.fromId===p.id),
   action:p.action,objectives:{...p.objectives},equippedId:p.equippedId,
   tables:C.pubTables,config:C,serverTime:now()};
@@ -139,7 +139,7 @@ function operation(s,p,d){
   // Existing Phaser game remains the movement authority; this endpoint tracks the
   // last reported position for interactions but cannot authenticate movement paths.
   if(p.action&&(p.scene!==scene||dist(p,{x,y})>7))p.action=null;
-  p.scene=scene;p.x=x;p.y=y;p.lastSeen=now();
+  p.scene=scene;p.x=x;p.y=y;p.face=["down","up","right","left"].includes(d.face)?d.face:"down";p.moving=!!d.moving;p.lastSeen=now();
   return ok();
  }
  if(op==="resetRound"){
@@ -279,7 +279,7 @@ export class ConsumableRoom{
     settle(s);
     let p=findPlayer(s,token);
     if(!p){
-     p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,
+     p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,face:"down",moving:false,
       lastSeen:now(),equippedId:null,action:null,objectives:{beer:0,kebab:0,cigarette:0}};
      s.players[p.id]=p;
     }
