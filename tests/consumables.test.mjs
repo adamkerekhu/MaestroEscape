@@ -232,3 +232,29 @@ test("single-player round reset clears world, orders and progress",async()=>{
   assert.deepEqual(state.objectives,{beer:0,kebab:0,cigarette:0});
  }finally{Date.now=old}
 });
+
+test("bartender refuses a refill without an empty glass, not a partially full beer",async()=>{
+ const old=Date.now;let clock=1200000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();await send(0,"syncPosition",{scene:"pub",x:413,y:398});
+  const nothing=await send(0,"refillBeer");assert.equal(nothing.ok,false);
+  assert.match(nothing.error,/empty glass/i);
+  await send(0,"orderBeer");clock+=3000;
+  const id=(await get(0)).snapshot.items.find(i=>i.type==="beer").id;
+  await send(0,"collectItem",{itemId:id});
+  const partial=await send(0,"refillBeer");assert.equal(partial.ok,false);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+ }finally{Date.now=old}
+});
+test("pub NPC cigarette sharing obeys individual stock and share choices",async()=>{
+ const old=Date.now;let clock=1300000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();await send(0,"syncPosition",{scene:"pub",x:342,y:511});
+  assert.ok((await send(0,"npcBorrow",{npcId:"maestro_regular_1"})).ok);
+  assert.equal((await get(0)).snapshot.inventory.filter(i=>i.type==="cigarette").length,1);
+  await send(0,"syncPosition",{scene:"pub",x:648,y:707});
+  const refused=await send(0,"npcBorrow",{npcId:"maestro_regular_2"});
+  assert.equal(refused.ok,false);
+  assert.equal((await get(0)).snapshot.inventory.filter(i=>i.type==="cigarette").length,1);
+ }finally{Date.now=old}
+});
