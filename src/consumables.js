@@ -729,7 +729,7 @@ function operation(s,p,d){
 export class ConsumableRoom{
  constructor(ctx,env){
   this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null;
-  this.roomState=null;this.roomLoad=null;this.lastPersistAt=0;this.storageQuotaExceeded=false;
+  this.roomState=null;this.roomLoad=null;this.lastPersistAt=0;this.storageQuotaRetryAt=0;this.storageQuotaExceeded=false;
  }
  async loadRoom(initialSettings={}){
   // One in-memory authoritative room per Durable Object instance. Never reload on polling.
@@ -742,16 +742,16 @@ export class ConsumableRoom{
  }
  async persistRoom(force=false){
   // Most movement/snapshot requests must not write SQLite.
-  if(this.storageQuotaExceeded)return;
+  if(this.storageQuotaExceeded&&now()<this.storageQuotaRetryAt)return;
   if(!force&&now()-this.lastPersistAt<30000)return;
   try{
    await this.ctx.storage.put("room",this.roomState);
-   this.lastPersistAt=now();
+   this.lastPersistAt=now();this.storageQuotaExceeded=false;this.storageQuotaRetryAt=0;
   }catch(error){
    if(/exceeded allowed rows written|storage.*quota|quota.*exceed/i.test(String(error))){
     // The free-tier cap is account-wide. Keep this active room playable in memory
     // until the quota resets, but it cannot be durable across instance eviction.
-    this.storageQuotaExceeded=true;
+    this.storageQuotaExceeded=true;this.storageQuotaRetryAt=now()+60000;
     console.warn("MaestroEscape storage quota reached: running in volatile room mode",String(error));
    }else throw error;
   }
