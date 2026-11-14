@@ -666,7 +666,7 @@ const car={x:PARKING.x,y:PARKING.y,angle:cfg("vehicle.skoda.angle")*Math.PI/180,
 const OCTAVIA_PARKING={get x(){return cfg("vehicle.octavia.spawnX")},get y(){return cfg("vehicle.octavia.spawnY")}};
 const octavia={x:OCTAVIA_PARKING.x,y:OCTAVIA_PARKING.y,angle:cfg("vehicle.octavia.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};
 const bikes=[1,2,3].map(n=>{const id="bike"+n;return {id,type:"bike",x:cfg("vehicle."+id+".spawnX"),y:cfg("vehicle."+id+".spawnY"),angle:cfg("vehicle."+id+".angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};});
-const bikeSprites=[],bikeControllers=[];
+const bikeSprites=[],bikeControllers=[],remoteBikeRiders=new Map(),vehicleOccupancyTags=new Map();
 function registeredVehicles(){return [{id:"skoda",model:car,sprite:carSprite,controller:vehicleController,label:"Skoda Superb 2.0TDI"},{id:"octavia",model:octavia,sprite:octaviaSprite,controller:octaviaController,label:"Octavia Checkengine"},...bikes.map((model,i)=>({id:model.id,model,sprite:bikeSprites[i],controller:bikeControllers[i],label:"Bubi Bike "+(i+1)}))];}
 const DRIVING_ZOOM=()=>cfg("camera.drivingZoom");
 let vehicleController=null,octaviaController=null,activeVehicle=null;
@@ -992,11 +992,41 @@ function syncVehicleFromRoom(delta=16){
   target.sprite.setPosition(model.x,model.y).setRotation(model.angle);
   target.sprite.setVisible(!insidePub);
   const bikeOccupied=remote.type==="bike"&&!!remote.seats[0];
-  // A single rider+bike visual on the local bike; remote bike still visible to others.
-  if(remote.type==="bike"&&occupied?.vehicleId===remote.id&&riderSprite){
-   target.sprite.setVisible(false);
-   updateBikeRider(model,Math.abs(model.speed)>6);
-  }else if(remote.type==="bike")target.sprite.setVisible(!insidePub);
+  const localBike=occupied?.vehicleId===remote.id&&riderSprite;
+  if(remote.type==="bike"){
+   let rider=remoteBikeRiders.get(remote.id);
+   if(!rider&&scene.textures.exists("bubi-rider")){
+    rider=scene.add.sprite(model.x,model.y,"bubi-rider",0).setDepth(8).setOrigin(.5).setVisible(false);
+    remoteBikeRiders.set(remote.id,rider);
+   }
+   if(localBike){
+    target.sprite.setVisible(false);
+    updateBikeRider(model,Math.abs(model.speed)>6);
+   }else{
+    target.sprite.setVisible(!bikeOccupied&&!insidePub);
+   }
+   if(rider){
+    rider.setVisible(bikeOccupied&&!localBike&&!insidePub);
+    if(rider.visible){
+     rider.setDisplaySize(cfg("vehicle."+remote.id+".width")*1.85,
+      cfg("vehicle."+remote.id+".length")*1.2).setPosition(model.x,model.y).setRotation(model.angle);
+     if(Math.abs(model.speed)>6){
+      if(!rider.anims.isPlaying)rider.play("bubi-pedal");
+     }else{rider.anims.stop();rider.setFrame(0);}
+    }
+   }
+  }
+  if(remote.type==="car"){
+   let tag=vehicleOccupancyTags.get(remote.id);
+   if(!tag){
+    tag=scene.add.text(0,0,"",{fontFamily:"Arial",fontSize:"11px",color:"#ffffff",
+     backgroundColor:"#152638c9",padding:{x:3,y:2}}).setOrigin(.5).setDepth(9);
+    vehicleOccupancyTags.set(remote.id,tag);
+   }
+   const taken=remote.seats.filter(Boolean).length;
+   tag.setVisible(!insidePub&&taken>0).setText(taken+"/"+remote.seats.length+" seats");
+   tag.setPosition(model.x,model.y-45);
+  }
  }
  if(occupied&&activeVehicle){
   player.x=activeVehicle.x;player.y=activeVehicle.y;
