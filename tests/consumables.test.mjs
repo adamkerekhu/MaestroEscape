@@ -2,13 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ConsumableRoom } from "../src/consumables.js";
 
-function fixture(){
+function fixture(env={}){
  const map=new Map();
  const ctx={storage:{transaction:async fn=>fn({
   get:async k=>map.get(k),
   put:async(k,v)=>map.set(k,structuredClone(v))
  })}};
- const room=new ConsumableRoom(ctx,{});
+ const room=new ConsumableRoom(ctx,env);
  const users=["a".repeat(32),"b".repeat(32)];
  const send=async (n,op,args={})=>{
   const request=new Request("https://room.test/",{method:"POST",headers:{"Content-Type":"application/json"},
@@ -493,4 +493,56 @@ test("same default lobby is used across browsers and remote occupants are not wa
   "Every client must initialize vehicles from the server snapshot");
  assert.ok(worker.includes("firstAuthoritativeFrame||distance>150?1:"),
   "First server position must not be interpolated from a different local spawn");
+});
+
+test("player interaction range follows shared settings and rejects distant borrowing",async()=>{
+ const originalNow=Date.now;
+ let current=6000000,reach=32;
+ Date.now=()=>current;
+ try{
+  const env={SETTINGS_STORE:{
+   idFromName:n=>n,
+   get:()=>({fetch:async()=>({ok:true,json:async()=>({settings:{"player.interactRadius":reach}})})})
+  }};
+  const {send,get}=fixture(env);
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"pub",x:300,y:500});
+  await send(1,"syncPosition",{scene:"pub",x:350,y:500});
+  assert.equal((await get(0)).snapshot.config.playerInteractRadius,32);
+  const far=await send(0,"borrowRequest",{targetId:(await get(1)).snapshot.playerId});
+  assert.equal(far.ok,false);
+  assert.match(far.error,/not nearby/i);
+  // The next GET refreshes the cache, so every client sees the new shared reach.
+  current+=1600;reach=60;
+  assert.equal((await get(0)).snapshot.config.playerInteractRadius,60);
+  const request=await send(0,"borrowRequest",{targetId:(await get(1)).snapshot.playerId});
+  assert.equal(request.ok,true,request.error);
+ }finally{Date.now=originalNow}
+});
+test("player range is bounded and remains distinct from NPC, item and vehicle ranges",async()=>{
+ const old=Date.now;let clock=7100000;Date.now=()=>clock;
+ try{
+  let configured=900;
+  const env={SETTINGS_STORE:{
+   idFromName:n=>n,
+   get:()=>({fetch:async()=>({ok:true,json:async()=>({settings:{"player.interactRadius":configured}})})})
+  }};
+  const {get}=fixture(env);
+  let snapshot=(await get(0)).snapshot;
+  assert.equal(snapshot.config.playerInteractRadius,150);
+  assert.equal(snapshot.config.interactRadius,112);
+  assert.equal(snapshot.config.collectRadius,82);
+  clock+=1600;configured=1;
+  snapshot=(await get(0)).snapshot;
+  assert.equal(snapshot.config.playerInteractRadius,15);
+ }finally{Date.now=old}
+});
+test("settings page exposes a player-only interaction radius and browser uses it",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ const {CONSUMABLE_CLIENT_SCRIPT:browser}=await import("../src/consumables-client.js");
+ assert.match(worker,/"key":"player.interactRadius","label":"Player interaction range","value":45,"min":15,"max":150/);
+ assert.ok(browser.includes("this.state.config.playerInteractRadius??45"));
+ assert.ok(browser.includes("!q.vehicleId"));
 });
