@@ -138,7 +138,7 @@ function snapshot(s,p){
   occupiedVehicle:seatOf(s,p)?{vehicleId:seatOf(s,p).vehicle.id,seat:seatOf(s,p).seat}:null,
   characters:LOBBY_CHARACTERS.map(c=>({...c,selectedBy:Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===c.id&&now()-q.lastSeen<30000)?.id||null})),
   selectedCharacter:p.characterId||null,
-  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
+  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,vehicleId:seatOf(s,q)?.vehicle.id||null,seatIndex:seatOf(s,q)?.seat??null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
   orders:s.orders.filter(o=>o.playerId===p.id),requests:s.requests.filter(q=>q.toId===p.id||q.fromId===p.id),
   action:p.action,objectives:{...p.objectives},equippedId:p.equippedId,
   tables:C.pubTables,config:C,serverTime:now()};
