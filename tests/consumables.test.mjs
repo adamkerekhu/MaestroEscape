@@ -698,7 +698,11 @@ test("moving tram hits only within the oriented tram body, never a distant sidew
  const moving=tramWorldAt(3500);
  assert.equal(moving.visible,true);
  assert.equal(moving.moving,true);
- assert.equal(tramHitsPlayer(moving,{x:moving.x,y:moving.y}),true);
+ assert.equal(tramHitsPlayer(moving,{x:moving.x,y:moving.y}),false,
+  "Standing in the middle is not a front collision");
+ const nose={x:moving.x+Math.sin(moving.angle)*moving.length/2,
+  y:moving.y-Math.cos(moving.angle)*moving.length/2};
+ assert.equal(tramHitsPlayer(moving,nose),true);
  const along={x:moving.x+Math.sin(moving.angle)*100,y:moving.y-Math.cos(moving.angle)*100};
  assert.equal(tramHitsPlayer(moving,along),false);
  const across={x:moving.x-Math.cos(moving.angle)*85,y:moving.y-Math.sin(moving.angle)*85};
@@ -730,9 +734,11 @@ test("tram death jumps player, clears only their inventory and orders, leaves RI
   assert.equal((await get(0)).snapshot.inventory.length,1);
   time+=3500;
   const tram=tramWorldAt(time);
-  await send(0,"syncPosition",{scene:"street",x:tram.x,y:tram.y});
+  const nose={x:tram.x+Math.sin(tram.angle)*tram.length/2,
+   y:tram.y-Math.cos(tram.angle)*tram.length/2};
+  await send(0,"syncPosition",{scene:"street",x:nose.x,y:nose.y});
   await send(1,"syncPosition",{scene:"street",x:950,y:700});
-  const dead=await send(0,"tramHit",{actorPosition:{scene:"street",x:tram.x,y:tram.y}});
+  const dead=await send(0,"tramHit",{actorPosition:{scene:"street",x:nose.x,y:nose.y}});
   assert.equal(dead.ok,true,dead.error);
   assert.equal(dead.snapshot.inventory.length,0);
   assert.equal(dead.snapshot.equippedId,null);
@@ -741,10 +747,10 @@ test("tram death jumps player, clears only their inventory and orders, leaves RI
   assert.equal(dead.snapshot.death.reason,"tram");
   assert.equal(dead.snapshot.deadUntil,time+5000);
   assert.equal((await get(1)).snapshot.inventory[0].id,untouched,"Other players keep their inventory");
-  const duplicate=await send(0,"tramHit",{actorPosition:{scene:"street",x:tram.x,y:tram.y}});
+  const duplicate=await send(0,"tramHit",{actorPosition:{scene:"street",x:nose.x,y:nose.y}});
   assert.equal(duplicate.ok,false);
   const blocked=await send(0,"syncPosition",{scene:"street",x:1111,y:222});
-  assert.equal(blocked.snapshot.players.find(p=>p.id===dead.snapshot.playerId).x,tram.x);
+  assert.equal(blocked.snapshot.players.find(p=>p.id===dead.snapshot.playerId).x,nose.x);
   time+=4999;
   const dying=(await get(0)).snapshot;
   assert.equal(dying.deadUntil,time+1);
@@ -995,5 +1001,90 @@ test("existing active cigarette and kebab gatherings migrate to the marked floor
   map.set("room",room2);
   current=(await get(0)).snapshot.rally.target;
   assert.deepEqual(current,{scene:"gyros",x:360,y:330,label:"In front of the kebab counter"});
+ }finally{Date.now=old}
+});
+
+test("car front bumper hitbox rejects sides, rear, reverse and stationary collisions",async()=>{
+ const {frontImpact,sweptFrontImpact}=await import("../src/consumables.js");
+ const v={x:700,y:500,angle:0,speed:80,width:32,length:72};
+ assert.equal(frontImpact(v,{x:700,y:464}),true,"Nose at y464 is lethal");
+ assert.equal(frontImpact(v,{x:700,y:500}),false,"Centre is not the bumper");
+ assert.equal(frontImpact(v,{x:700,y:545}),false,"Rear is safe");
+ assert.equal(frontImpact(v,{x:750,y:464}),false,"Far side is safe");
+ assert.equal(frontImpact({...v,speed:0},{x:700,y:464}),false);
+ assert.equal(frontImpact({...v,speed:-80},{x:700,y:464}),false);
+ assert.equal(frontImpact({...v,speed:10},{x:700,y:464}),false);
+ const to={...v,y:460};
+ assert.equal(sweptFrontImpact(v,to,{x:700,y:445}),true,
+  "Swept nose detects a pedestrian passed between 10Hz updates");
+ assert.equal(sweptFrontImpact({...v,speed:-50},{...to,speed:-50},{x:700,y:445}),false);
+});
+test("shared moving car kills only hit pedestrian and keeps driver's and witness's inventory",async()=>{
+ const old=Date.now;let time=17000000;Date.now=()=>time;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"street",x:697,y:505});
+  await send(1,"syncPosition",{scene:"street",x:725,y:465});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  time+=100;
+  const hit=await send(0,"driveVehicle",{vehicleId:"skoda",x:697,y:490,
+   angle:0,speed:95});
+  assert.equal(hit.ok,true,hit.error);
+  const victim=(await get(1)).snapshot;
+  assert.equal(victim.death.reason,"car");
+  assert.equal(victim.death.sourceId,"skoda");
+  assert.equal(victim.inventory.length,0);
+  assert.equal(victim.deadUntil,time+5000);
+  assert.equal(victim.graves.length,1);
+  assert.equal(victim.graves[0].reason,"car");
+  assert.equal((await get(0)).snapshot.occupiedVehicle.seat,0);
+  const duplicate=(await get(1)).snapshot.graves.length;
+  time+=50;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"skoda",x:697,y:487,angle:0,speed:95})).ok);
+  assert.equal((await get(1)).snapshot.graves.length,duplicate,"No duplicate death from continued driving");
+  time+=5000;
+  const revived=(await get(1)).snapshot;
+  assert.equal(revived.deadUntil,null);
+  assert.equal(revived.inventory.length,0);
+  assert.equal(revived.graves.length,1);
+  time+=24949;assert.equal((await get(0)).snapshot.graves.length,1);
+  time++;
+  assert.equal((await get(0)).snapshot.graves.length,0,"RIP expires at exactly 30 seconds");
+ }finally{Date.now=old}
+});
+test("on-foot player entering car nose triggers collision even without another driver update",async()=>{
+ const old=Date.now;let clock=18000000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"suit"});
+  await send(0,"syncPosition",{scene:"street",x:697,y:505});
+  await send(1,"syncPosition",{scene:"street",x:840,y:600});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  clock+=100;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"skoda",x:697,y:495,angle:0,speed:75})).ok);
+  const victim=await send(1,"syncPosition",{scene:"street",x:697,y:459});
+  assert.ok(victim.ok);
+  assert.equal(victim.snapshot.death.reason,"car");
+  assert.equal(victim.snapshot.inventory.length,0);
+ }finally{Date.now=old}
+});
+test("passengers and car drivers cannot die from collision with their own car",async()=>{
+ const old=Date.now;let clock=19000000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"street",x:697,y:505});
+  await send(1,"syncPosition",{scene:"street",x:696,y:504});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  assert.ok((await send(1,"boardVehicle",{vehicleId:"skoda",seat:1})).ok);
+  clock+=100;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"skoda",x:697,y:495,angle:0,speed:80})).ok);
+  assert.equal((await get(0)).snapshot.deadUntil,null);
+  assert.equal((await get(1)).snapshot.deadUntil,null);
+  assert.equal((await get(0)).snapshot.graves.length,0);
  }finally{Date.now=old}
 });
