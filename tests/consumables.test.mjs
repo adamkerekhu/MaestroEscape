@@ -795,3 +795,152 @@ test("client reports tram collisions and renders death, five-second countdown an
  assert.ok(worker.includes("Date.now()%tramPeriodMs()"),
   "The tram phase must use shared clock time rather than per-browser Phaser uptime");
 });
+
+test("group beer gathering requires all active players beside the left Maestro pub table and auto-celebrates",async()=>{
+ const old=Date.now;let time=9_000_000;Date.now=()=>time;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"pub",x:700,y:720});
+  await send(1,"syncPosition",{scene:"street",x:850,y:570});
+  const call=await send(0,"callGroup",{type:"beer"});
+  assert.equal(call.ok,true,call.error);
+  assert.equal(call.snapshot.rally.type,"beer");
+  assert.equal(call.snapshot.rally.target.scene,"pub");
+  assert.equal(call.snapshot.rally.target.label,"Left table at Maestro");
+  assert.equal(call.snapshot.rally.required,2);
+  assert.equal(call.snapshot.rally.status,"gathering");
+  const parallel=await send(1,"callGroup",{type:"kebab"});
+  assert.equal(parallel.ok,false);
+  assert.equal((await get(0)).snapshot.groupEvents.length,0);
+  const target=call.snapshot.rally.target;
+  await send(0,"syncPosition",{scene:"pub",x:target.x,y:target.y});
+  const one=(await get(0)).snapshot.rally;
+  assert.equal(one.ready,1);assert.equal(one.status,"gathering");
+  await send(1,"syncPosition",{scene:"pub",x:target.x+25,y:target.y+8});
+  const done=(await get(0)).snapshot;
+  assert.equal(done.rally.status,"completed");
+  assert.equal(done.groupEvents.length,1);
+  assert.deepEqual([...done.groupEvents[0].playerIds].sort(),done.players.map(q=>q.id).sort());
+  assert.equal(done.groupEvents[0].type,"beer");
+  assert.equal((await get(1)).snapshot.groupEvents.length,1);
+  assert.equal((await get(1)).snapshot.groupEvents[0].id,done.groupEvents[0].id);
+  assert.equal(done.groupEvents[0].duration,3000);
+  time+=300;assert.equal((await get(0)).snapshot.groupEvents.length,1,"No duplicate heart events");
+ }finally{Date.now=old}
+});
+test("group cigarette gathering moves to Maestro's configured counter without clicking an NPC",async()=>{
+ const old=Date.now;let clock=10_000_000;Date.now=()=>clock;
+ try{
+  const env={SETTINGS_STORE:{idFromName:n=>n,get:()=>({fetch:async()=>({
+   ok:true,json:async()=>({settings:{"npc.maestro_bartender.x":450,"npc.maestro_bartender.y":200}})
+  })})}};
+  const {send,get}=fixture(env);
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"suit"});
+  await send(0,"syncPosition",{scene:"pub",x:800,y:700});
+  await send(1,"syncPosition",{scene:"pub",x:800,y:720});
+  const called=await send(0,"callGroup",{type:"cigarette"});
+  const target=called.snapshot.rally.target;
+  assert.equal(target.scene,"pub");assert.equal(target.x,450);assert.equal(target.y,388);
+  await send(0,"syncPosition",{scene:"pub",x:450,y:400});
+  assert.equal((await get(0)).snapshot.rally.status,"gathering");
+  await send(1,"syncPosition",{scene:"pub",x:440,y:397});
+  const done=(await get(0)).snapshot;
+  assert.equal(done.rally.status,"completed");
+  assert.equal(done.groupEvents[0].type,"cigarette");
+  assert.equal(done.inventory.length,0,"Gathering does not require or grant cigarette items");
+ }finally{Date.now=old}
+});
+test("group kebab gathering waits for everyone to enter Gyros and automatically triggers hearts",async()=>{
+ const old=Date.now;let clock=11_000_000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"muscular"});
+  await send(0,"syncPosition",{scene:"gyros",x:294,y:315});
+  await send(1,"syncPosition",{scene:"street",x:850,y:570});
+  const called=await send(0,"callGroup",{type:"kebab"});
+  assert.equal(called.ok,true);
+  assert.equal(called.snapshot.rally.ready,1);
+  const target=called.snapshot.rally.target;
+  assert.equal(target.scene,"gyros");
+  await send(1,"syncPosition",{scene:"gyros",x:target.x+40,y:target.y+15});
+  const done=(await get(1)).snapshot;
+  assert.equal(done.rally.status,"completed");
+  assert.equal(done.groupEvents[0].type,"kebab");
+ }finally{Date.now=old}
+});
+test("group calls require multiple active players and expire if nobody reaches the destination",async()=>{
+ const old=Date.now;let clock=12_000_000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  const alone=await send(0,"callGroup",{type:"beer"});
+  assert.equal(alone.ok,false);assert.match(alone.error,/two active players/i);
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"street",x:800,y:570});
+  await send(1,"syncPosition",{scene:"street",x:810,y:575});
+  assert.equal((await send(0,"callGroup",{type:"not-a-type"})).ok,false);
+  assert.ok((await send(0,"callGroup",{type:"beer"})).ok);
+  clock+=90001;
+  const expired=(await get(0)).snapshot;
+  assert.equal(expired.rally.status,"expired");
+  assert.equal(expired.groupEvents.length,0);
+ }finally{Date.now=old}
+});
+test("finishing all three consumables emits a unique 2-second celebration visible to other players",async()=>{
+ const old=Date.now;let clock=13_000_000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  const cases=[
+   {type:"beer",scene:"pub",x:413,y:398,order:"orderBeer",delay:3000,portions:5,portionMs:1500},
+   {type:"kebab",scene:"gyros",x:294,y:315,order:"orderKebab",delay:5000,portions:4,portionMs:2000},
+   {type:"cigarette",scene:"dohanybolt",x:519,y:425,order:"buyPack",delay:0,portions:4,portionMs:1500}
+  ];
+  for(const cfg of cases){
+   await send(0,"syncPosition",{scene:cfg.scene,x:cfg.x,y:cfg.y});
+   assert.equal((await send(0,cfg.order)).ok,true);
+   clock+=cfg.delay;
+   const snap=(await get(0)).snapshot;
+   const source=snap.items.find(i=>i.type===cfg.type||cfg.type==="cigarette"&&i.type==="cigarette_pack");
+   assert.ok(source,"missing "+cfg.type);
+   assert.equal((await send(0,"collectItem",{itemId:source.id})).ok,true);
+   let id=source.id;
+   if(cfg.type==="cigarette"){
+    const extracted=await send(0,"extractCigarette",{itemId:id});
+    id=extracted.snapshot.inventory.find(i=>i.type==="cigarette").id;
+    assert.equal((await send(0,"light",{itemId:id})).ok,true);
+   }
+   for(let n=0;n<cfg.portions;n++){
+    const start=await send(0,"startConsumeUnit",{itemId:id});
+    assert.ok(start.ok,start.error);
+    clock+=cfg.portionMs;
+    const done=await send(0,"completeConsumeUnit",{actionId:start.action.id});
+    assert.ok(done.ok,done.error);
+   }
+   const end=(await get(0)).snapshot;
+   const event=end.completionEvents.find(e=>e.type===cfg.type);
+   assert.ok(event,"No finish event for "+cfg.type);
+   assert.equal(event.duration,2000);
+   assert.equal(event.scene,cfg.scene);
+   assert.equal(event.x,cfg.x);
+   assert.equal(event.y,cfg.y);
+   const remote=(await get(1)).snapshot;
+   assert.ok(remote.completionEvents.some(e=>e.id===event.id),"Completion missing from room");
+  }
+ }finally{Date.now=old}
+});
+test("browser exposes group calls and both types of floating celebration without needing E at destination",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
+ assert.doesNotThrow(()=>new Function(client));
+ assert.ok(client.includes("Call group"));
+ assert.ok(client.includes('this.command("callGroup",{type})'));
+ assert.ok(client.includes("this.renderCelebrations()"));
+ assert.ok(client.includes("this.rallyBeacon"));
+ assert.ok(client.includes('["❤️","💗","💕","💖","💞"]'));
+ assert.ok(client.includes("2000,12"));
+});
