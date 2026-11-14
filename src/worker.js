@@ -415,17 +415,22 @@ const PUB_DOOR={x:784,y:548};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
 // Basement collision coordinates follow the uploaded gameplay_geometry.json (1792 x 896).
-const BASEMENT_SIZE={w:1792,h:896},BASEMENT_SPAWN={x:467,y:302};
-const BASEMENT_STAIRS={x:250,y:326,w:165,h:86};
+// Source: maestro_basement_visual_map_files, tiled map 56×28 at 32px/tile.
+// FloorArt uses a single full-sized visual atlas. The WebP must be present in Assets/Maps.
+const BASEMENT_SIZE={w:1792,h:896},BASEMENT_SPAWN={x:490,y:349};
+const BASEMENT_STAIRS={x:401,y:373,w:86,h:74};
 const PUB_BASEMENT_STAIRS={x:1087,y:352};
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
- [60,752,245,45],[422,755,1240,42],[75,320,345,400],
+ [60,752,245,45],[422,755,1240,42],
  [685,95,355,120],[1135,165,180,175],[1390,165,185,175],
  [545,425,243,305],[895,408,225,335],[1320,409,225,335],
- [1153,503,145,140],[95,112,170,95],[1570,445,80,87],[340,460,75,90]
+ [1153,503,145,140],[95,112,170,95],[1570,445,80,87],[340,460,75,90],
+ [75,510,265,204],[175,402,163,114],[205,321,220,70]
 ];
-const basementStairNear=()=>insideBasement&&player.x>=BASEMENT_STAIRS.x-30&&player.x<=BASEMENT_STAIRS.x+BASEMENT_STAIRS.w+30&&player.y>=BASEMENT_STAIRS.y-35&&player.y<=BASEMENT_STAIRS.y+BASEMENT_STAIRS.h+35;
+const basementStairNear=()=>insideBasement&&
+ player.x>=BASEMENT_STAIRS.x-22&&player.x<=BASEMENT_STAIRS.x+BASEMENT_STAIRS.w+22&&
+ player.y>=BASEMENT_STAIRS.y-20&&player.y<=BASEMENT_STAIRS.y+BASEMENT_STAIRS.h+20;
 let insideBasement=false,basementImage=null,basementStairsHint=null,pubStairsHint=null,pubStairReturn=null;
 let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
 const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
@@ -851,7 +856,7 @@ function npcNearestTarget(){
 }
 function npcExitDistance(){
  if(!insidePub)return Infinity;
- const point=insideBasement?{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w,y:BASEMENT_STAIRS.y}:activeShop?activeShop.exit:INTERIOR_EXIT;
+ const point=insideBasement?{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2}:activeShop?activeShop.exit:INTERIOR_EXIT;
  return Math.hypot(player.x-point.x,player.y-point.y);
 }
 function npcDialogueOpen(){return !!npcDialogue;}
@@ -980,7 +985,7 @@ function intersects(x,y){
 function enterBasement(){
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
- if(!basementImage){show("Basement artwork unavailable. Opening a temporary floor-plan view.");}
+ if(!basementImage){show("Basement artwork unavailable. Please publish Assets/Maps/maestro_basement.webp.");return;}
  pubStairReturn={x:player.x,y:player.y};
  insideBasement=true;mapSize={...BASEMENT_SIZE};
  interiorImage?.setVisible(false);basementImage?.setVisible(true);
@@ -1363,7 +1368,7 @@ class Explore extends Phaser.Scene{
    this.load.image("bubi","/assets/bubi.webp");
    this.load.spritesheet("bubi-rider","/assets/bubi-rider.webp",{frameWidth:112,frameHeight:224});
    this.load.image("tram","/assets/tram.webp");
-   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="basement")console.warn("Basement image not published yet");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");if(file.key==="maiybach")console.warn("Maíybach artwork not available; using Skoda fallback.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="basement"){console.error("Basement artwork missing. Upload Assets/Maps/maestro_basement.webp");show("Basement artwork missing from GitHub: Assets/Maps/maestro_basement.webp");}if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");if(file.key==="maiybach")console.warn("Maíybach artwork not available; using Skoda fallback.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
@@ -1377,32 +1382,17 @@ class Explore extends Phaser.Scene{
        {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
        stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
    }
-   if(!this.textures.exists("basement")){
-     // Keep the basement playable before the uploaded WebP has been published.
-     // This fallback uses the exact authored collision geometry rather than
-     // disabling the entire staircase whenever an artwork request returns 404.
-     const fallback=this.make.graphics({x:0,y:0},false);
-     fallback.fillStyle(0x473c35,1).fillRect(0,0,BASEMENT_SIZE.w,BASEMENT_SIZE.h);
-     fallback.lineStyle(2,0x665347,.7);
-     for(let x=0;x<BASEMENT_SIZE.w;x+=64)fallback.lineBetween(x,0,x,BASEMENT_SIZE.h);
-     for(let y=0;y<BASEMENT_SIZE.h;y+=64)fallback.lineBetween(0,y,BASEMENT_SIZE.w,y);
-     for(const [x,y,w,h] of BASEMENT_WALLS){
-       const furniture=y>400&&x>850?0x662238:x>=500&&y>400?0x56321e:0x302922;
-       fallback.fillStyle(furniture,1).fillRoundedRect(x,y,w,h,6);
-       fallback.lineStyle(3,0xa78b71,.9).strokeRoundedRect(x,y,w,h,6);
-     }
-     fallback.fillStyle(0xc2a678,1).fillRoundedRect(BASEMENT_STAIRS.x,BASEMENT_STAIRS.y,BASEMENT_STAIRS.w,BASEMENT_STAIRS.h,10);
-     fallback.lineStyle(3,0xffe0a3,1).strokeRoundedRect(BASEMENT_STAIRS.x,BASEMENT_STAIRS.y,BASEMENT_STAIRS.w,BASEMENT_STAIRS.h,10);
-     fallback.generateTexture("basement-fallback",BASEMENT_SIZE.w,BASEMENT_SIZE.h);
-     fallback.destroy();
+   if(this.textures.exists("basement")){
+     basementImage=this.add.image(0,0,"basement").setOrigin(0,0)
+       .setDisplaySize(BASEMENT_SIZE.w,BASEMENT_SIZE.h).setDepth(1).setVisible(false);
+   }else{
+     // Never substitute a schematic for the uploaded detailed floor artwork.
+     console.error("Maestro basement artwork is missing at /assets/basement.webp");
    }
-   const basementTexture=this.textures.exists("basement")?"basement":"basement-fallback";
-   basementImage=this.add.image(0,0,basementTexture).setOrigin(0,0)
-     .setDisplaySize(BASEMENT_SIZE.w,BASEMENT_SIZE.h).setDepth(1).setVisible(false);
    pubStairsHint=this.add.text(PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y-48,"STAIRS ↓ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
-   basementStairsHint=this.add.text(BASEMENT_STAIRS.x+BASEMENT_STAIRS.w,BASEMENT_STAIRS.y-42,"STAIRS ↑ [E]",
+   basementStairsHint=this.add.text(BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,BASEMENT_STAIRS.y-26,"STAIRS ↑ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
    // The supplied 1600×992 aerial map already contains the building facades.
