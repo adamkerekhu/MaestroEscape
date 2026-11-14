@@ -19,3 +19,12 @@ class_name = "GameSettings"
 [[migrations]]
 tag = "maestro-escape-shared-settings-v3"
 new_sqlite_classes = ["GameSettings"]
+
+# Server-owned inventory and world items, isolated by multiplayer room ID.
+[[durable_objects.bindings]]
+name = "ITEM_ROOMS"
+class_name = "ConsumableRoom"
+
+[[migrations]]
+tag = "maestro-consumables-v4"
+new_sqlite_classes = ["ConsumableRoom"]
