@@ -980,10 +980,10 @@ function intersects(x,y){
 function enterBasement(){
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
- if(!basementImage){show("Basement map asset is unavailable.");return;}
+ if(!basementImage){show("Basement artwork unavailable. Opening a temporary floor-plan view.");}
  pubStairReturn={x:player.x,y:player.y};
  insideBasement=true;mapSize={...BASEMENT_SIZE};
- interiorImage?.setVisible(false);basementImage.setVisible(true);
+ interiorImage?.setVisible(false);basementImage?.setVisible(true);
  pubStairsHint?.setVisible(false);exitHint?.setVisible(false);
  showInteriorNPCs("basement");
  character.setScale(cfg("building.pub.scale"));
@@ -1377,10 +1377,28 @@ class Explore extends Phaser.Scene{
        {fontFamily:"Arial",fontSize:"20px",fontStyle:"bold",color:"#fff5cf",
        stroke:"#151013",strokeThickness:4}).setDepth(8).setVisible(false);
    }
-   if(this.textures.exists("basement")){
-     basementImage=this.add.image(0,0,"basement").setOrigin(0,0)
-       .setDisplaySize(BASEMENT_SIZE.w,BASEMENT_SIZE.h).setDepth(1).setVisible(false);
+   if(!this.textures.exists("basement")){
+     // Keep the basement playable before the uploaded WebP has been published.
+     // This fallback uses the exact authored collision geometry rather than
+     // disabling the entire staircase whenever an artwork request returns 404.
+     const fallback=this.make.graphics({x:0,y:0},false);
+     fallback.fillStyle(0x473c35,1).fillRect(0,0,BASEMENT_SIZE.w,BASEMENT_SIZE.h);
+     fallback.lineStyle(2,0x665347,.7);
+     for(let x=0;x<BASEMENT_SIZE.w;x+=64)fallback.lineBetween(x,0,x,BASEMENT_SIZE.h);
+     for(let y=0;y<BASEMENT_SIZE.h;y+=64)fallback.lineBetween(0,y,BASEMENT_SIZE.w,y);
+     for(const [x,y,w,h] of BASEMENT_WALLS){
+       const furniture=y>400&&x>850?0x662238:x>=500&&y>400?0x56321e:0x302922;
+       fallback.fillStyle(furniture,1).fillRoundedRect(x,y,w,h,6);
+       fallback.lineStyle(3,0xa78b71,.9).strokeRoundedRect(x,y,w,h,6);
+     }
+     fallback.fillStyle(0xc2a678,1).fillRoundedRect(BASEMENT_STAIRS.x,BASEMENT_STAIRS.y,BASEMENT_STAIRS.w,BASEMENT_STAIRS.h,10);
+     fallback.lineStyle(3,0xffe0a3,1).strokeRoundedRect(BASEMENT_STAIRS.x,BASEMENT_STAIRS.y,BASEMENT_STAIRS.w,BASEMENT_STAIRS.h,10);
+     fallback.generateTexture("basement-fallback",BASEMENT_SIZE.w,BASEMENT_SIZE.h);
+     fallback.destroy();
    }
+   const basementTexture=this.textures.exists("basement")?"basement":"basement-fallback";
+   basementImage=this.add.image(0,0,basementTexture).setOrigin(0,0)
+     .setDisplaySize(BASEMENT_SIZE.w,BASEMENT_SIZE.h).setDepth(1).setVisible(false);
    pubStairsHint=this.add.text(PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y-48,"STAIRS ↓ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
@@ -1567,7 +1585,7 @@ class Explore extends Phaser.Scene{
    const cameraZoom=displayZoom(insidePub?(insideBasement?cfg("building.basement.zoom"):activeShop?shopZoom(activeShop):cfg("building.pub.zoom")):activeVehicle?DRIVING_ZOOM():cfg("camera.streetZoom"));
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(activeVehicle)return;
-   if(exitHint)exitHint.setVisible(insidePub && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
+   if(exitHint)exitHint.setVisible(insidePub && !insideBasement && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
    moving=distance>0.01;
    if(distance){
       const amount=(keys.SHIFT.isDown?cfg("character.sprintSpeed"):cfg("character.walkSpeed"))*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
