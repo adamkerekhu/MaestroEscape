@@ -67,6 +67,15 @@ function seatOf(s,p){
  }
  return null;
 }
+// Won cars are room-owned rewards, not temporary effects or disposable default spawns.
+// Preserve them when stock vehicles are repositioned or a legacy client resets a round.
+function preservePrizeVehicles(s,settings){
+ const regular=freshVehicles(settings);
+ for(const [id,v] of Object.entries(s.vehicles||{})){
+  if(id.startsWith("maiybach_"))regular[id]=v;
+ }
+ return regular;
+}
 function releaseSeat(s,p){
  const sitting=seatOf(s,p);
  if(!sitting)return null;
@@ -460,7 +469,7 @@ function operation(s,p,d){
   if(occupied)return bad("Everyone must exit vehicles before respawning");
   const settings=d.vehicleSpawnSettings&&typeof d.vehicleSpawnSettings==="object"?d.vehicleSpawnSettings:s.vehicleSpawnSettings||{};
   s.vehicleSpawnSettings=settings;
-  s.vehicles=freshVehicles(settings);
+  s.vehicles=preservePrizeVehicles(s,settings);
   s.vehicleRespawnRevision=(s.vehicleRespawnRevision||0)+1;
   return ok({vehicleRespawnRevision:s.vehicleRespawnRevision,message:"All vehicles respawned at their starting positions"});
  }
@@ -578,7 +587,7 @@ function operation(s,p,d){
  if(op==="resetRound"){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
-  s.vehicles=freshVehicles(s.vehicleSpawnSettings||{});
+  s.vehicles=preservePrizeVehicles(s,s.vehicleSpawnSettings||{});
   s.items=[];s.scratchResults={};s.pendingMaybach={};s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
