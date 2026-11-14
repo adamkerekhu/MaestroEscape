@@ -22,6 +22,52 @@ function fixture(env={}){
  };
  return {send,get,map};
 }
+test("single-player mode runs the shared room engine locally without Durable Objects",async()=>{
+ const {LOCAL_ROOM_SOURCE}=await import("../src/local-room-source.js");
+ const {readFileSync}=await import("node:fs");
+ const source=readFileSync(new URL("../src/consumables.js",import.meta.url),"utf8");
+ assert.equal(LOCAL_ROOM_SOURCE,source,"Offline engine must use the same rules as multiplayer");
+ const {ConsumableRoom:LocalRoom}=await import("data:text/javascript,"+encodeURIComponent(LOCAL_ROOM_SOURCE));
+ const store=new Map();
+ const storage={
+  get:async k=>store.get(k),
+  put:async(k,v)=>store.set(k,v),
+  transaction:async fn=>fn({get:async k=>store.get(k),put:async(k,v)=>store.set(k,v)})
+ };
+ const room=new LocalRoom({storage},{});
+ const token="f".repeat(40);
+ const send=async(op,args={})=>{
+  const req=new Request("https://single-player.local/",{
+   method:"POST",headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({token,commandId:crypto.randomUUID().replaceAll("-",""),op,...args})
+  });
+  const response=await room.fetch(req);
+  assert.equal(response.headers.get("content-type")?.includes("application/json"),true);
+  return response.json();
+ };
+ const selection=await send("selectCharacter",{characterId:"maestro"});
+ assert.equal(selection.ok,true,selection.error);
+ const position=await send("syncPosition",{scene:"dohanybolt",x:519,y:470});
+ assert.equal(position.ok,true,position.error);
+ const buy=await send("buyScratchTicket",{npcId:"tobacco_cashier",
+  npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:470}});
+ assert.equal(buy.ok,true,buy.error);
+ const ticket=buy.snapshot.items.find(i=>i.type==="scratch_ticket");
+ assert.ok(ticket);
+ const pickup=await send("collectItem",{itemId:ticket.id});
+ assert.equal(pickup.ok,true,pickup.error);
+ const scratched=await send("scratchTicket",{itemId:ticket.id});
+ assert.equal(scratched.ok,true,scratched.error);
+ assert.equal(typeof scratched.won,"boolean");
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ assert.ok(worker.includes('url.pathname==="/assets/local-room.js"'));
+ assert.ok(worker.includes('get("mode")==="single"'));
+ const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
+ assert.ok(client.includes('import("/assets/local-room.js")'));
+ assert.ok(client.includes('this.singleMode'));
+ assert.ok(client.includes('return room.fetch(req)'));
+});
+
 test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
@@ -327,8 +373,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,100\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,250\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?this\.singleMode\?200:100\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?this\.singleMode\?500:250\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
