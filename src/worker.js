@@ -417,14 +417,39 @@ const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):co
 const isMobileView=()=>window.matchMedia("(pointer: coarse)").matches||window.innerWidth<=768;
 const displayZoom=base=>base*(isMobileView()?cfg("camera.mobileZoom"):1);
 let settingsSynced=false,settingsRevision=0;
-const applyRemoteSettings=data=>{
+const LOCAL_SETTINGS_KEY="maestroescape.gameSettings.v1";
+const LOCAL_PENDING_KEY="maestroescape.gameSettings.pending.v1";
+// Keep shared settings distinct from browser-only edits. Cloud reads must never
+// silently overwrite unsynced values saved on this device.
+let cloudSettings=null,localSettingsFingerprint=null;
+const readLocalGameSettings=()=>{
+ try{
+  const raw=localStorage.getItem(LOCAL_SETTINGS_KEY);
+  if(!raw)return null;
+  const parsed=JSON.parse(raw);
+  if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))return null;
+  const clean={};
+  for(const [key,value] of Object.entries(parsed)){
+   if(!Object.prototype.hasOwnProperty.call(configDefaults,key))continue;
+   const n=Number(value);
+   if(Number.isFinite(n))clean[key]=n;
+  }
+  return Object.keys(clean).length?clean:null;
+ }catch(error){console.warn("Could not read local gameplay settings",error);return null;}
+};
+const localSettingsPending=()=>{try{return localStorage.getItem(LOCAL_PENDING_KEY)==="1"}catch{return false}};
+const setSettingsBadge=(message,title)=>{
+ const badge=document.getElementById("sync-status");
+ if(badge){badge.textContent=message;badge.title=title;}
+};
+const applyRemoteSettings=(data,localOnly=false)=>{
  if(!data||!data.settings||typeof data.settings!=="object")throw Error("Invalid shared settings response");
  const before=JSON.stringify(overrides);
  overrides=data.settings;
  settingsRevision=Number(data.revision)||0;
- settingsSynced=true;
- const badge=document.getElementById("sync-status");
- if(badge){badge.textContent="☁ Shared settings synced";badge.title="Cloudflare settings version "+settingsRevision;}
+ settingsSynced=!localOnly;
+ setSettingsBadge(localOnly?"⚠ Local settings applied":"☁ Shared settings synced",
+  localOnly?"Local changes are active in this browser, but not stored in Cloudflare.":"Cloudflare settings version "+settingsRevision);
  if(before!==JSON.stringify(overrides)&&scene?.sys?.isActive?.()){
    // Move only parked cars that remain at their previous configured starting spots.
    for(const {id,model,sprite} of registeredVehicles()){
@@ -1609,47 +1634,62 @@ class Explore extends Phaser.Scene{
 }
 document.getElementById("reset").onclick=()=>scene?.respawn();
 (async()=>{
- async function syncSharedSettings(){
-   const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
-   if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
-   const data=await response.json();
+ function applyLocalSettingsIfNeeded(force=false){
+   const local=readLocalGameSettings();
+   const pending=localSettingsPending();
+   const useLocal=!!local&&(pending||!cloudSettings);
+   const signature=useLocal?JSON.stringify(local):"cloud:"+JSON.stringify(cloudSettings?.settings||{});
+   if(!force&&signature===localSettingsFingerprint)return useLocal;
+   localSettingsFingerprint=signature;
+   if(useLocal){
+    applyRemoteSettings({settings:{...configDefaults,...(cloudSettings?.settings||{}),...local},
+      revision:cloudSettings?.revision||0},true);
+    return true;
+   }
+   if(cloudSettings)applyRemoteSettings(cloudSettings,false);
+   return false;
+  }
+  async function syncSharedSettings(){
+   // Apply local changes immediately: a Cloudflare error must never block
+   // movement speeds, camera zoom, sizes or NPC visuals in this browser.
+   applyLocalSettingsIfNeeded();
    try{
-    if(localStorage.getItem("maestroescape.gameSettings.pending.v1")==="1"){
-     const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");
-     if(local&&typeof local==="object"&&!Array.isArray(local)){
-      applyRemoteSettings({settings:local,revision:data.revision});
-      settingsSynced=false;
-      const badge=document.getElementById("sync-status");
-      if(badge){badge.textContent="⚠ Local settings only";badge.title="Your changes have not been saved to Cloudflare.";}
-      return data;
-     }
+    const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
+    if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
+    const data=await response.json();
+    cloudSettings=data;
+    applyLocalSettingsIfNeeded(true);
+    return data;
+   }catch(error){
+    if(!applyLocalSettingsIfNeeded(true)){
+     setSettingsBadge("⚠ Sync offline","No local settings were found; using built-in defaults.");
     }
-   }catch(error){console.warn("Local settings fallback unavailable",error)}
-   applyRemoteSettings(data);
-   return data;
- }
- try{await syncSharedSettings();}
- catch(error){
+    throw error;
+   }
+  }
+  // Initial local application happens before Phaser constructs its world.
+  applyLocalSettingsIfNeeded(true);
+  try{await syncSharedSettings();}
+  catch(error){
    console.error("Shared settings unavailable",error);
-   const badge=document.getElementById("sync-status");
-   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
-   try{
-    const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");
-    if(local&&typeof local==="object"&&!Array.isArray(local)){
-     applyRemoteSettings({settings:local,revision:0});
-     settingsSynced=false;
-     if(badge){badge.textContent="⚠ Local settings only";badge.title="Cloudflare is unavailable. Settings are local to this device.";}
-    }
-   }catch(localError){console.warn("No local settings available",localError)}
-   show("Settings cloud sync offline. Using saved local settings when available.");
- }
+   show(readLocalGameSettings()
+    ?"Cloud settings offline; your local settings are active in this browser."
+    :"Cloud settings offline; default settings are active.");
+  }
+  window.addEventListener("storage",event=>{
+   if(event.key===LOCAL_SETTINGS_KEY||event.key===LOCAL_PENDING_KEY){
+    applyLocalSettingsIfNeeded(true);
+   }
+  });
+  document.addEventListener("visibilitychange",()=>{
+   if(!document.hidden)void syncSharedSettings().catch(console.warn);
+  });
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- setInterval(()=>{syncSharedSettings().catch(error=>{
-   const badge=document.getElementById("sync-status");
-   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
- })},10000);
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
+ setInterval(()=>{
+   applyLocalSettingsIfNeeded();
+   void syncSharedSettings().catch(error=>console.warn("Shared settings sync unavailable",error.message));
+ },10000);
 })();
 })();
 </script></body></html>`;
