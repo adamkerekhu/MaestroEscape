@@ -735,6 +735,7 @@ export class ConsumableRoom{
   // One in-memory authoritative room per Durable Object instance. Never reload on polling.
   if(this.roomState)return this.roomState;
   if(!this.roomLoad)this.roomLoad=this.ctx.storage.get("room").then(saved=>{
+   this.roomWasStored=!!saved;
    this.roomState=saved||fresh(initialSettings);
    return this.roomState;
   }).catch(error=>{this.roomLoad=null;throw error;});
@@ -838,7 +839,7 @@ export class ConsumableRoom{
    const npcSettings=await this.getNpcSettings();
    let initialVehicleSettings={};
    const priorRoom=await this.loadRoom();
-   if(this.env?.SETTINGS_STORE&&(!priorRoom||!priorRoom.vehicles)){
+   if(this.env?.SETTINGS_STORE&&(!this.roomWasStored||!priorRoom.vehicles)){
     try{
      const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
      const response=await settingsStub.fetch(new Request("https://settings.internal/",{method:"GET"}));
