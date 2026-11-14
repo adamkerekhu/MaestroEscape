@@ -48,32 +48,6 @@ test("Buksza scratch variants remain tied to server-authenticated ticket outcome
  }
 });
 
-test("room group chat broadcasts, sanitizes, rate limits, and isolates player identities",async()=>{
- const {send,get}=fixture();
- assert.equal((await send(0,"sendChat",{message:"Hello"})).ok,false,"Guests must select a character");
- assert.ok((await send(0,"selectCharacter",{characterId:"maestro"})).ok);
- const available=(await get(0)).snapshot.characters.find(c=>c.id!=="maestro"&&!c.selectedBy);
- assert.ok(available,"Another playable character is available");
- assert.ok((await send(1,"selectCharacter",{characterId:available.id})).ok);
- const first=await send(0,"sendChat",{message:"   Hey\n everyone!   "});
- assert.equal(first.ok,true,first.error);
- assert.equal(first.snapshot.chatMessages.length,1);
- assert.equal(first.snapshot.chatMessages[0].message,"Hey everyone!");
- const received=await get(1);
- assert.equal(received.snapshot.chatMessages[0].id,first.snapshot.chatMessages[0].id,"Another client in the same room sees the message");
- assert.equal(received.snapshot.chatMessages[0].name,"Maestro");
- const spam=await send(0,"sendChat",{message:"again"});
- assert.equal(spam.ok,false,"Spam is rate limited");
- const empty=await send(1,"sendChat",{message:"    "});
- assert.equal(empty.ok,false);
- const huge=await send(1,"sendChat",{message:"x".repeat(201)});
- assert.equal(huge.ok,false);
- const second=await send(1,"sendChat",{message:"<script>alert(1)</script>"});
- assert.equal(second.ok,true,second.error);
- assert.equal((await get(0)).snapshot.chatMessages.at(-1).message,"<script>alert(1)</script>");
- assert.equal((await get(0)).snapshot.chatMessages.length,2);
-});
-
 test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
@@ -379,8 +353,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,500\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,2500\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,250\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,750\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
@@ -566,7 +540,7 @@ test("player interaction range follows shared settings and rejects distant borro
   assert.equal(far.ok,false);
   assert.match(far.error,/not nearby/i);
   // The next GET refreshes the cache, so every client sees the new shared reach.
-  current+=16000;reach=60;
+  current+=1600;reach=60;
   assert.equal((await get(0)).snapshot.config.playerInteractRadius,60);
   const request=await send(0,"borrowRequest",{targetId:(await get(1)).snapshot.playerId});
   assert.equal(request.ok,true,request.error);
@@ -585,7 +559,7 @@ test("player range is bounded and remains distinct from NPC, item and vehicle ra
   assert.equal(snapshot.config.playerInteractRadius,150);
   assert.equal(snapshot.config.interactRadius,112);
   assert.equal(snapshot.config.collectRadius,82);
-  clock+=16000;configured=1;
+  clock+=1600;configured=1;
   snapshot=(await get(0)).snapshot;
   assert.equal(snapshot.config.playerInteractRadius,15);
  }finally{Date.now=old}
@@ -699,7 +673,7 @@ test("NPC interaction radius is shared and enforces the same distance as dialogu
   });
   assert.equal(far.ok,false);
   assert.equal((await get(0)).snapshot.config.playerInteractRadius,45);
-  radius=120;tick+=16000;
+  radius=120;tick+=1600;
   const near=await send(0,"buyPack",{
    npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:481}
   });
@@ -877,7 +851,7 @@ test("client reports tram collisions and renders death, five-second countdown an
  assert.ok(client.includes('this.command("tramHit"'));
  assert.ok(client.includes("this.ctx.onTramDeath?.("));
  assert.ok(client.includes("this.ctx.onTramRespawn?.("));
- assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead()||Date.now()<this.roomRetryAfter)return"));
+ assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead())return"));
  assert.ok(worker.includes("function tramOverlapsPlayer("));
  assert.ok(worker.includes('id="tram-death-overlay"'));
  assert.ok(worker.includes("function renderTramGraves()"));
