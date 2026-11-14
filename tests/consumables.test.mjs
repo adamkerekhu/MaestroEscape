@@ -600,6 +600,39 @@ test("borrowing from an NPC moved or patrolling near the player works",async()=>
  assert.equal(remote.ok,false);
  assert.match(remote.error,/closer/i);
 });
+test("tobacco cashier purchase uses locally opened NPC dialogue when cloud settings are offline",async()=>{
+ const {send}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(0,"syncPosition",{scene:"dohanybolt",x:105,y:280});
+ const contact={x:105,y:210};
+ const player={scene:"dohanybolt",x:105,y:280};
+ const before=await send(0,"buyPack",{npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,dialogueRadius:100});
+ assert.equal(before.ok,false,"Server settings must still reject remote contacts without a local-settings dialogue");
+ const packet=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,
+  dialogueRadius:100,localNpcSettings:true
+ });
+ assert.equal(packet.ok,true,packet.error);
+ assert.equal(packet.snapshot.items.find(i=>i.type==="cigarette_pack")?.type,"cigarette_pack");
+ const ticket=await send(0,"buyScratchTicket",{
+  npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,
+  dialogueRadius:100,localNpcSettings:true
+ });
+ assert.equal(ticket.ok,true,ticket.error);
+ assert.equal(ticket.snapshot.items.find(i=>i.type==="scratch_ticket")?.type,"scratch_ticket");
+ const spoof=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",npcPoint:{x:500,y:600},
+  actorPosition:player,dialogueRadius:190,localNpcSettings:true
+ });
+ assert.equal(spoof.ok,false,"A distant NPC contact cannot allow buying");
+ const outOfBounds=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",npcPoint:{x:620,y:280},
+  actorPosition:{scene:"dohanybolt",x:605,y:280},
+  dialogueRadius:190,localNpcSettings:true
+ });
+ assert.equal(outOfBounds.ok,false,"NPC contact must remain inside the shop");
+});
+
 test("NPC interaction radius is shared and enforces the same distance as dialogue",async()=>{
  let radius=55;let tick=1000000;const old=Date.now;Date.now=()=>tick;
  try{
