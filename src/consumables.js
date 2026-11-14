@@ -183,7 +183,7 @@ const GROUP_RALLY_EXPIRES_MS=90000;
 function rallyTarget(s,type){
  if(type==="beer"){
   const table=C.pubTables.find(t=>t.id==="pub_left");
-  return {scene:"pub",x:table.x+table.w/2,y:table.y+table.h/2,
+  return {scene:"pub",x:table.x+table.w+35,y:table.y+table.h/2,
    label:"Left table at Maestro"};
  }
  if(type==="cigarette"){
