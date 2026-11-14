@@ -48,6 +48,32 @@ test("Buksza scratch variants remain tied to server-authenticated ticket outcome
  }
 });
 
+test("room group chat broadcasts, sanitizes, rate limits, and isolates player identities",async()=>{
+ const {send,get}=fixture();
+ assert.equal((await send(0,"sendChat",{message:"Hello"})).ok,false,"Guests must select a character");
+ assert.ok((await send(0,"selectCharacter",{characterId:"maestro"})).ok);
+ const available=(await get(0)).snapshot.characters.find(c=>c.id!=="maestro"&&!c.selectedBy);
+ assert.ok(available,"Another playable character is available");
+ assert.ok((await send(1,"selectCharacter",{characterId:available.id})).ok);
+ const first=await send(0,"sendChat",{message:"   Hey\n everyone!   "});
+ assert.equal(first.ok,true,first.error);
+ assert.equal(first.snapshot.chatMessages.length,1);
+ assert.equal(first.snapshot.chatMessages[0].message,"Hey everyone!");
+ const received=await get(1);
+ assert.equal(received.snapshot.chatMessages[0].id,first.snapshot.chatMessages[0].id,"Another client in the same room sees the message");
+ assert.equal(received.snapshot.chatMessages[0].name,"Maestro");
+ const spam=await send(0,"sendChat",{message:"again"});
+ assert.equal(spam.ok,false,"Spam is rate limited");
+ const empty=await send(1,"sendChat",{message:"    "});
+ assert.equal(empty.ok,false);
+ const huge=await send(1,"sendChat",{message:"x".repeat(201)});
+ assert.equal(huge.ok,false);
+ const second=await send(1,"sendChat",{message:"<script>alert(1)</script>"});
+ assert.equal(second.ok,true,second.error);
+ assert.equal((await get(0)).snapshot.chatMessages.at(-1).message,"<script>alert(1)</script>");
+ assert.equal((await get(0)).snapshot.chatMessages.length,2);
+});
+
 test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
