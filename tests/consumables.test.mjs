@@ -320,3 +320,16 @@ test("three custom character sprite files exist with correct WebP headers",async
   assert.equal(bytes.toString("ascii",8,12),"WEBP",id+" must be WebP");
  }
 });
+
+test("remote players have no name tags and movement uses fast updates with per-frame smoothing",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT}=await import("../src/consumables-client.js");
+ const browser=CONSUMABLE_CLIENT_SCRIPT;
+ assert.doesNotThrow(()=>new Function(browser));
+ assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
+ assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,100\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,250\)/);
+ assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
+ assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
+ assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
+});
