@@ -995,4 +995,5 @@ test("existing active cigarette and kebab gatherings migrate to the marked floor
   map.set("room",room2);
   current=(await get(0)).snapshot.rally.target;
   assert.deepEqual(current,{scene:"gyros",x:360,y:330,label:"In front of the kebab counter"});
+ }finally{Date.now=old}
 });
