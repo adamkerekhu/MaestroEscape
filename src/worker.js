@@ -914,7 +914,7 @@ function leavePub(){
  show("Back on Mester utca.");
 }
 // Vehicle seat selection is server-owned. There is no local claim of ownership.
-let vehicleSeatPanel=null,vehicleBusy=false,vehicleSeatRole=null;
+let vehicleSeatPanel=null,vehicleBusy=false,vehicleSeatRole=null,vehicleWorldSynchronized=false;
 function vehicleSeatMenu(choice){
  if(vehicleBusy||!gameplay?.ready)return;
  vehicleSeatPanel?.remove();
@@ -986,7 +986,8 @@ function leaveSharedVehicle(result){
  show(result.message||"Exited vehicle");
 }
 function syncVehicleFromRoom(delta=16){
- if(!gameplay?.state||!scene)return;
+ if(!gameplay?.state||!scene||!gameplay.vehicles.length)return;
+ const firstAuthoritativeFrame=!vehicleWorldSynchronized;
  const occupied=gameplay.occupied;
  const selected=occupied?registeredVehicles().find(v=>v.id===occupied.vehicleId):null;
  if(occupied&&selected&&activeVehicle!==selected.model){
@@ -997,19 +998,24 @@ function syncVehicleFromRoom(delta=16){
   status.textContent=(occupied.seat===0?"Driving ":"Passenger in ")+selected.label;
  }
  if(!occupied&&activeVehicle){leaveSharedVehicle({message:"Vehicle seat released"})}
+ if(occupied&&activeVehicle){
+  vehicleSeatRole=occupied.seat;
+  activeVehicle.driver=occupied.seat===0;
+ }
  for(const remote of gameplay.vehicles){
   const target=registeredVehicles().find(v=>v.id===remote.id);
-  if(!target?.sprite)continue;
+  if(!target)continue;
   const model=target.model,driving=occupied?.vehicleId===remote.id&&occupied.seat===0;
   // Driver predicts locally; all other viewers interpolate the shared position.
-  if(!driving){
+  if(!driving||firstAuthoritativeFrame){
    const distance=Math.hypot(remote.x-model.x,remote.y-model.y);
-   const alpha=distance>150?1:1-Math.exp(-Math.min(50,delta)/90);
+   const alpha=firstAuthoritativeFrame||distance>150?1:1-Math.exp(-Math.min(50,delta)/90);
    model.x+=(remote.x-model.x)*alpha;
    model.y+=(remote.y-model.y)*alpha;
    const diff=Math.atan2(Math.sin(remote.angle-model.angle),Math.cos(remote.angle-model.angle));
    model.angle+=diff*alpha;model.speed=remote.speed;
   }
+  if(!target.sprite)continue;
   target.sprite.setPosition(model.x,model.y).setRotation(model.angle);
   target.sprite.setVisible(!insidePub);
   const bikeOccupied=remote.type==="bike"&&!!remote.seats[0];
@@ -1049,6 +1055,7 @@ function syncVehicleFromRoom(delta=16){
    tag.setPosition(model.x,model.y-45);
   }
  }
+ vehicleWorldSynchronized=true;
  if(occupied&&activeVehicle){
   player.x=activeVehicle.x;player.y=activeVehicle.y;
   character.setVisible(false);
@@ -1114,6 +1121,7 @@ function interact(){
  if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
  if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
+ if(!insidePub&&gameplay?.occupied){void enterOrExitCar();return;}
  if(gameplay?.nearestItem()){void gameplay.interact();return;}
  if(insidePub){
   const nearest=npcNearestTarget();
