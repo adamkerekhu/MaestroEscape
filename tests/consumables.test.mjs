@@ -103,7 +103,7 @@ test("multiple beers can occupy separate table slots, seventh item is rejected",
 test("gyros order creates real kebab and four bites complete it",async()=>{
  const old=Date.now;let clock=500000;Date.now=()=>clock;
  try{
-  const {send,get}=fixture();await send(0,"syncPosition",{scene:"gyros",x:294,y:315});
+  const {send,get}=fixture();await send(0,"syncPosition",{scene:"gyros",x:360,y:330});
   assert.ok((await send(0,"orderKebab")).ok);clock+=5000;
   const item=(await get(0)).snapshot.items.find(i=>i.type==="kebab");
   assert.ok(item);assert.equal(item.remainingUnits,4);
@@ -848,11 +848,11 @@ test("group cigarettes gather outside Maestro on pavement, not at the indoor bar
   const target=called.snapshot.rally.target;
   assert.equal(target.scene,"street");
   assert.equal(target.label,"Outside Maestro · pavement");
-  assert.equal(target.x,746);assert.equal(target.y,632);
+  assert.equal(target.x,770);assert.equal(target.y,625);
   assert.equal(called.snapshot.rally.ready,0,"Standing at bartender does not count");
-  await send(0,"syncPosition",{scene:"street",x:746,y:632});
+  await send(0,"syncPosition",{scene:"street",x:770,y:625});
   assert.equal((await get(0)).snapshot.rally.status,"gathering");
-  await send(1,"syncPosition",{scene:"street",x:760,y:625});
+  await send(1,"syncPosition",{scene:"street",x:780,y:632});
   const done=(await get(0)).snapshot;
   assert.equal(done.rally.status,"completed");
   assert.equal(done.groupEvents[0].type,"cigarette");
@@ -872,7 +872,8 @@ test("group kebab gathering waits for everyone to enter Gyros and automatically 
   assert.equal(called.ok,true);
   assert.equal(called.snapshot.rally.ready,1);
   const target=called.snapshot.rally.target;
-  assert.equal(target.label,"In front of the kebab employee");
+  assert.equal(target.label,"In front of the kebab counter");
+  assert.equal(target.x,360);assert.equal(target.y,330);
   assert.equal(called.snapshot.rally.radius,68);
   assert.equal(target.scene,"gyros");
   await send(1,"syncPosition",{scene:"gyros",x:target.x+40,y:target.y+15});
@@ -965,4 +966,33 @@ test("each rally uses the identical visible ring radius as arrival detection, wi
  assert.ok(!client.includes('💗 MEET HERE'));
  assert.ok(!client.includes('scene.add.text(0,-64'));
  assert.ok(client.includes('this.rallyBeacon.setPosition(rally.target.x,rally.target.y)'));
+});
+
+test("existing active cigarette and kebab gatherings migrate to the marked floor coordinates",async()=>{
+ const old=Date.now;let clock=16000000;Date.now=()=>clock;
+ try{
+  const {send,get,map}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  await send(0,"syncPosition",{scene:"street",x:900,y:750});
+  await send(1,"syncPosition",{scene:"street",x:910,y:750});
+  let initial=await send(0,"callGroup",{type:"cigarette"});
+  assert.equal(initial.ok,true);
+  // Model persisted state from before the target-position correction.
+  const room=map.get("room");
+  room.rally.target={scene:"pub",x:413,y:398,label:"In front of Maestro"};
+  map.set("room",room);
+  let current=(await get(0)).snapshot.rally.target;
+  assert.deepEqual(current,{scene:"street",x:770,y:625,label:"Outside Maestro · pavement"});
+  // Expire the first group to initiate the kebab call.
+  clock+=90001;await get(0);
+  await send(0,"syncPosition",{scene:"gyros",x:500,y:420});
+  await send(1,"syncPosition",{scene:"gyros",x:510,y:420});
+  initial=await send(0,"callGroup",{type:"kebab"});
+  assert.equal(initial.ok,true);
+  const room2=map.get("room");
+  room2.rally.target={scene:"gyros",x:294,y:315,label:"In front of the kebab employee"};
+  map.set("room",room2);
+  current=(await get(0)).snapshot.rally.target;
+  assert.deepEqual(current,{scene:"gyros",x:360,y:330,label:"In front of the kebab counter"});
 });
