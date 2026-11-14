@@ -1031,6 +1031,9 @@ class Explore extends Phaser.Scene{
      "https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@2f0f38b8bdae807b3075b62371208040cc1cda0f/Assets/NPCs/"+def.id+".webp",
      {frameWidth:48,frameHeight:60});
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
+   // All player assets share the original 8x4, 80x120 directional walk-frame contract.
+   for(const id of ["casual","suit","muscular"])this.load.spritesheet("player_"+id,
+     "/assets/characters/"+id+"_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
    this.load.image("bubi","/assets/bubi.webp");
@@ -1101,7 +1104,14 @@ class Explore extends Phaser.Scene{
        .setDisplaySize(cfg("tram.width"),cfg("tram.length")).setRotation(TRAM_ANGLE);
    }
    if(this.textures.exists("bubi-rider"))this.anims.create({key:"bubi-pedal",frames:this.anims.generateFrameNumbers("bubi-rider",{start:0,end:3}),frameRate:7,repeat:-1});
-   for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:cfg("character.animationFps"),repeat:-1});
+   for(const id of ["maestro","casual","suit","muscular"]){
+    const texture=id==="maestro"?"maestro":"player_"+id;
+    if(!this.textures.exists(texture))continue;
+    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]]){
+     const key="walk-"+id+"-"+dir;
+     if(!this.anims.exists(key))this.anims.create({key,frames:this.anims.generateFrameNumbers(texture,{start,end:start+7}),frameRate:cfg("character.animationFps"),repeat:-1});
+    }
+   }
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
    this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();gameplay?.close();this.respawn();});
@@ -1111,6 +1121,7 @@ class Explore extends Phaser.Scene{
    this.input.mouse?.disableContextMenu();
    gameplay=new MaestroConsumables({
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
+    face:()=>player.face,moving:()=>moving,
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
     setCharacter:choice=>{
@@ -1118,6 +1129,8 @@ class Explore extends Phaser.Scene{
       if(!choice){character.setVisible(false);return;}
       const key=choice.asset&&this.textures.exists("player_"+choice.id)?"player_"+choice.id:"maestro";
       character.setTexture(key,0).setTint(choice.tint??0xffffff).setVisible(true);
+      character.anims.stop();
+      character.setData("characterId",choice.id);
       character.setScale(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
     },
     closeNpc:()=>{if(npcDialogue)npcCloseDialogue()},
@@ -1170,7 +1183,7 @@ class Explore extends Phaser.Scene{
        tramSprite.setPosition(x,y).setRotation(TRAM_ANGLE).setVisible(true);
      }else tramSprite.setVisible(false);
    }
-   if(npcDialogue||gameplay?.menuOpen())return; // Freeze walking while menus are open.
+   if(npcDialogue||gameplay?.menuOpen()){moving=false;return;} // Freeze walking while menus are open.
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
@@ -1196,12 +1209,18 @@ class Explore extends Phaser.Scene{
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
    if(activeVehicle)return;
    if(exitHint)exitHint.setVisible(insidePub && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
+   moving=distance>0.01;
    if(distance){
       const amount=(keys.SHIFT.isDown?cfg("character.sprintSpeed"):cfg("character.walkSpeed"))*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
       if(!intersects(player.x,player.y+dy))player.y+=dy;
       const face=Math.abs(dx)>Math.abs(dy)?dx>0?"right":"left":dy>0?"down":"up";
-      if(player.face!==face||!character.anims.isPlaying){character.play("walk-"+face,true);player.face=face;}
+      if(player.face!==face||!character.anims.isPlaying){
+       const id=character.getData("characterId")||"maestro";
+       const key="walk-"+id+"-"+face;
+       if(this.anims.exists(key))character.play(key,true);
+       player.face=face;
+      }
    }else{character.anims.stop();character.setFrame({down:0,up:8,right:16,left:24}[player.face]??0);}
    character.setPosition(player.x,player.y);
    coords.textContent=Math.round(player.x)+", "+Math.round(player.y);
@@ -1305,6 +1324,12 @@ export default {
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
   if(url.pathname==="/assets/bubi.webp"){const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_bike.webp");if(!upstream.ok)return new Response("Bubi asset unavailable",{status:502});return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});}
+  if(/^\/assets\/characters\/(casual|suit|muscular)_walk\.webp$/.test(url.pathname)){
+    const name=url.pathname.split("/").pop();
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Characters/"+name);
+    if(!upstream.ok)return new Response("Character sprite pending upload",{status:404});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
+  }
   if(/^\/assets\/npc\/[a-z0-9_]+\.webp$/.test(url.pathname)){
     const id=url.pathname.slice("/assets/npc/".length,-5);
     if(!/^(maestro_bartender|maestro_regular_[123]|spar_cashier|spar_shopper_[12]|tobacco_cashier|gyros_employee)$/.test(id))return new Response("Unknown NPC",{status:404});
