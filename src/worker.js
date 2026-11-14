@@ -699,8 +699,8 @@ const car={x:PARKING.x,y:PARKING.y,angle:cfg("vehicle.skoda.angle")*Math.PI/180,
 const OCTAVIA_PARKING={get x(){return cfg("vehicle.octavia.spawnX")},get y(){return cfg("vehicle.octavia.spawnY")}};
 const octavia={x:OCTAVIA_PARKING.x,y:OCTAVIA_PARKING.y,angle:cfg("vehicle.octavia.angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};
 const bikes=[1,2,3].map(n=>{const id="bike"+n;return {id,type:"bike",x:cfg("vehicle."+id+".spawnX"),y:cfg("vehicle."+id+".spawnY"),angle:cfg("vehicle."+id+".angle")*Math.PI/180,speed:0,wheelTurn:0,driver:false};});
-const bikeSprites=[],bikeControllers=[],remoteBikeRiders=new Map(),vehicleOccupancyTags=new Map();
-function registeredVehicles(){return [{id:"skoda",model:car,sprite:carSprite,controller:vehicleController,label:"Skoda Superb 2.0TDI"},{id:"octavia",model:octavia,sprite:octaviaSprite,controller:octaviaController,label:"Octavia Checkengine"},...bikes.map((model,i)=>({id:model.id,model,sprite:bikeSprites[i],controller:bikeControllers[i],label:"Bubi Bike "+(i+1)}))];}
+const bikeSprites=[],bikeControllers=[],remoteBikeRiders=new Map(),vehicleOccupancyTags=new Map(),maybachVehicles=new Map();
+function registeredVehicles(){return [{id:"skoda",model:car,sprite:carSprite,controller:vehicleController,label:"Skoda Superb 2.0TDI"},{id:"octavia",model:octavia,sprite:octaviaSprite,controller:octaviaController,label:"Octavia Checkengine"},...bikes.map((model,i)=>({id:model.id,model,sprite:bikeSprites[i],controller:bikeControllers[i],label:"Bubi Bike "+(i+1)})),...Array.from(maybachVehicles.entries()).map(([id,v])=>({id,model:v.model,sprite:v.sprite,controller:v.controller,label:"Maíybach"}))];}
 const DRIVING_ZOOM=()=>cfg("camera.drivingZoom");
 let vehicleController=null,octaviaController=null,activeVehicle=null;
 let carSprite=null,octaviaSprite=null,tramSprite=null;
@@ -827,7 +827,7 @@ const NPC_DIALOGUES={
  actions:[]},
  spar_shopper_1:{intro:"Someone is browsing the shelves.",talk:["I'm just looking, thanks.","It gets busy in here around closing time."],actions:[]},
  spar_shopper_2:{intro:"A customer turns to you.",talk:["Can't decide what to buy.","I think I forgot my shopping list."],actions:[]},
- tobacco_cashier:{intro:"The cashier waits behind the counter.",talk:["Good evening.","What can I help you with?"],actions:[["cigarettes","Buy cigarettes"]]},
+ tobacco_cashier:{intro:"The cashier waits behind the counter.",talk:["Good evening.","What can I help you with?"],actions:[["cigarettes","Buy cigarettes"],["scratch_ticket","Buy kaparós sorsjegy"]]},
  gyros_employee:{intro:"The grill is hot and the counter is busy.",talk:["Fresh gyros coming up.","One moment, we're preparing another batch."],
  actions:[["kebab","Order kebab"],["collect","Collect kebab"]]}
 };
@@ -1139,6 +1139,20 @@ function syncVehicleFromRoom(delta=16){
  const firstAuthoritativeFrame=!vehicleWorldSynchronized||
   (vehicleLastRespawnRevision!==null&&respawnRevision!==vehicleLastRespawnRevision);
  vehicleLastRespawnRevision=respawnRevision;
+ // Prize cars join the same shared car roster and driving simulation as existing vehicles.
+ const prizeIds=new Set(gameplay.vehicles.filter(v=>v.id.startsWith("maiybach_")).map(v=>v.id));
+ for(const remote of gameplay.vehicles){
+  if(!prizeIds.has(remote.id)||maybachVehicles.has(remote.id))continue;
+  const model={id:remote.id,type:"car",x:remote.x,y:remote.y,angle:remote.angle,
+   speed:remote.speed,wheelTurn:0,driver:false};
+  const key=scene.textures.exists("maiybach")?"maiybach":"skoda";
+  const sprite=scene.add.image(model.x,model.y,key).setDepth(6)
+   .setDisplaySize(37,90).setRotation(model.angle).setVisible(!insidePub);
+  maybachVehicles.set(remote.id,{model,sprite,controller:new VehicleController(model,sprite)});
+ }
+ for(const [id,value] of maybachVehicles){
+  if(!prizeIds.has(id)){value.sprite.destroy();maybachVehicles.delete(id);}
+ }
  const occupied=gameplay.occupied;
  const selected=occupied?registeredVehicles().find(v=>v.id===occupied.vehicleId):null;
  if(occupied&&selected&&activeVehicle!==selected.model){
@@ -1268,7 +1282,7 @@ class VehicleController {
  }
 }
 function interact(){
- if(gameplay?.isDead())return;
+ if(gameplay?.isDead()||gameplay?.scratchOpen)return;
  if(gameplay&&!gameplay.hasCharacter())return;
  if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
  if(gameplay?.menuOpen()){gameplay.close();return;}
@@ -1335,10 +1349,11 @@ class Explore extends Phaser.Scene{
      "/assets/characters/"+id+"_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
    this.load.image("octavia","/assets/octavia.webp");
+   this.load.image("maiybach","/assets/maiybach.webp");
    this.load.image("bubi","/assets/bubi.webp");
    this.load.spritesheet("bubi-rider","/assets/bubi-rider.webp",{frameWidth:112,frameHeight:224});
    this.load.image("tram","/assets/tram.webp");
-   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="basement")console.warn("Basement image not published yet");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="basement")console.warn("Basement image not published yet");if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");if(file.key==="maiybach")console.warn("Maíybach artwork not available; using Skoda fallback.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
@@ -1473,6 +1488,7 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
+   if(gameplay?.scratchOpen){moving=false;return;}
    if(gameplay&&!gameplay.hasCharacter())return;
    syncVehicleFromRoom(delta);
    gameplay?.tick(time,delta);
@@ -1644,6 +1660,11 @@ export default {
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/shops/"+shopName+".webp");
     if(!upstream.ok)return new Response("Shop map unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
+  }
+  if(url.pathname==="/assets/maiybach.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/maiybach_game.webp");
+    if(!upstream.ok)return new Response("Maíybach artwork unavailable",{status:404});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
   }
   if(url.pathname==="/assets/octavia.webp" || url.pathname==="/assets/tram.webp"){
     const vehicle=url.pathname==="/assets/octavia.webp"?"octavia":"tram";
