@@ -621,3 +621,74 @@ test("NPC interaction radius is shared and enforces the same distance as dialogu
   assert.equal(near.ok,true,near.error);
  }finally{Date.now=old}
 });
+
+test("respawnVehicles resets all shared cars and bikes without deleting gameplay state",async()=>{
+ const {send,get}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(0,"syncPosition",{scene:"street",x:697,y:505});
+ assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+ const first=await send(0,"driveVehicle",{vehicleId:"skoda",x:710,y:495,angle:2.4,speed:0});
+ assert.ok(first.ok,first.error);
+ assert.ok((await send(0,"leaveVehicle")).ok);
+ const before=(await get(0)).snapshot;
+ assert.equal(before.vehicles.find(v=>v.id==="skoda").x,710);
+ const reset=await send(0,"respawnVehicles");
+ assert.ok(reset.ok,reset.error);
+ assert.equal(reset.snapshot.vehicles.length,5);
+ const skoda=reset.snapshot.vehicles.find(v=>v.id==="skoda");
+ assert.equal(skoda.x,697);assert.equal(skoda.y,505);
+ assert.equal(skoda.speed,0);
+ for(const vehicle of reset.snapshot.vehicles)assert.ok(vehicle.seats.every(seat=>seat===null));
+ assert.equal(reset.snapshot.vehicleRespawnRevision,before.vehicleRespawnRevision+1);
+ assert.equal(reset.snapshot.selectedCharacter,"maestro");
+ assert.equal(reset.snapshot.playerId,before.playerId);
+});
+test("respawnVehicles is rejected while any room player occupies a vehicle",async()=>{
+ const {send,get}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(1,"selectCharacter",{characterId:"casual"});
+ await send(0,"syncPosition",{scene:"street",x:697,y:505});
+ await send(1,"syncPosition",{scene:"street",x:699,y:506});
+ assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+ const blocked=await send(1,"respawnVehicles");
+ assert.equal(blocked.ok,false);
+ assert.match(blocked.error,/exit vehicles/i);
+ assert.equal((await get(1)).snapshot.vehicles.find(v=>v.id==="skoda").seats[0],(await get(0)).snapshot.playerId);
+ assert.equal((await get(1)).snapshot.vehicleRespawnRevision,0);
+ assert.ok((await send(0,"leaveVehicle")).ok);
+ assert.ok((await send(1,"respawnVehicles")).ok);
+});
+test("respawnVehicles uses latest Cloudflare vehicle start settings instead of original room settings",async()=>{
+ const map=new Map();
+ let spawnX=720;
+ const ctx={storage:{
+  get:async key=>map.get(key),
+  transaction:async fn=>fn({get:async key=>map.get(key),put:async(key,value)=>map.set(key,structuredClone(value))})
+ }};
+ const env={SETTINGS_STORE:{idFromName:name=>name,get:()=>({fetch:async()=>({
+  ok:true,json:async()=>({settings:{"vehicle.skoda.spawnX":spawnX,"vehicle.skoda.spawnY":555,"vehicle.skoda.angle":90}})
+ })})}};
+ const room=new ConsumableRoom(ctx,env);
+ const token="a".repeat(32);
+ const send=async(op,extra={})=>{
+  const response=await room.fetch(new Request("https://room.test/",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({token,commandId:crypto.randomUUID().replaceAll("-",""),op,...extra})}));
+  return await response.json();
+ };
+ await send("selectCharacter",{characterId:"maestro"});
+ assert.equal((await send("syncPosition",{scene:"street",x:697,y:505})).snapshot.vehicles.find(v=>v.id==="skoda").x,720);
+ spawnX=800;
+ const respawn=await send("respawnVehicles");
+ assert.equal(respawn.ok,true,respawn.error);
+ assert.equal(respawn.snapshot.vehicles.find(v=>v.id==="skoda").x,800);
+ assert.ok(Math.abs(respawn.snapshot.vehicles.find(v=>v.id==="skoda").angle-Math.PI/2)<.001);
+});
+test("vehicle respawn control is exposed and all browsers snap to the new revision",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT:browser}=await import("../src/consumables-client.js");
+ const {readFileSync}=await import("node:fs");
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ assert.ok(browser.includes('id="vehicle-respawn-button"'));
+ assert.ok(browser.includes('this.command("respawnVehicles")'));
+ assert.ok(worker.includes("vehicleLastRespawnRevision=respawnRevision"));
+ assert.ok(worker.includes("respawnRevision!==vehicleLastRespawnRevision"));
+});
