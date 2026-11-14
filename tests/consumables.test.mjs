@@ -425,8 +425,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,500\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,2500\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?this\.singleMode\?200:500\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?this\.singleMode\?500:2500\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
@@ -923,7 +923,7 @@ test("client reports tram collisions and renders death, five-second countdown an
  assert.ok(client.includes('this.command("tramHit"'));
  assert.ok(client.includes("this.ctx.onTramDeath?.("));
  assert.ok(client.includes("this.ctx.onTramRespawn?.("));
- assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead()||Date.now()<this.roomRetryAfter)return"));
+ assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead()||(!this.singleMode&&Date.now()<this.roomRetryAfter))return"));
  assert.ok(worker.includes("function tramOverlapsPlayer("));
  assert.ok(worker.includes('id="tram-death-overlay"'));
  assert.ok(worker.includes("function renderTramGraves()"));
