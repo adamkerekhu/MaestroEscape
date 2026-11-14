@@ -225,7 +225,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},chatMessages:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -358,6 +358,7 @@ function snapshot(s,p){
   scratchVariants:Object.fromEntries(playerInventory(s,p).filter(i=>i.type==="scratch_ticket")
    .map(i=>[i.id,typeof s.scratchResults?.[i.id]==="object"?s.scratchResults[i.id].variant:(s.scratchResults?.[i.id]===true?10:1)])),
   completionEvents:s.completions.filter(event=>now()-event.time<9000),
+  chatMessages:(s.chatMessages||[]).slice(-40),
   groupEvents:(s.groupEvents||[]).filter(event=>now()-event.at<10000),
   rally:s.rally?(s.rally.status==="gathering"?rallyStatus(s,s.rally):{...s.rally}):null,
   death:p.lastDeath||null,deadUntil:p.deadUntil||null,
@@ -453,6 +454,21 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="sendChat"){
+  if(!p.characterId)return bad("Select a character before chatting");
+  if(typeof d.message!=="string")return bad("Invalid chat message");
+  const message=d.message.replace(/[\u0000-\u001F\u007F]/g," ").replace(/\s+/g," ").trim();
+  if(!message||message.length>200)return bad("Chat messages must be 1–200 characters");
+  if(now()-(p.lastChatAt||0)<900)return bad("Please wait before sending another message");
+  p.lastChatAt=now();
+  s.chatMessages??=[];
+  const character=LOBBY_CHARACTERS.find(c=>c.id===p.characterId);
+  const displayName=character?.name||p.alias||"Player";
+  const record={id:uid("chat"),playerId:p.id,name:displayName,message,at:now()};
+  s.chatMessages.push(record);
+  if(s.chatMessages.length>40)s.chatMessages.splice(0,s.chatMessages.length-40);
+  return ok({chatId:record.id});
+ }
  if(op==="callGroup"){
   if(!p.characterId||p.deadUntil)return bad("Select a living character to call a group");
   if(!GROUP_RALLY_RULES[d.type])return bad("Unknown group activity");
@@ -935,7 +951,7 @@ export class ConsumableRoom{
     // Persist item transactions and character/vehicle changes, but batch position
     // tracking and frequent GET snapshots into at most one write per 30 seconds.
     const lowPriority=request.method==="GET"||
-      (request.method==="POST"&&["syncPosition","driveVehicle"].includes(input.op));
+      (request.method==="POST"&&["syncPosition","driveVehicle","sendChat"].includes(input.op));
     await this.persistRoom(!lowPriority);
     return result;
    })();
