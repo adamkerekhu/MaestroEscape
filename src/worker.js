@@ -38,7 +38,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 <p id="npc-map-status">Edit positions on the map. Changes require saving.</p>
 </section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
- const KEY="maestroescape.gameSettings.v1";
+ const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
  const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
@@ -56,8 +56,32 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    lastPersisted=JSON.stringify(values);
    revision=Number(remote.revision)||0;
    storageReady=true;
+   // Recover unfinished local changes without silently overwriting the cloud version.
+   if(localStorage.getItem(PENDING_KEY)==="1"){
+    try{
+     const pending=JSON.parse(localStorage.getItem(KEY)||"null");
+     if(pending&&typeof pending==="object"&&!Array.isArray(pending)){
+      values=normalize({...defaults,...pending});
+      notice.textContent="⚠ Unsynced settings recovered from this device. Press Save to retry Cloudflare when available.";
+     }
+    }catch(error){console.warn("Could not load pending local settings",error)}
+   }
    // Never overwrite shared settings with another device\u0027s local cache.
- }catch(error){notice.textContent="Shared storage error: "+error.message;console.error(error);}
+ }catch(error){
+   // A failed Cloudflare read must never erase the settings saved on this device.
+   let restored=false;
+   try{
+    const local=JSON.parse(localStorage.getItem(KEY)||"null");
+    if(local&&typeof local==="object"&&!Array.isArray(local)){
+     values=normalize({...defaults,...local});
+     restored=true;
+    }
+   }catch(localError){console.warn("Local settings recovery failed",localError);}
+   notice.textContent=restored
+    ?"⚠ Cloud unavailable. Restored settings saved on THIS device only. Changes are not synced to other players."
+    :"⚠ Cloud unavailable. Defaults shown; changes can be saved on THIS device only until Cloudflare recovers.";
+   console.error(error);
+ }
  async function push(force=false){
    clearTimeout(saveHandle);
    const payload=JSON.stringify(values);
@@ -79,12 +103,17 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
          throw new Error("saved settings do not match the server");
        revision=Number(persisted.revision)||Number(committed.revision)||revision;
        lastPersisted=payload;
-       try{localStorage.setItem(KEY,payload)}catch(error){console.warn("Local backup unavailable",error)}
+       try{localStorage.setItem(KEY,payload);localStorage.removeItem(PENDING_KEY)}catch(error){console.warn("Local backup unavailable",error)}
        storageReady=true;
        notice.textContent="✓ All settings verified on server and saved for every device.";
        return true;
      }catch(error){
-       notice.textContent="Could not save: "+error.message+". Settings are NOT saved yet. Reload from server if another device changed them.";
+       let locallySaved=false;
+       try{localStorage.setItem(KEY,payload);localStorage.setItem(PENDING_KEY,"1");locallySaved=true;}
+       catch(localError){console.error("Local settings backup failed",localError);}
+       notice.textContent=locallySaved
+        ?"⚠ Saved on THIS device only. Cloudflare save failed ("+error.message+"). Other devices will NOT receive these changes."
+        :"Could not save locally or to Cloudflare: "+error.message+". Export JSON to avoid losing changes.";
        console.error("Shared settings save failure",error);
        return false;
      }
@@ -92,7 +121,12 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    savePromise=savePromise.then(execute,execute);
    return savePromise;
  }
- function store(){notice.textContent="Unsaved changes…";clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);}
+ function store(){
+  // Keep a local copy immediately. Cloud saves may be blocked by account quota.
+  try{localStorage.setItem(KEY,JSON.stringify(values));localStorage.setItem(PENDING_KEY,"1");}catch(error){console.warn("Local backup unavailable",error)}
+  notice.textContent="Saving changes…";
+  clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
+ }
  function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
@@ -289,7 +323,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  document.getElementById("npc-save").addEventListener("click",async()=>{
   const button=document.getElementById("npc-save");button.disabled=true;
   npcStatus.textContent="Saving NPC settings to Cloudflare…";
-  try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Save failed; see error above.";}
+  try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Cloud save failed; local backup only, see warning above.";}
   finally{button.disabled=false;}
  });
  document.getElementById("npc-reload").addEventListener("click",async()=>{
@@ -384,14 +418,39 @@ const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):co
 const isMobileView=()=>window.matchMedia("(pointer: coarse)").matches||window.innerWidth<=768;
 const displayZoom=base=>base*(isMobileView()?cfg("camera.mobileZoom"):1);
 let settingsSynced=false,settingsRevision=0;
-const applyRemoteSettings=data=>{
+const LOCAL_SETTINGS_KEY="maestroescape.gameSettings.v1";
+const LOCAL_PENDING_KEY="maestroescape.gameSettings.pending.v1";
+// Keep shared settings distinct from browser-only edits. Cloud reads must never
+// silently overwrite unsynced values saved on this device.
+let cloudSettings=null,localSettingsFingerprint=null;
+const readLocalGameSettings=()=>{
+ try{
+  const raw=localStorage.getItem(LOCAL_SETTINGS_KEY);
+  if(!raw)return null;
+  const parsed=JSON.parse(raw);
+  if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))return null;
+  const clean={};
+  for(const [key,value] of Object.entries(parsed)){
+   if(!Object.prototype.hasOwnProperty.call(configDefaults,key))continue;
+   const n=Number(value);
+   if(Number.isFinite(n))clean[key]=n;
+  }
+  return Object.keys(clean).length?clean:null;
+ }catch(error){console.warn("Could not read local gameplay settings",error);return null;}
+};
+const localSettingsPending=()=>{try{return localStorage.getItem(LOCAL_PENDING_KEY)==="1"}catch{return false}};
+const setSettingsBadge=(message,title)=>{
+ const badge=document.getElementById("sync-status");
+ if(badge){badge.textContent=message;badge.title=title;}
+};
+const applyRemoteSettings=(data,localOnly=false)=>{
  if(!data||!data.settings||typeof data.settings!=="object")throw Error("Invalid shared settings response");
  const before=JSON.stringify(overrides);
  overrides=data.settings;
  settingsRevision=Number(data.revision)||0;
- settingsSynced=true;
- const badge=document.getElementById("sync-status");
- if(badge){badge.textContent="☁ Shared settings synced";badge.title="Cloudflare settings version "+settingsRevision;}
+ settingsSynced=!localOnly;
+ setSettingsBadge(localOnly?"⚠ Local settings applied":"☁ Shared settings synced",
+  localOnly?"Local changes are active in this browser, but not stored in Cloudflare.":"Cloudflare settings version "+settingsRevision);
  if(before!==JSON.stringify(overrides)&&scene?.sys?.isActive?.()){
    // Move only parked cars that remain at their previous configured starting spots.
    for(const {id,model,sprite} of registeredVehicles()){
@@ -420,7 +479,12 @@ const INTERIOR_SIZE={w:1448,h:1086};
 // FloorArt uses a single full-sized visual atlas. The WebP must be present in Assets/Maps.
 const BASEMENT_SIZE={w:1792,h:896},BASEMENT_SPAWN={x:490,y:349};
 const BASEMENT_STAIRS={x:401,y:373,w:86,h:74};
+// The visual stairway is at 1087,352, but the walkable approach is lower on the floor.
+// Screenshot-confirmed player feet at 1087,459 must activate the downstairs interaction.
 const PUB_BASEMENT_STAIRS={x:1087,y:352};
+const PUB_BASEMENT_APPROACH={x:1087,y:459,radius:70};
+const pubBasementStairsNear=()=>insidePub&&!insideBasement&&!activeShop&&
+ near(player,PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y,PUB_BASEMENT_APPROACH.radius);
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
  [60,752,245,45],[422,755,1240,42],
@@ -937,7 +1001,7 @@ function npcUpdatePrompt(){
  if(insideBasement&&basementStairNear()){
   npcPrompt.textContent="E · Go upstairs";npcPrompt.hidden=false;return;
  }
- if(insidePub&&!activeShop&&near(player,PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y,85)){
+ if(pubBasementStairsNear()){
   npcPrompt.textContent="E · Go downstairs";npcPrompt.hidden=false;return;
  }
  if(!insidePub&&gameplay?.occupied){
@@ -986,7 +1050,7 @@ function intersects(x,y){
 function enterBasement(){
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
- if(!basementImage){show("Basement artwork unavailable. Please publish Assets/Maps/maestro_basement.webp.");return;}
+ if(!basementImage){show("Cannot enter basement: map image is missing from GitHub (Assets/Maps/maestro_basement.webp).");return;}
  pubStairReturn={x:player.x,y:player.y};
  insideBasement=true;mapSize={...BASEMENT_SIZE};
  interiorImage?.setVisible(false);basementImage?.setVisible(true);
@@ -1287,7 +1351,7 @@ function interact(){
    if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
    show("Walk to the basement staircase and press E to go upstairs.");return;
   }
-  if(!activeShop&&near(player,PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y,85)){
+  if(pubBasementStairsNear()){
    enterBasement();return;
   }
   const nearest=npcNearestTarget();
@@ -1365,7 +1429,7 @@ class Explore extends Phaser.Scene{
      // Never substitute a schematic for the uploaded detailed floor artwork.
      console.error("Maestro basement artwork is missing at /assets/basement.webp");
    }
-   pubStairsHint=this.add.text(PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y-48,"STAIRS ↓ [E]",
+   pubStairsHint=this.add.text(PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y-44,"STAIRS ↓ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
    basementStairsHint=this.add.text(BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,BASEMENT_STAIRS.y-26,"STAIRS ↑ [E]",
@@ -1444,6 +1508,8 @@ class Explore extends Phaser.Scene{
     localVehicle:id=>registeredVehicles().find(v=>v.id===id)?.model||null,
     face:()=>player.face,moving:()=>moving,
     npcPoint:id=>{const entity=npcEntities.get(id);return entity?npcInteractionPoint(entity):null},
+    npcDialogueRadius:()=>cfg("npc.interactRadius"),
+    localNpcSettings:()=>!settingsSynced&&!!readLocalGameSettings(),
     playerScale:()=>character?.scaleX||cfg("character.streetScale"),
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
@@ -1571,40 +1637,84 @@ class Explore extends Phaser.Scene{
 }
 document.getElementById("reset").onclick=()=>scene?.respawn();
 (async()=>{
- async function syncSharedSettings(){
-   const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
-   if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
-   const data=await response.json();applyRemoteSettings(data);
-   return data;
- }
- if(new URL(location.href).searchParams.get("mode")!=="multi"){
-   try{const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");if(local&&typeof local==="object")applyRemoteSettings({settings:local,revision:0});}catch{}
-   const badge=document.getElementById("sync-status");if(badge){badge.textContent="🧪 Single player · offline";badge.title="No Cloudflare Durable Objects requests";}
- }else try{await syncSharedSettings();}
- catch(error){
+ function applyLocalSettingsIfNeeded(force=false){
+   const local=readLocalGameSettings();
+   const pending=localSettingsPending();
+   const useLocal=!!local&&(pending||!cloudSettings);
+   const signature=useLocal?JSON.stringify(local):"cloud:"+JSON.stringify(cloudSettings?.settings||{});
+   if(!force&&signature===localSettingsFingerprint)return useLocal;
+   localSettingsFingerprint=signature;
+   if(useLocal){
+    applyRemoteSettings({settings:{...configDefaults,...(cloudSettings?.settings||{}),...local},
+      revision:cloudSettings?.revision||0},true);
+    return true;
+   }
+   if(cloudSettings)applyRemoteSettings(cloudSettings,false);
+   return false;
+  }
+  async function syncSharedSettings(){
+   // Apply local changes immediately: a Cloudflare error must never block
+   // movement speeds, camera zoom, sizes or NPC visuals in this browser.
+   applyLocalSettingsIfNeeded();
+   try{
+    const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
+    if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
+    const data=await response.json();
+    cloudSettings=data;
+    applyLocalSettingsIfNeeded(true);
+    return data;
+   }catch(error){
+    if(!applyLocalSettingsIfNeeded(true)){
+     setSettingsBadge("⚠ Sync offline","No local settings were found; using built-in defaults.");
+    }
+    throw error;
+   }
+  }
+  // Initial local application happens before Phaser constructs its world.
+  applyLocalSettingsIfNeeded(true);
+  if(new URL(location.href).searchParams.get("mode")==="multi")try{await syncSharedSettings();}
+  catch(error){
    console.error("Shared settings unavailable",error);
-   const badge=document.getElementById("sync-status");
-   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
-   show("Settings sync offline. Retry by refreshing; this device may display defaults.");
- }
+   show(readLocalGameSettings()
+    ?"Cloud settings offline; your local settings are active in this browser."
+    :"Cloud settings offline; default settings are active.");
+  }
+  window.addEventListener("storage",event=>{
+   if(event.key===LOCAL_SETTINGS_KEY||event.key===LOCAL_PENDING_KEY){
+    applyLocalSettingsIfNeeded(true);
+   }
+  });
+  document.addEventListener("visibilitychange",()=>{
+   if(!document.hidden)void syncSharedSettings().catch(console.warn);
+  });
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- if(new URL(location.href).searchParams.get("mode")==="multi")setInterval(()=>{syncSharedSettings().catch(error=>{
-   const badge=document.getElementById("sync-status");
-   if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
- })},10000);
- if(new URL(location.href).searchParams.get("mode")==="multi")document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
+ setInterval(()=>{
+   applyLocalSettingsIfNeeded();
+   void syncSharedSettings().catch(error=>console.warn("Shared settings sync unavailable",error.message));
+ },10000);
 })();
 })();
 </script></body></html>`;
 
 export class GameSettings {
  constructor(ctx,env){this.ctx=ctx;this.env=env;}
+ storageFailure(error){
+  const message=String(error?.message||error);
+  const quota=/exceeded allowed rows|quota|free tier|limit.*exceed|SQLITE_FULL/i.test(message);
+  return Response.json({
+   ok:false,
+   error:quota?"Cloudflare storage quota exhausted; cloud save is unavailable until the quota resets.":"Cloud settings storage failed.",
+   code:quota?"STORAGE_QUOTA":"STORAGE_FAILURE"
+  },{status:503,headers:{"cache-control":"no-store"}});
+ }
  async fetch(request){
   if(request.method==="GET"){
-   const current=await this.ctx.storage.get("settings");
-   const revision=await this.ctx.storage.get("revision")||0;
-   return Response.json({settings:{...SETTINGS_DEFAULTS,...current},initialized:!!current,revision},{headers:{"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache"}});
+   try{
+    const current=await this.ctx.storage.get("settings");
+    const revision=await this.ctx.storage.get("revision")||0;
+    return Response.json({settings:{...SETTINGS_DEFAULTS,...current},initialized:!!current,revision},{headers:{"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache"}});
+   }catch(error){console.error("GameSettings GET storage error",error);return this.storageFailure(error);}
   }
   if(request.method==="PUT"){
    try{
@@ -1625,7 +1735,7 @@ export class GameSettings {
      const revision=currentRevision+1;
      await this.ctx.storage.put({settings:clean,revision});
      return Response.json({settings:clean,revision,ok:true},{headers:{"cache-control":"no-store"}});
-   }catch(error){return new Response("Invalid settings request",{status:400});}
+   }catch(error){console.error("GameSettings PUT storage error",error);return error instanceof SyntaxError?Response.json({ok:false,error:"Malformed JSON",code:"INVALID_JSON"},{status:400}):this.storageFailure(error);}
   }
   return new Response("Method not allowed",{status:405});
  }
@@ -1639,12 +1749,27 @@ export default {
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables"){
-   if(!env?.ITEM_ROOMS)return Response.json({error:"Item room binding unavailable"},{status:503});
+   const jsonHeaders={"cache-control":"no-store","x-maestro-api":"room-v2"};
+   if(!env?.ITEM_ROOMS)return Response.json({ok:false,error:"Item room binding unavailable",code:"ROOM_BINDING_MISSING"},{status:503,headers:jsonHeaders});
    const room=url.searchParams.get("room")||"";
-   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({error:"Invalid room"},{status:400});
-   const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
-   return stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
-    headers:request.headers,body:request.method==="POST"?request.body:undefined}));
+   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({ok:false,error:"Invalid room",code:"INVALID_ROOM"},{status:400,headers:jsonHeaders});
+   try{
+    const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
+    const response=await stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
+     headers:request.headers,body:request.method==="POST"?request.body:undefined}));
+    const type=response.headers.get("content-type")||"";
+    if(!type.toLowerCase().includes("application/json")){
+     console.error("Room Durable Object returned non-JSON",response.status,type);
+     return Response.json({ok:false,error:"Multiplayer room returned an invalid response. Check the Cloudflare deployment and Durable Object logs.",code:"ROOM_NOT_JSON"},{status:502,headers:jsonHeaders});
+    }
+    const headers=new Headers(response.headers);
+    headers.set("cache-control","no-store");
+    headers.set("x-maestro-api","room-v2");
+    return new Response(response.body,{status:response.status,headers});
+   }catch(error){
+    console.error("Multiplayer room request failed",error);
+    return Response.json({ok:false,error:"Multiplayer room unavailable: "+String(error?.message||error),code:"ROOM_UNAVAILABLE"},{status:503,headers:jsonHeaders});
+   }
   }
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
@@ -1690,6 +1815,11 @@ export default {
     if(!upstream.ok)return new Response("Map image unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
+  if(url.pathname==="/assets/kaparos_buksza.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/UI/kaparos_buksza.webp");
+    if(!upstream.ok)return new Response("Buksza lottery artwork missing",{status:404,headers:{"cache-control":"no-store"}});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
+  }
   if(url.pathname==="/assets/basement.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_basement.webp");
     if(!upstream.ok)return new Response("Basement image unavailable",{status:404});
@@ -1705,6 +1835,8 @@ export default {
     if(!upstream.ok)return new Response("Skoda asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=86400","x-content-type-options":"nosniff"}});
   }
+  if(url.pathname.startsWith("/api/"))
+   return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
   return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS)),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
