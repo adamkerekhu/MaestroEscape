@@ -218,7 +218,7 @@ function operation(s,p,d){
   return ok({characterId:character.id,message:"Playing as "+character.name});
  }
  if(op==="releaseCharacter"){
-  p.characterId=null;p.scene=null;return ok();
+  releaseSeat(s,p);p.characterId=null;p.scene=null;return ok();
  }
  if(op==="syncPosition"){
   if(seatOf(s,p)){
