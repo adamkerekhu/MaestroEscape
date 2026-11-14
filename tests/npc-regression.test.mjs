@@ -38,11 +38,13 @@ function inlineScript(marker,label){
  assert.ok(found,"Missing script in "+label);
  return found[1];
 }
+const workerAsScript=source.replace(/^import .+;\n/gm,"").replace(/^export \{.+\};\n/gm,"")
+ .replace("export class GameSettings","class GameSettings").replace("export default {","const _worker = {");
 const game=inlineScript("const HTML = String.raw","Phaser game");
 const settings=inlineScript("const SETTINGS_HTML=String.raw","settings page");
 
 test("Worker, game and settings syntax",()=>{
- new vm.Script(source.replace("export class GameSettings","class GameSettings").replace("export default {","const _worker = {"));
+ new vm.Script(workerAsScript);
  new vm.Script(game.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(defaults)));
  new vm.Script(settings);
 });
@@ -110,10 +112,11 @@ test("every NPC configuration field has a valid schema and default",()=>{
  assert.ok(source.includes("npcRefreshSettings()"));
 });
 
-test("E controls, menu safety, disabled actions and landscape access",()=>{
- assert.ok(source.includes("NPC_ACTION_UNAVAILABLE"));
- assert.ok(source.includes("button.disabled=true"));
- assert.ok(source.includes("if(npcDialogue)return"));
+test("NPC dialogues use real consumables command callbacks and desktop/mobile E",()=>{
+ assert.ok(!source.includes("NPC_ACTION_UNAVAILABLE"));
+ assert.ok(source.includes("gameplay.npcAction(entity.definition.id,action)"));
+ assert.ok(source.includes("gameplay?.actionReason(action)"));
+ assert.ok(source.includes("gameplay?.nearestItem()"));
  assert.ok(source.includes('id="mobile-interact"'));
  assert.ok(source.includes("keydown-E"));
  assert.ok(source.includes("#npc-dialogue:not([hidden]) ~ #mobile-controls"));
@@ -128,7 +131,7 @@ const request=(method,body,revision)=>({
  headers:{get:name=>name==="X-Settings-Revision"?revision:null}
 });
 test("shared storage readback, cross-device values, stale revision and invalid updates",async()=>{
- const executable=source.replace("export class GameSettings","class GameSettings").replace("export default {","const _worker = {");
+ const executable=workerAsScript;
  const {GameSettings,SETTINGS_DEFAULTS}=vm.runInNewContext(
   executable+"\n({ GameSettings, SETTINGS_DEFAULTS })",{Response:MockResponse});
  const storage=new Map(),ctx={storage:{
