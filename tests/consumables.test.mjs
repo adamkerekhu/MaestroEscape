@@ -258,3 +258,37 @@ test("pub NPC cigarette sharing obeys individual stock and share choices",async(
   assert.equal((await get(0)).snapshot.inventory.filter(i=>i.type==="cigarette").length,1);
  }finally{Date.now=old}
 });
+
+test("lobby character selections are unique per room and persist on reconnect",async()=>{
+ const {send,get}=fixture();
+ const first=await get(0),second=await get(1);
+ assert.equal(first.snapshot.selectedCharacter,null);
+ assert.equal(second.snapshot.selectedCharacter,null);
+ const selected=await send(0,"selectCharacter",{characterId:"maestro"});
+ assert.ok(selected.ok);
+ assert.equal(selected.snapshot.selectedCharacter,"maestro");
+ const taken=await send(1,"selectCharacter",{characterId:"maestro"});
+ assert.equal(taken.ok,false);
+ assert.match(taken.error,/taken/i);
+ const separate=await send(1,"selectCharacter",{characterId:"blue"});
+ assert.ok(separate.ok);
+ assert.equal(separate.snapshot.selectedCharacter,"blue");
+ const reload=(await get(0)).snapshot;
+ assert.equal(reload.selectedCharacter,"maestro");
+ const peer=reload.players.find(p=>p.id===separate.snapshot.playerId);
+ assert.equal(peer.characterId,"blue");
+ assert.equal(reload.characters.find(c=>c.id==="blue").selectedBy,peer.id);
+ const release=await send(0,"releaseCharacter");
+ assert.ok(release.ok);
+ const claim=await send(1,"selectCharacter",{characterId:"maestro"});
+ assert.ok(claim.ok);
+});
+test("lobby rejects missing or unknown character IDs",async()=>{
+ const {send,get}=fixture();await get(0);
+ const wrong=await send(0,"selectCharacter",{characterId:"unknown"});
+ assert.equal(wrong.ok,false);
+ assert.equal((await get(0)).snapshot.selectedCharacter,null);
+ const valid=await send(0,"selectCharacter",{characterId:"green"});
+ assert.ok(valid.ok);
+ assert.equal(valid.snapshot.selectedCharacter,"green");
+});
