@@ -796,7 +796,7 @@ test("client reports tram collisions and renders death, five-second countdown an
   "The tram phase must use shared clock time rather than per-browser Phaser uptime");
 });
 
-test("group beer gathering requires all active players beside the left Maestro pub table and auto-celebrates",async()=>{
+test("group beer gathering uses the pulsing ring in front of Maestro bartender and auto-celebrates",async()=>{
  const old=Date.now;let time=9_000_000;Date.now=()=>time;
  try{
   const {send,get}=fixture();
@@ -808,7 +808,10 @@ test("group beer gathering requires all active players beside the left Maestro p
   assert.equal(call.ok,true,call.error);
   assert.equal(call.snapshot.rally.type,"beer");
   assert.equal(call.snapshot.rally.target.scene,"pub");
-  assert.equal(call.snapshot.rally.target.label,"Left table at Maestro");
+  assert.equal(call.snapshot.rally.target.label,"In front of the bartender");
+  assert.equal(call.snapshot.rally.target.x,413);
+  assert.equal(call.snapshot.rally.target.y,398);
+  assert.equal(call.snapshot.rally.radius,68);
   assert.equal(call.snapshot.rally.required,2);
   assert.equal(call.snapshot.rally.status,"gathering");
   const parallel=await send(1,"callGroup",{type:"kebab"});
@@ -830,7 +833,7 @@ test("group beer gathering requires all active players beside the left Maestro p
   time+=300;assert.equal((await get(0)).snapshot.groupEvents.length,1,"No duplicate heart events");
  }finally{Date.now=old}
 });
-test("group cigarette gathering moves to Maestro's configured counter without clicking an NPC",async()=>{
+test("group cigarettes gather outside Maestro on pavement, not at the indoor bartender",async()=>{
  const old=Date.now;let clock=10_000_000;Date.now=()=>clock;
  try{
   const env={SETTINGS_STORE:{idFromName:n=>n,get:()=>({fetch:async()=>({
@@ -839,20 +842,24 @@ test("group cigarette gathering moves to Maestro's configured counter without cl
   const {send,get}=fixture(env);
   await send(0,"selectCharacter",{characterId:"maestro"});
   await send(1,"selectCharacter",{characterId:"suit"});
-  await send(0,"syncPosition",{scene:"pub",x:800,y:700});
-  await send(1,"syncPosition",{scene:"pub",x:800,y:720});
+  await send(0,"syncPosition",{scene:"pub",x:450,y:388});
+  await send(1,"syncPosition",{scene:"pub",x:440,y:397});
   const called=await send(0,"callGroup",{type:"cigarette"});
   const target=called.snapshot.rally.target;
-  assert.equal(target.scene,"pub");assert.equal(target.x,450);assert.equal(target.y,388);
-  await send(0,"syncPosition",{scene:"pub",x:450,y:400});
+  assert.equal(target.scene,"street");
+  assert.equal(target.label,"Outside Maestro · pavement");
+  assert.equal(target.x,746);assert.equal(target.y,632);
+  assert.equal(called.snapshot.rally.ready,0,"Standing at bartender does not count");
+  await send(0,"syncPosition",{scene:"street",x:746,y:632});
   assert.equal((await get(0)).snapshot.rally.status,"gathering");
-  await send(1,"syncPosition",{scene:"pub",x:440,y:397});
+  await send(1,"syncPosition",{scene:"street",x:760,y:625});
   const done=(await get(0)).snapshot;
   assert.equal(done.rally.status,"completed");
   assert.equal(done.groupEvents[0].type,"cigarette");
-  assert.equal(done.inventory.length,0,"Gathering does not require or grant cigarette items");
+  assert.equal(done.inventory.length,0,"Gathering does not require or grant cigarettes");
  }finally{Date.now=old}
 });
+
 test("group kebab gathering waits for everyone to enter Gyros and automatically triggers hearts",async()=>{
  const old=Date.now;let clock=11_000_000;Date.now=()=>clock;
  try{
@@ -865,6 +872,8 @@ test("group kebab gathering waits for everyone to enter Gyros and automatically 
   assert.equal(called.ok,true);
   assert.equal(called.snapshot.rally.ready,1);
   const target=called.snapshot.rally.target;
+  assert.equal(target.label,"In front of the kebab employee");
+  assert.equal(called.snapshot.rally.radius,68);
   assert.equal(target.scene,"gyros");
   await send(1,"syncPosition",{scene:"gyros",x:target.x+40,y:target.y+15});
   const done=(await get(1)).snapshot;
@@ -943,4 +952,17 @@ test("browser exposes group calls and both types of floating celebration without
  assert.ok(client.includes("this.rallyBeacon"));
  assert.ok(client.includes('["❤️","💗","💕","💖","💞"]'));
  assert.ok(client.includes("2000,12"));
+});
+
+test("each rally uses the identical visible ring radius as arrival detection, without text labels",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
+ const server=await import("../src/consumables.js");
+ assert.doesNotThrow(()=>new Function(client));
+ assert.ok(client.includes('scene.add.circle(0,0,68'));
+ assert.ok(client.includes('const radius=rally.radius||68'));
+ assert.ok(client.includes('zone.setRadius(radius)'));
+ assert.ok(client.includes('pulse.setRadius(radius)'));
+ assert.ok(!client.includes('💗 MEET HERE'));
+ assert.ok(!client.includes('scene.add.text(0,-64'));
+ assert.ok(client.includes('this.rallyBeacon.setPosition(rally.target.x,rally.target.y)'));
 });
