@@ -333,3 +333,79 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
 });
+
+test("two clients see the same car and cannot claim the same driver seat",async()=>{
+ const {send,get}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(1,"selectCharacter",{characterId:"casual"});
+ await send(0,"syncPosition",{scene:"street",x:700,y:509});
+ await send(1,"syncPosition",{scene:"street",x:710,y:510});
+ const first=await send(0,"boardVehicle",{vehicleId:"skoda",seat:0});
+ assert.ok(first.ok);assert.equal(first.snapshot.occupiedVehicle.vehicleId,"skoda");
+ assert.equal(first.snapshot.occupiedVehicle.seat,0);
+ const second=await send(1,"boardVehicle",{vehicleId:"skoda",seat:0});
+ assert.equal(second.ok,false);assert.match(second.error,/occupied/i);
+ const passenger=await send(1,"boardVehicle",{vehicleId:"skoda",seat:1});
+ assert.ok(passenger.ok);assert.equal(passenger.snapshot.occupiedVehicle.seat,1);
+ const observed=(await get(0)).snapshot.vehicles.find(v=>v.id==="skoda");
+ assert.equal(observed.seats[0],first.snapshot.playerId);
+ assert.equal(observed.seats[1],passenger.snapshot.playerId);
+});
+test("passenger cannot steer and receives identical shared vehicle movement",async()=>{
+ const old=Date.now;let clock=3000000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"suit"});
+  await send(0,"syncPosition",{scene:"street",x:700,y:510});
+  await send(1,"syncPosition",{scene:"street",x:705,y:516});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  assert.ok((await send(1,"boardVehicle",{vehicleId:"skoda",seat:2})).ok);
+  const illegal=await send(1,"driveVehicle",{vehicleId:"skoda",x:710,y:501,angle:1,speed:40});
+  assert.equal(illegal.ok,false);
+  assert.equal(illegal.status,403);
+  clock+=100;
+  const driven=await send(0,"driveVehicle",{vehicleId:"skoda",x:711,y:494,angle:2.4,speed:80});
+  assert.ok(driven.ok,driven.error);
+  const spectator=(await get(1)).snapshot;
+  const skoda=spectator.vehicles.find(v=>v.id==="skoda");
+  assert.equal(skoda.x,711);assert.equal(skoda.y,494);
+  const passenger=spectator.players.find(p=>p.id===spectator.playerId);
+  assert.equal(passenger.x,711);assert.equal(passenger.y,494);
+  assert.equal(spectator.occupiedVehicle.seat,2);
+  const passengerPosition=await send(1,"syncPosition",{scene:"street",x:1234,y:888});
+  assert.ok(passengerPosition.ok);
+  assert.equal(passengerPosition.snapshot.players.find(p=>p.id===spectator.playerId).x,711);
+ }finally{Date.now=old}
+});
+test("cars have passengers, bicycles have only one seat and exits require stopping",async()=>{
+ const {send,get}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(1,"selectCharacter",{characterId:"muscular"});
+ await send(0,"syncPosition",{scene:"street",x:670,y:850});
+ await send(1,"syncPosition",{scene:"street",x:671,y:849});
+ assert.ok((await send(0,"boardVehicle",{vehicleId:"bike1",seat:0})).ok);
+ const secondSeat=await send(1,"boardVehicle",{vehicleId:"bike1",seat:1});
+ assert.equal(secondSeat.ok,false);
+ const occupied=await send(1,"boardVehicle",{vehicleId:"bike1",seat:0});
+ assert.equal(occupied.ok,false);
+ const left=await send(0,"leaveVehicle");
+ assert.ok(left.ok);assert.equal(left.snapshot.occupiedVehicle,null);
+ const fresh=(await get(1)).snapshot.vehicles.find(v=>v.id==="bike1");
+ assert.equal(fresh.seats[0],null);
+});
+test("disconnected drivers release seats and vehicles stay at last shared location",async()=>{
+ const old=Date.now;let clock=4000000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(0,"syncPosition",{scene:"street",x:632,y:453});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"octavia",seat:0})).ok);
+  clock+=100;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"octavia",x:643,y:443,angle:2.25,speed:15})).ok);
+  clock+=5100;
+  const snap=(await get(1)).snapshot.vehicles.find(v=>v.id==="octavia");
+  assert.equal(snap.seats[0],null);
+  assert.equal(snap.x,643);assert.equal(snap.y,443);
+ }finally{Date.now=old}
+});
