@@ -727,7 +727,35 @@ function operation(s,p,d){
  return bad("Unknown action");
 }
 export class ConsumableRoom{
- constructor(ctx,env){this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null}
+ constructor(ctx,env){
+  this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null;
+  this.roomState=null;this.roomLoad=null;this.lastPersistAt=0;this.storageQuotaExceeded=false;
+ }
+ async loadRoom(initialSettings={}){
+  // One in-memory authoritative room per Durable Object instance. Never reload on polling.
+  if(this.roomState)return this.roomState;
+  if(!this.roomLoad)this.roomLoad=this.ctx.storage.get("room").then(saved=>{
+   this.roomState=saved||fresh(initialSettings);
+   return this.roomState;
+  }).catch(error=>{this.roomLoad=null;throw error;});
+  return this.roomLoad;
+ }
+ async persistRoom(force=false){
+  // Most movement/snapshot requests must not write SQLite.
+  if(this.storageQuotaExceeded)return;
+  if(!force&&now()-this.lastPersistAt<30000)return;
+  try{
+   await this.ctx.storage.put("room",this.roomState);
+   this.lastPersistAt=now();
+  }catch(error){
+   if(/exceeded allowed rows written|storage.*quota|quota.*exceed/i.test(String(error))){
+    // The free-tier cap is account-wide. Keep this active room playable in memory
+    // until the quota resets, but it cannot be durable across instance eviction.
+    this.storageQuotaExceeded=true;
+    console.warn("MaestroEscape storage quota reached: running in volatile room mode",String(error));
+   }else throw error;
+  }
+ }
  async getPlayerInteractionRange(){
   if(!this.env?.SETTINGS_STORE)return PLAYER_INTERACT_DEFAULT;
   if(this.playerRangeCache&&now()-this.playerRangeCache.time<1500)return this.playerRangeCache.value;
@@ -809,7 +837,7 @@ export class ConsumableRoom{
    const playerInteractionRange=await this.getPlayerInteractionRange();
    const npcSettings=await this.getNpcSettings();
    let initialVehicleSettings={};
-   const priorRoom=await this.ctx.storage.get?.("room");
+   const priorRoom=await this.loadRoom();
    if(this.env?.SETTINGS_STORE&&(!priorRoom||!priorRoom.vehicles)){
     try{
      const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
@@ -825,8 +853,8 @@ export class ConsumableRoom{
      }
     }catch(err){console.warn("Room using default vehicle positions",String(err))}
    }
-   const result=await this.ctx.storage.transaction(async tx=>{
-    const s=await tx.get("room")||fresh(initialVehicleSettings);
+   const result=await (async()=>{
+    const s=await this.loadRoom(initialVehicleSettings);
     if(!s.vehicles){
      s.vehicleSpawnSettings=initialVehicleSettings;
      s.vehicles=freshVehicles(initialVehicleSettings);
@@ -861,9 +889,14 @@ export class ConsumableRoom{
     }else if(request.method!=="GET")answer=bad("Method not allowed",405);
     checkRally(s);
     s.revision++;
-    await tx.put("room",s);
-    return {...answer,snapshot:snapshot(s,p)};
-   });
+    const result={...answer,snapshot:snapshot(s,p)};
+    // Persist item transactions and character/vehicle changes, but batch position
+    // tracking and frequent GET snapshots into at most one write per 30 seconds.
+    const lowPriority=request.method==="GET"||
+      (request.method==="POST"&&["syncPosition","driveVehicle"].includes(input.op));
+    await this.persistRoom(!lowPriority);
+    return result;
+   })();
    return Response.json(result,{status:result.status||200,headers:{"cache-control":"no-store"}});
   }catch(error){return Response.json(bad("Room error: "+error.message,500),{status:500,headers:{"cache-control":"no-store"}})}
  }
