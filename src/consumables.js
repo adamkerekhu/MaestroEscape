@@ -176,7 +176,7 @@ function create(s,type,units,location,id=null,generation=0){
 }
 // The pulsing floor ring is the actual server-side arrival area for all group calls.
 // The cigarette ring is OUTSIDE Maestro, on the pavement to the left of the door.
-const GROUP_CIGARETTE_PAVEMENT={scene:"street",x:746,y:632};
+const GROUP_CIGARETTE_PAVEMENT={scene:"street",x:770,y:625};
 const GROUP_RALLY_RADIUS=68;
 const GROUP_RALLY_RULES={
  beer:{scene:"pub",label:"Group beers",icon:"🍺",radius:GROUP_RALLY_RADIUS},
@@ -195,9 +195,10 @@ function rallyTarget(s,type){
    label:"Outside Maestro · pavement"};
  }
  if(type==="kebab"){
-  const contact=npcConfiguredPoint(s,"gyros_employee")||{x:294,y:315};
-  return {scene:"gyros",x:contact.x,y:contact.y,
-   label:"In front of the kebab employee"};
+  // Walkable customer-side floor in front of the counter, as marked on the map.
+  // The employee's NPC position is not the meeting circle position.
+  return {scene:"gyros",x:360,y:330,
+   label:"In front of the kebab counter"};
  }
  return null;
 }
@@ -213,6 +214,10 @@ function rallyStatus(s,rally){
 function checkRally(s){
  const rally=s.rally;
  if(!rally||rally.status!=="gathering")return;
+ // Existing rooms may still have a call created before the updated floor targets.
+ // Move only cigarette/kebab meetings; leave beer target exactly as it was.
+ if(rally.type==="cigarette"||rally.type==="kebab")
+  rally.target=rallyTarget(s,rally.type);
  if(now()>=rally.expiresAt){
   rally.status="expired";rally.endedAt=now();return;
  }
