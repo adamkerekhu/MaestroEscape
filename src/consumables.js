@@ -163,7 +163,7 @@ export function sweptFrontImpact(from,to,point){
   (point.x-from.x)*Math.sin(from.angle)-(point.y-from.y)*Math.cos(from.angle)>=-PLAYER_HIT_RADIUS;
 }
 function carHitPlayer(vehicle,from,player,s){
- const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
+ const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id]||(vehicle.id.startsWith("maiybach_")?CAR_DIMENSIONS.maiybach:null);
  if(!dims||vehicle.speed<=CAR_HIT_MIN_SPEED)return false;
  const next={...vehicle,...dims},previous={...from,...dims};
  return frontImpact(next,player)||sweptFrontImpact(previous,next,player);
@@ -566,7 +566,7 @@ function operation(s,p,d){
    for(const vehicle of Object.values(s.vehicles||{})){
     if(vehicle.type!=="car"||vehicle.speed<=CAR_HIT_MIN_SPEED)continue;
     if(now()-vehicle.updatedAt>650)continue;
-    const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
+    const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id]||(vehicle.id.startsWith("maiybach_")?CAR_DIMENSIONS.maiybach:null);
     if(dims&&frontImpact({...vehicle,...dims},p)){
      recordVehicleDeath(s,p,vehicle,"car",vehicle.id);
      break;
