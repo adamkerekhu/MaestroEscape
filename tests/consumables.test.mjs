@@ -409,3 +409,51 @@ test("disconnected drivers release seats and vehicles stay at last shared locati
   assert.equal(snap.x,643);assert.equal(snap.y,443);
  }finally{Date.now=old}
 });
+
+test("room uses saved vehicle settings for new and previously created lobbies",async()=>{
+ const map=new Map(),settings={"vehicle.skoda.spawnX":770,"vehicle.skoda.spawnY":560,
+  "vehicle.skoda.angle":90,"vehicle.bike1.spawnX":820,"vehicle.bike1.spawnY":810};
+ const ctx={storage:{
+  get:async key=>map.get(key),
+  transaction:async fn=>fn({get:async key=>map.get(key),
+    put:async(key,value)=>map.set(key,structuredClone(value))})
+ }};
+ const env={SETTINGS_STORE:{
+  idFromName:name=>name,
+  get:()=>({fetch:async()=>({ok:true,json:async()=>({settings})})})
+ }};
+ const room=new ConsumableRoom(ctx,env);
+ const request=()=>new Request("https://room.test/?token="+"a".repeat(32));
+ let response=await room.fetch(request()),data=await response.json();
+ let car=data.snapshot.vehicles.find(v=>v.id==="skoda");
+ assert.equal(car.x,770);assert.equal(car.y,560);
+ assert.ok(Math.abs(car.angle-Math.PI/2)<.00001);
+ assert.equal(data.snapshot.vehicles.find(v=>v.id==="bike1").x,820);
+ // Simulate a legacy room created before shared vehicles were implemented.
+ const oldRoom=map.get("room");delete oldRoom.vehicles;delete oldRoom.vehicleSpawnSettings;
+ map.set("room",oldRoom);
+ response=await room.fetch(request());data=await response.json();
+ car=data.snapshot.vehicles.find(v=>v.id==="skoda");
+ assert.equal(car.x,770);assert.equal(car.y,560);
+});
+test("moving car cannot be exited; stopped car exits near the shared position",async()=>{
+ const old=Date.now;let clock=5000000;Date.now=()=>clock;
+ try{
+  const {send}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(0,"syncPosition",{scene:"street",x:697,y:505});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  clock+=100;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"skoda",x:705,y:500,angle:2.3,speed:80})).ok);
+  const tooFast=await send(0,"leaveVehicle",{x:742,y:498});
+  assert.equal(tooFast.ok,false);
+  clock+=100;
+  assert.ok((await send(0,"driveVehicle",{vehicleId:"skoda",x:706,y:500,angle:2.3,speed:0})).ok);
+  const exit=await send(0,"leaveVehicle",{x:745,y:500});
+  assert.ok(exit.ok,exit.error);
+  assert.equal(exit.snapshot.occupiedVehicle,null);
+  const player=exit.snapshot.players.find(p=>p.id===exit.snapshot.playerId);
+  assert.equal(player.x,745);
+  assert.equal(player.y,500);
+ }finally{Date.now=old}
+});
