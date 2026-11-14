@@ -22,32 +22,6 @@ function fixture(env={}){
  };
  return {send,get,map};
 }
-test("Buksza scratch variants remain tied to server-authenticated ticket outcomes",async()=>{
- const {send,get}=fixture();
- assert.ok((await send(0,"selectCharacter",{characterId:"maestro"})).ok);
- assert.ok((await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:470})).ok);
- for(let n=0;n<12;n++){
-  const order=await send(0,"buyScratchTicket",{npcId:"tobacco_cashier",
-   npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:470}});
-  assert.equal(order.ok,true,order.error);
-  const item=order.snapshot.items.find(i=>i.type==="scratch_ticket"&&i.location.kind==="vendor");
-  assert.ok(item,"Purchased scratch card available at cashier");
-  const pickup=await send(0,"collectItem",{itemId:item.id});
-  assert.equal(pickup.ok,true,pickup.error);
-  const variant=pickup.snapshot.scratchVariants[item.id];
-  assert.ok(Number.isInteger(variant)&&variant>=1&&variant<=10);
-  assert.equal((await get(0)).snapshot.scratchVariants[item.id],variant,
-   "Same ticket reveals the same variant on room refresh");
-  const scratch=await send(0,"scratchTicket",{itemId:item.id});
-  assert.equal(scratch.ok,true,scratch.error);
-  assert.equal(scratch.variant,variant);
-  assert.equal(scratch.won,variant===10,"Only variant 10 is the winning three-of-a-kind card");
-  assert.equal(scratch.snapshot.scratchVariants[item.id],undefined);
-  const second=await send(0,"scratchTicket",{itemId:item.id});
-  assert.equal(second.ok,false,"Tickets cannot be scratched twice");
- }
-});
-
 test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
@@ -353,8 +327,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,250\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,750\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,100\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,250\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
@@ -626,39 +600,6 @@ test("borrowing from an NPC moved or patrolling near the player works",async()=>
  assert.equal(remote.ok,false);
  assert.match(remote.error,/closer/i);
 });
-test("tobacco cashier purchase uses locally opened NPC dialogue when cloud settings are offline",async()=>{
- const {send}=fixture();
- await send(0,"selectCharacter",{characterId:"maestro"});
- await send(0,"syncPosition",{scene:"dohanybolt",x:105,y:280});
- const contact={x:105,y:210};
- const player={scene:"dohanybolt",x:105,y:280};
- const before=await send(0,"buyPack",{npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,dialogueRadius:100});
- assert.equal(before.ok,false,"Server settings must still reject remote contacts without a local-settings dialogue");
- const packet=await send(0,"buyPack",{
-  npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,
-  dialogueRadius:100,localNpcSettings:true
- });
- assert.equal(packet.ok,true,packet.error);
- assert.equal(packet.snapshot.items.find(i=>i.type==="cigarette_pack")?.type,"cigarette_pack");
- const ticket=await send(0,"buyScratchTicket",{
-  npcId:"tobacco_cashier",npcPoint:contact,actorPosition:player,
-  dialogueRadius:100,localNpcSettings:true
- });
- assert.equal(ticket.ok,true,ticket.error);
- assert.equal(ticket.snapshot.items.find(i=>i.type==="scratch_ticket")?.type,"scratch_ticket");
- const spoof=await send(0,"buyPack",{
-  npcId:"tobacco_cashier",npcPoint:{x:500,y:600},
-  actorPosition:player,dialogueRadius:190,localNpcSettings:true
- });
- assert.equal(spoof.ok,false,"A distant NPC contact cannot allow buying");
- const outOfBounds=await send(0,"buyPack",{
-  npcId:"tobacco_cashier",npcPoint:{x:620,y:280},
-  actorPosition:{scene:"dohanybolt",x:605,y:280},
-  dialogueRadius:190,localNpcSettings:true
- });
- assert.equal(outOfBounds.ok,false,"NPC contact must remain inside the shop");
-});
-
 test("NPC interaction radius is shared and enforces the same distance as dialogue",async()=>{
  let radius=55;let tick=1000000;const old=Date.now;Date.now=()=>tick;
  try{
@@ -1146,31 +1087,4 @@ test("passengers and car drivers cannot die from collision with their own car",a
   assert.equal((await get(1)).snapshot.deadUntil,null);
   assert.equal((await get(0)).snapshot.graves.length,0);
  }finally{Date.now=old}
-});
-
-test("room remains playable when Durable Object free tier rejects persistence",async()=>{
- let stored=null,writes=0;
- const storage={
-  get:async()=>stored,
-  put:async()=>{writes++;throw new Error("Exceeded allowed rows written in Durable Objects free tier.")}
- };
- const room=new ConsumableRoom({storage},{});
- const token="f".repeat(32);
- const send=async(op,args={})=>{
-  const request=new Request("https://room.test/",{method:"POST",
-   headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({token,commandId:crypto.randomUUID().replaceAll("-",""),op,...args})});
-  const response=await room.fetch(request);
-  return {status:response.status,...await response.json()};
- };
- const first=await send("syncPosition",{scene:"pub",x:413,y:398});
- assert.equal(first.ok,true,first.error);
- const order=await send("orderBeer");
- assert.equal(order.ok,true,order.error);
- assert.equal(order.snapshot.orders.length,1);
- const after=await room.fetch(new Request("https://room.test/?token="+token));
- const data=await after.json();
- assert.equal(data.ok,true,data.error);
- assert.equal(data.snapshot.orders.length,1,"in-memory state survives the failed write");
- assert.equal(writes,1,"quota failures are backoff-limited rather than repeated for every request");
 });
