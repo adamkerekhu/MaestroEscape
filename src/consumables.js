@@ -57,8 +57,8 @@ function vendorSpot(s,vendor){
  return points.find(point=>!s.items.some(i=>i.location.kind==="vendor"&&i.location.vendorId===vendor&&dist(i.location,point)<12)
  &&!s.orders.some(o=>o.vendorId===vendor&&dist(o.location,point)<12))||null;
 }
-function create(s,type,units,location,id=null){
- const item={id:id||uid("item"),type,remainingUnits:units,maxUnits:units,location:copy(location),lit:false,revision:0};
+function create(s,type,units,location,id=null,generation=0){
+ const item={id:id||uid("item"),generation,type,remainingUnits:units,maxUnits:units,location:copy(location),lit:false,revision:0};
  s.items.push(item);return item;
 }
 function settle(s){
@@ -66,7 +66,7 @@ function settle(s){
  for(const order of [...s.orders]){
   if(order.readyAt>time)continue;
   const type=order.type,units=C[type].units;
-  create(s,type,units,order.location,order.reuseId||null);
+  create(s,type,units,order.location,order.reuseId||null,order.generation||0);
   s.orders.splice(s.orders.indexOf(order),1);
  }
  s.requests=s.requests.filter(q=>q.expiresAt>time&&q.status==="pending");
@@ -136,18 +136,18 @@ function operation(s,p,d){
   if(s.orders.some(q=>q.playerId===p.id&&q.vendorId===vendor))return bad("Your order is still being prepared");
   const point=vendorSpot(s,vendor);if(!point)return bad("Counter pickup spots are full");
   if(op==="buyPack"){const item=create(s,"cigarette_pack",5,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});return ok({itemId:item.id,message:"Cigarette pack ready at the counter"});}
-  let reuseId=null;
+  let reuseId=null,generation=0;
   if(op==="refillBeer"){
    const glass=playerInventory(s,p).find(i=>i.type==="empty_glass");
    const returned=s.items.find(i=>i.type==="empty_glass"&&i.location.sceneId==="pub"&&
      i.location.kind!=="inventory"&&inRange(i.location,C.servicePoints.maestro_bartender,90));
    const item=glass||returned;if(!item)return bad("Need an empty glass");
-   reuseId=item.id;s.items.splice(s.items.indexOf(item),1);
+   reuseId=item.id;generation=(item.generation||0)+1;s.items.splice(s.items.indexOf(item),1);
    if(p.equippedId===reuseId)p.equippedId=null;
   }
   const type=op==="orderKebab"?"kebab":"beer";
   const duration=op==="orderKebab"?C.orderKebabMs:op==="refillBeer"?C.refillMs:C.orderBeerMs;
-  s.orders.push({id:uid("order"),playerId:p.id,vendorId:vendor,type,reuseId,
+  s.orders.push({id:uid("order"),playerId:p.id,vendorId:vendor,type,reuseId,generation,
    startedAt:now(),readyAt:now()+duration,location:{kind:"vendor",sceneId:p.scene,vendorId:vendor,...point}});
   return ok({duration,message:type==="beer"?"Bartender is preparing your beer":"Your gyros is being prepared"});
  }
@@ -223,8 +223,10 @@ function operation(s,p,d){
    const oldType=i.type;
    if(oldType==="beer"){i.type="empty_glass";i.remainingUnits=0;i.maxUnits=0;i.lit=false;}
    else{s.items.splice(s.items.indexOf(i),1);if(p.equippedId===i.id)p.equippedId=null;}
-   const event={id:uid("event"),playerId:p.id,type:oldType,itemId:i.id,time:now()};
-   if(!s.completions.some(q=>q.itemId===i.id)){s.completions.push(event);p.objectives[oldType]=(p.objectives[oldType]||0)+1;}
+   const event={id:uid("event"),playerId:p.id,type:oldType,itemId:i.id,generation:i.generation||0,time:now()};
+   if(!s.completions.some(q=>q.itemId===i.id&&q.generation===event.generation)){
+    s.completions.push(event);p.objectives[oldType]=(p.objectives[oldType]||0)+1;
+   }
   }
   return ok({itemId:i.id,remaining,type:i.type,message:remaining===0?"Finished!":"Portion consumed"});
  }
