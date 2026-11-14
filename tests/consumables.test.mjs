@@ -61,7 +61,7 @@ test("single-player mode runs the shared room engine locally without Durable Obj
  assert.equal(typeof scratched.won,"boolean");
  const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
  assert.ok(worker.includes('url.pathname==="/assets/local-room.js"'));
- assert.ok(worker.includes('get("mode")==="single"'));
+ assert.ok(worker.includes('get("mode")!=="multi"'),"Single-player mode and mode selection do not query Cloudflare settings");
  const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
  assert.ok(client.includes('import("/assets/local-room.js")'));
  assert.ok(client.includes('this.singleMode'));
