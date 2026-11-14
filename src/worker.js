@@ -1145,7 +1145,17 @@ function syncVehicleFromRoom(delta=16){
   if(!prizeIds.has(remote.id)||maybachVehicles.has(remote.id))continue;
   const model={id:remote.id,type:"car",x:remote.x,y:remote.y,angle:remote.angle,
    speed:remote.speed,wheelTurn:0,driver:false};
-  const key=scene.textures.exists("maiybach")?"maiybach":"skoda";
+  if(!scene.textures.exists("maiybach")&&!scene.textures.exists("maiybach-fallback")){
+   const g=scene.make.graphics({x:0,y:0},false);
+   g.fillStyle(0x181b22,1).fillRoundedRect(0,0,38,94,10);
+   g.fillStyle(0x981b2a,1).fillRoundedRect(3,3,32,88,10);
+   g.fillStyle(0xd23443,1).fillRoundedRect(5,6,28,80,8);
+   g.fillStyle(0x1e2836,1).fillRoundedRect(7,23,24,43,8);
+   g.fillStyle(0x708898,1).fillRoundedRect(9,27,20,13,5);
+   g.fillStyle(0xc4a26b,1).fillRect(7,6,24,4);
+   g.generateTexture("maiybach-fallback",38,94);g.destroy();
+  }
+  const key=scene.textures.exists("maiybach")?"maiybach":"maiybach-fallback";
   const sprite=scene.add.image(model.x,model.y,key).setDepth(6)
    .setDisplaySize(37,90).setRotation(model.angle).setVisible(!insidePub);
   maybachVehicles.set(remote.id,{model,sprite,controller:new VehicleController(model,sprite)});
