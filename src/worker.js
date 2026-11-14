@@ -377,7 +377,7 @@ const applyRemoteSettings=data=>{
  if(before!==JSON.stringify(overrides)&&scene?.sys?.isActive?.()){
    // Move only parked cars that remain at their previous configured starting spots.
    for(const {id,model,sprite} of registeredVehicles()){
-     if(model.driver||Math.abs(model.speed)>0.1)continue;
+     if(gameplay?.state||model.driver||Math.abs(model.speed)>0.1)continue; // Room owns vehicle placement once connected.
      const x=cfg("vehicle."+id+".spawnX"),y=cfg("vehicle."+id+".spawnY");
      model.x=x;model.y=y;model.angle=cfg("vehicle."+id+".angle")*Math.PI/180;
      if(sprite)sprite.setPosition(x,y).setRotation(model.angle)
