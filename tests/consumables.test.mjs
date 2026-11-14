@@ -152,3 +152,75 @@ test("borrowing player cigarette requires acceptance and transfers only once",as
   assert.ok(requester);
  }finally{Date.now=old}
 });
+
+test("interrupted consumption never decrements and inventory survives scene transitions",async()=>{
+ const old=Date.now;let clock=800000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"syncPosition",{scene:"pub",x:413,y:398});
+  await send(0,"orderBeer");clock+=3000;
+  const beer=(await get(0)).snapshot.items.find(i=>i.type==="beer");
+  await send(0,"collectItem",{itemId:beer.id});
+  const action=await send(0,"startConsumeUnit",{itemId:beer.id});assert.ok(action.ok);
+  clock+=500;
+  await send(0,"syncPosition",{scene:"pub",x:440,y:432});
+  clock+=1000;
+  assert.equal((await send(0,"completeConsumeUnit",{actionId:action.action.id})).ok,false);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+  await send(0,"syncPosition",{scene:"street",x:784,y:548});
+  await send(0,"syncPosition",{scene:"gyros",x:294,y:315});
+  assert.equal((await get(0)).snapshot.inventory[0].id,beer.id);
+ }finally{Date.now=old}
+});
+test("concurrent pickup and duplicate command IDs never duplicate an item",async()=>{
+ const old=Date.now;let clock=900000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"syncPosition",{scene:"pub",x:413,y:398});
+  await send(1,"syncPosition",{scene:"pub",x:413,y:399});
+  await send(0,"orderBeer");clock+=3000;
+  const item=(await get(0)).snapshot.items.find(i=>i.type==="beer");
+  const result=await Promise.all([
+   send(0,"collectItem",{itemId:item.id}),
+   send(1,"collectItem",{itemId:item.id})
+  ]);
+  assert.equal(result.filter(r=>r.ok).length,1);
+  const a=(await get(0)).snapshot,b=(await get(1)).snapshot;
+  assert.equal(a.inventory.length+b.inventory.length,1);
+ }finally{Date.now=old}
+});
+test("cigarette request decline and expiration preserve ownership",async()=>{
+ const old=Date.now;let clock=1000000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:425});
+  const id=(await send(0,"buyPack")).snapshot.items[0].id;
+  await send(0,"collectItem",{itemId:id});
+  await send(0,"syncPosition",{scene:"pub",x:342,y:511});
+  await send(1,"syncPosition",{scene:"pub",x:352,y:514});
+  const p0=(await get(0)).snapshot.playerId;
+  const request=await send(1,"borrowRequest",{targetId:p0});
+  const rid=request.snapshot.requests[0].id;
+  assert.ok((await send(0,"borrowResponse",{requestId:rid,accept:false})).ok);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+  const again=await send(1,"borrowRequest",{targetId:p0});assert.ok(again.ok);
+  clock+=8100;
+  const expired=await send(0,"borrowResponse",{requestId:again.snapshot.requests[0].id,accept:true});
+  assert.equal(expired.ok,false);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+  assert.equal((await get(1)).snapshot.inventory.length,0);
+ }finally{Date.now=old}
+});
+test("single-player round reset clears world, orders and progress",async()=>{
+ const old=Date.now;let clock=1100000;Date.now=()=>clock;
+ try{
+  const {send,get}=fixture();
+  await send(0,"syncPosition",{scene:"pub",x:413,y:398});
+  await send(0,"orderBeer");clock+=3000;
+  assert.ok((await get(0)).snapshot.items.length);
+  assert.ok((await send(0,"resetRound")).ok);
+  const state=(await get(0)).snapshot;
+  assert.equal(state.items.length,0);assert.equal(state.orders.length,0);
+  assert.deepEqual(state.objectives,{beer:0,kebab:0,cigarette:0});
+ }finally{Date.now=old}
+});
