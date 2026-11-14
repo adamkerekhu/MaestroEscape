@@ -327,8 +327,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,100\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,250\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,250\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,750\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
@@ -1087,4 +1087,31 @@ test("passengers and car drivers cannot die from collision with their own car",a
   assert.equal((await get(1)).snapshot.deadUntil,null);
   assert.equal((await get(0)).snapshot.graves.length,0);
  }finally{Date.now=old}
+});
+
+test("room remains playable when Durable Object free tier rejects persistence",async()=>{
+ let stored=null,writes=0;
+ const storage={
+  get:async()=>stored,
+  put:async()=>{writes++;throw new Error("Exceeded allowed rows written in Durable Objects free tier.")}
+ };
+ const room=new ConsumableRoom({storage},{});
+ const token="f".repeat(32);
+ const send=async(op,args={})=>{
+  const request=new Request("https://room.test/",{method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body:JSON.stringify({token,commandId:crypto.randomUUID().replaceAll("-",""),op,...args})});
+  const response=await room.fetch(request);
+  return {status:response.status,...await response.json()};
+ };
+ const first=await send("syncPosition",{scene:"pub",x:413,y:398});
+ assert.equal(first.ok,true,first.error);
+ const order=await send("orderBeer");
+ assert.equal(order.ok,true,order.error);
+ assert.equal(order.snapshot.orders.length,1);
+ const after=await room.fetch(new Request("https://room.test/?token="+token));
+ const data=await after.json();
+ assert.equal(data.ok,true,data.error);
+ assert.equal(data.snapshot.orders.length,1,"in-memory state survives the failed write");
+ assert.equal(writes,1,"quota failures are backoff-limited rather than repeated for every request");
 });
