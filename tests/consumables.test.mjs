@@ -56,6 +56,14 @@ test("beer order waits three seconds, pickup and five timed sips produce exactly
   clock+=2000;
   const full=(await get(0)).snapshot.items.find(i=>i.type==="beer");
   assert.ok(full);assert.equal(full.remainingUnits,5);assert.equal(full.id,item.id);
+  assert.ok((await send(0,"collectItem",{itemId:full.id})).ok);
+  for(let n=0;n<5;n++){
+   const use=await send(0,"startConsumeUnit",{itemId:full.id});assert.ok(use.ok);
+   clock+=1500;assert.ok((await send(0,"completeConsumeUnit",{actionId:use.action.id})).ok);
+  }
+  const afterRefill=(await get(0)).snapshot;
+  assert.equal(afterRefill.objectives.beer,2,"Refilled beer is a separate finished drink");
+  assert.equal(afterRefill.inventory[0].type,"empty_glass");
  }finally{Date.now=old}
 });
 test("multiple beers can occupy separate table slots, seventh item is rejected",async()=>{
