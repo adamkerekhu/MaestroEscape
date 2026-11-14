@@ -355,6 +355,8 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  scratchVariants:Object.fromEntries(playerInventory(s,p).filter(i=>i.type==="scratch_ticket")
+   .map(i=>[i.id,typeof s.scratchResults?.[i.id]==="object"?s.scratchResults[i.id].variant:(s.scratchResults?.[i.id]===true?10:1)])),
   completionEvents:s.completions.filter(event=>now()-event.time<9000),
   groupEvents:(s.groupEvents||[]).filter(event=>now()-event.at<10000),
   rally:s.rally?(s.rally.status==="gathering"?rallyStatus(s,s.rally):{...s.rally}):null,
@@ -614,7 +616,9 @@ function operation(s,p,d){
    const item=create(s,"scratch_ticket",1,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});
    s.scratchResults??={};
    const bytes=new Uint32Array(1);crypto.getRandomValues(bytes);
-   s.scratchResults[item.id]=(bytes[0]%10)===0;
+   const won=(bytes[0]%10)===0;
+   const variant=won?10:1+((bytes[0]>>>4)%9);
+   s.scratchResults[item.id]={won,variant};
    return ok({itemId:item.id,message:"Kaparós sorsjegy ready at the counter. Pick it up, then use it from Inventory."});
   }
   let reuseId=null,generation=0;
@@ -671,12 +675,14 @@ function operation(s,p,d){
   if(!item||item.type!=="scratch_ticket")return bad("You do not own this scratch ticket");
   s.scratchResults??={};
   if(!Object.prototype.hasOwnProperty.call(s.scratchResults,item.id))return bad("Ticket result unavailable");
-  const won=s.scratchResults[item.id];
+  const result=s.scratchResults[item.id];
+  const won=typeof result==="object"?!!result.won:result===true;
+  const variant=typeof result==="object"?result.variant:(won?10:1);
   delete s.scratchResults[item.id];
   s.items.splice(s.items.indexOf(item),1);
   if(p.equippedId===item.id)p.equippedId=null;
   // Preserve the 1-in-10 win roll. Vehicle prizes are disabled until a new reward is chosen.
-  return ok({won,message:won?"NYERTÉL! A nyeremény később kerül meghatározásra.":"NEM NYERT. Próbáld újra máskor!"});
+  return ok({won,variant,message:won?"NYERTÉL! Három egyforma szimbólum!":"NEM NYERT. Nincs három egyforma szimbólum."});
  }
  if(op==="extractCigarette"){
   const i=owned(s,p,d.itemId);if(!i||i.type!=="cigarette_pack")return bad("Need a cigarette pack");
