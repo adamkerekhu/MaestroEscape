@@ -411,8 +411,21 @@ function npcInReach(s,p,id,d){
 }
 function npcVendor(s,p,npc,d){
  if(C.vendors[npc]!==p.scene)return bad("Visit the correct shop");
- if(!npcInReach(s,p,npc,d))return bad("Move closer to the counter");
- return null;
+ if(npcInReach(s,p,npc,d))return null;
+ // Browser-only settings can legitimately relocate the shopkeeper or change
+ // dialogue range while Cloudflare settings storage is unavailable.
+ // Accept that same client-side dialogue contact, but only within the proper
+ // shop and a bounded interaction range. Other server actions remain unchanged.
+ if(d?.localNpcSettings===true&&d.npcId===npc&&d.npcPoint){
+  const bounds={dohanybolt:{w:608,h:832},gyros:{w:768,h:480},pub:{w:1448,h:1086}}[p.scene];
+  const point={x:Number(d.npcPoint.x),y:Number(d.npcPoint.y)};
+  const clientRadius=Number(d.dialogueRadius);
+  if(bounds&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&
+     point.x>=0&&point.x<=bounds.w&&point.y>=0&&point.y<=bounds.h&&
+     Number.isFinite(clientRadius)&&clientRadius>=40&&clientRadius<=190&&
+     dist(p,point)<=clientRadius+2)return null;
+ }
+ return bad("Move closer to the counter");
 }
 function itemById(s,id){return s.items.find(i=>i.id===id)}
 function owned(s,p,id){const item=itemById(s,id);return item?.location.kind==="inventory"&&item.location.playerId===p.id?item:null}
