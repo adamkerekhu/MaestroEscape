@@ -66,6 +66,14 @@ test("NPC asset proxy validates IDs in Worker scope without browser globals",()=
    (/spar_shopper_[12]/.test(route[0])&&def.id.startsWith("spar_shopper")),"Asset whitelist may omit "+def.id);
 });
 
+test("NPC sprite loading uses published character assets, never player fallback",()=>{
+ const atlasCommit="75ddb29a71b32ff1eeff637c3188bfd1c27f1dd6";
+ assert.ok(source.includes("MaestroEscape@"+atlasCommit+"/Assets/NPCs/"),"Missing published NPC CDN atlas");
+ assert.ok(source.includes('this.load.spritesheet("npc_"+def.id'),"NPC spritesheets not registered");
+ assert.ok(!source.includes('scene.add.sprite(def.x,def.y,"maestro",0)'),"NPC must never fall back to playable character");
+ assert.ok(source.includes('scene.add.sprite(def.x,def.y,"__MISSING",0)'),"Missing-asset condition must remain visible");
+});
+
 test("every NPC sprite is included",()=>{
  for(const def of defs)assert.ok(existsSync(join(root,"Assets/NPCs",def.id+".webp")),def.id+" missing sprite");
 });
