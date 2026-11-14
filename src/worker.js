@@ -931,7 +931,7 @@ function leavePub(){
  show("Back on Mester utca.");
 }
 // Vehicle seat selection is server-owned. There is no local claim of ownership.
-let vehicleSeatPanel=null,vehicleBusy=false,vehicleSeatRole=null,vehicleWorldSynchronized=false;
+let vehicleSeatPanel=null,vehicleBusy=false,vehicleSeatRole=null,vehicleWorldSynchronized=false,vehicleLastRespawnRevision=null;
 function vehicleSeatMenu(choice){
  if(vehicleBusy||!gameplay?.ready)return;
  vehicleSeatPanel?.remove();
@@ -1004,7 +1004,10 @@ function leaveSharedVehicle(result){
 }
 function syncVehicleFromRoom(delta=16){
  if(!gameplay?.state||!scene||!gameplay.vehicles.length)return;
- const firstAuthoritativeFrame=!vehicleWorldSynchronized;
+ const respawnRevision=gameplay.state.vehicleRespawnRevision||0;
+ const firstAuthoritativeFrame=!vehicleWorldSynchronized||
+  (vehicleLastRespawnRevision!==null&&respawnRevision!==vehicleLastRespawnRevision);
+ vehicleLastRespawnRevision=respawnRevision;
  const occupied=gameplay.occupied;
  const selected=occupied?registeredVehicles().find(v=>v.id===occupied.vehicleId):null;
  if(occupied&&selected&&activeVehicle!==selected.model){
@@ -1282,6 +1285,7 @@ class Explore extends Phaser.Scene{
     playerScale:()=>character?.scaleX||cfg("character.streetScale"),
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
+    onVehicleRespawn:()=>{vehicleWorldSynchronized=false;},
     setCharacter:choice=>{
       if(!character)return;
       if(!choice){character.setVisible(false);return;}
