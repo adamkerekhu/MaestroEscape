@@ -699,7 +699,8 @@ function tramOverlapsPlayer(tram,person){
  const forwardX=Math.sin(angle),forwardY=-Math.cos(angle);
  const along=dx*forwardX+dy*forwardY;
  const across=dx*forwardY-dy*forwardX;
- return Math.abs(along)<=cfg("tram.length")/2+12&&
+ // Only the tram's advancing front nose can hit a pedestrian.
+ return along>=cfg("tram.length")/2-12&&along<=cfg("tram.length")/2+18&&
         Math.abs(across)<=cfg("tram.width")/2+12;
 }
 function renderTramGraves(){
@@ -719,7 +720,7 @@ function renderTramGraves(){
     color:"#f3f3ef",fontStyle:"bold",stroke:"#364252",strokeThickness:1}).setOrigin(.5);
    marker.add([stone,rip]);tramGraveSprites.set(grave.id,marker);
   }
-  marker.setVisible(!insidePub&&Date.now()>=grave.at+430);
+  marker.setVisible(!insidePub&&Date.now()>=grave.at+430&&Date.now()<(grave.expiresAt??grave.at+30000));
  }
  for(const [id,marker] of tramGraveSprites){
   if(!ids.has(id)){marker.destroy();tramGraveSprites.delete(id);}
