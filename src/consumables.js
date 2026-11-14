@@ -103,7 +103,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -146,6 +146,7 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  vehicleRespawnRevision:s.vehicleRespawnRevision||0,
   vehicles:Object.values(s.vehicles||{}).map(v=>({id:v.id,type:v.type,name:v.name,x:v.x,y:v.y,
    angle:v.angle,speed:v.speed,seats:v.seats.slice(),revision:v.revision,updatedAt:v.updatedAt})),
   occupiedVehicle:seatOf(s,p)?{vehicleId:seatOf(s,p).vehicle.id,seat:seatOf(s,p).seat}:null,
@@ -221,6 +222,16 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="respawnVehicles"){
+  if(!p.characterId)return bad("Choose a character before respawning vehicles");
+  const occupied=Object.values(s.vehicles||{}).some(vehicle=>vehicle.seats.some(Boolean));
+  if(occupied)return bad("Everyone must exit vehicles before respawning");
+  const settings=d.vehicleSpawnSettings&&typeof d.vehicleSpawnSettings==="object"?d.vehicleSpawnSettings:s.vehicleSpawnSettings||{};
+  s.vehicleSpawnSettings=settings;
+  s.vehicles=freshVehicles(settings);
+  s.vehicleRespawnRevision=(s.vehicleRespawnRevision||0)+1;
+  return ok({vehicleRespawnRevision:s.vehicleRespawnRevision,message:"All vehicles respawned at their starting positions"});
+ }
  if(op==="boardVehicle"){
   if(!p.characterId)return bad("Choose a character first");
   if(p.scene!=="street"||seatOf(s,p))return bad("You must be on foot to board");
@@ -479,6 +490,27 @@ export class ConsumableRoom{
    const input=request.method==="POST"?await request.json():{};
    const token=(request.method==="GET"?new URL(request.url).searchParams.get("token"):input.token)||"";
    if(!/^[a-zA-Z0-9_-]{20,100}$/.test(token))return Response.json(bad("Invalid session token"),{status:400});
+   // Read current saved vehicle spawn settings for an explicit reset, so the
+   // button honors adjustments made after this multiplayer room was created.
+   const wantsVehicleRespawn=input.op==="respawnVehicles";
+   let latestSpawnSettings=null;
+   if(wantsVehicleRespawn&&this.env?.SETTINGS_STORE){
+    try{
+     const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
+     const res=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
+     if(!res.ok)throw Error("Could not load shared vehicle settings");
+     const data=await res.json();
+     const settings=data.settings||{};
+     latestSpawnSettings={};
+     for(const def of VEHICLE_DEFS)for(const part of ["spawnX","spawnY","angle"]){
+      const key="vehicle."+def.id+"."+part;
+      if(settings[key]!==undefined)latestSpawnSettings[key]=settings[key];
+     }
+    }catch(error){
+     console.warn("Vehicle respawn failed to refresh starting positions",String(error));
+     return Response.json(bad("Could not load shared vehicle starting positions",503),{status:503});
+    }
+   }
    const playerInteractionRange=await this.getPlayerInteractionRange();
    const npcSettings=await this.getNpcSettings();
    let initialVehicleSettings={};
@@ -523,7 +555,8 @@ export class ConsumableRoom{
       const previous=s.used.find(x=>x.id===commandId);
       if(previous)answer=previous.response;
       else{
-       answer=operation(s,p,input);
+       answer=operation(s,p,wantsVehicleRespawn&&latestSpawnSettings?
+        {...input,vehicleSpawnSettings:latestSpawnSettings}:input);
        s.used.push({id:commandId,response:answer});
        if(s.used.length>500)s.used.splice(0,s.used.length-500);
       }
