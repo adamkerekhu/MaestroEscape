@@ -41,10 +41,17 @@ const VEHICLE_DEFS=[
  {id:"bike3",name:"Bubi Bike 3",type:"bike",x:706,y:870,angle:135*Math.PI/180,seats:1}
 ];
 const VEHICLE_LEASE_MS=5000;
-function freshVehicles(){
- return Object.fromEntries(VEHICLE_DEFS.map(def=>[def.id,{id:def.id,type:def.type,name:def.name,
-  x:def.x,y:def.y,angle:def.angle,speed:0,seats:Array(def.seats).fill(null),
-  updatedAt:now(),revision:0}]));
+function freshVehicles(settings={}){
+ return Object.fromEntries(VEHICLE_DEFS.map(def=>{
+  const x=Number(settings["vehicle."+def.id+".spawnX"]);
+  const y=Number(settings["vehicle."+def.id+".spawnY"]);
+  const rotation=Number(settings["vehicle."+def.id+".angle"]);
+  return [def.id,{id:def.id,type:def.type,name:def.name,
+   x:Number.isFinite(x)&&x>=20&&x<=1580?x:def.x,
+   y:Number.isFinite(y)&&y>=20&&y<=970?y:def.y,
+   angle:Number.isFinite(rotation)?rotation*Math.PI/180:def.angle,
+   speed:0,seats:Array(def.seats).fill(null),updatedAt:now(),revision:0}];
+ }));
 }
 function seatOf(s,p){
  for(const vehicle of Object.values(s.vehicles||{})){
@@ -89,7 +96,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(),createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -245,7 +252,7 @@ function operation(s,p,d){
  if(op==="resetRound"){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
-  s.vehicles=freshVehicles();
+  s.vehicles=freshVehicles(s.vehicleSpawnSettings||{});
   s.items=[];s.orders=[];s.requests=[];s.completions=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
@@ -375,8 +382,24 @@ export class ConsumableRoom{
    const input=request.method==="POST"?await request.json():{};
    const token=(request.method==="GET"?new URL(request.url).searchParams.get("token"):input.token)||"";
    if(!/^[a-zA-Z0-9_-]{20,100}$/.test(token))return Response.json(bad("Invalid session token"),{status:400});
+   let initialVehicleSettings={};
+   if(!(await this.ctx.storage.get("room"))&&this.env?.SETTINGS_STORE){
+    try{
+     const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
+     const response=await settingsStub.fetch(new Request("https://settings.internal/",{method:"GET"}));
+     if(response.ok){
+      const data=await response.json();
+      if(data?.settings&&typeof data.settings==="object"){
+       for(const def of VEHICLE_DEFS)for(const part of ["spawnX","spawnY","angle"]){
+        const key="vehicle."+def.id+"."+part;
+        if(data.settings[key]!==undefined)initialVehicleSettings[key]=data.settings[key];
+       }
+      }
+     }
+    }catch(err){console.warn("Room using default vehicle positions",String(err))}
+   }
    const result=await this.ctx.storage.transaction(async tx=>{
-    const s=await tx.get("room")||fresh();
+    const s=await tx.get("room")||fresh(initialVehicleSettings);
     settle(s);
     let p=findPlayer(s,token);
     if(!p){
