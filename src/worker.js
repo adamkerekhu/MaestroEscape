@@ -1255,7 +1255,7 @@ export default {
   if(url.pathname==="/assets/bubi.webp"){const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Vehicles/bubi_bike.webp");if(!upstream.ok)return new Response("Bubi asset unavailable",{status:502});return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});}
   if(/^\/assets\/npc\/[a-z0-9_]+\.webp$/.test(url.pathname)){
     const id=url.pathname.slice("/assets/npc/".length,-5);
-    if(!NPC_DEFINITIONS.some(n=>n.id===id))return new Response("Unknown NPC",{status:404});
+    if(!/^(maestro_bartender|maestro_regular_[123]|spar_cashier|spar_shopper_[12]|tobacco_cashier|gyros_employee)$/.test(id))return new Response("Unknown NPC",{status:404});
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/NPCs/"+id+".webp");
     if(!upstream.ok)return new Response("NPC asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=600"}});
