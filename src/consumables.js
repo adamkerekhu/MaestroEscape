@@ -545,7 +545,15 @@ function operation(s,p,d){
    let spawned=0;
    while(s.pendingMaybach[p.id]>0&&spawned<3){
     const id=uid("maiybach");
-    const spawnCandidates=[{x:x+75,y:y},{x:x-75,y:y},{x:x,y:y+80},{x:x,y:y-80}];
+    const forward={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[p.face]||[0,1];
+    const side=[-forward[1],forward[0]];
+    const spawnCandidates=[
+     {x:x+forward[0]*95,y:y+forward[1]*95},
+     {x:x+forward[0]*110+side[0]*55,y:y+forward[1]*110+side[1]*55},
+     {x:x+forward[0]*110-side[0]*55,y:y+forward[1]*110-side[1]*55},
+     {x:x+side[0]*100,y:y+side[1]*100},
+     {x:x-side[0]*100,y:y-side[1]*100}
+    ];
     const spot=spawnCandidates.find(q=>q.x>70&&q.x<1530&&q.y>65&&q.y<925&&Object.values(s.vehicles).every(v=>dist(v,q)>75));
     if(!spot)break;
     s.vehicles[id]={id,type:"car",name:"Maíybach",x:spot.x,y:spot.y,angle:Math.PI/2,
