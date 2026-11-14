@@ -817,6 +817,18 @@ function npcUpdatePrompt(){
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
  const pickup=gameplay?.prompt();
  if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
+ if(!insidePub&&gameplay?.occupied){
+  npcPrompt.textContent="E · Exit vehicle";npcPrompt.hidden=false;return;
+ }
+ if(!insidePub&&gameplay?.ready){
+  const nearestVehicle=registeredVehicles().filter(v=>v.sprite)
+   .sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-
+     Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
+  if(nearestVehicle&&near(player,nearestVehicle.model.x,nearestVehicle.model.y,cfg("game.vehicleRadius"))){
+   npcPrompt.textContent="E · Choose seat · "+nearestVehicle.label;
+   npcPrompt.hidden=false;return;
+  }
+ }
  if(gameplay?.nearbyPlayers().length&&!npcDialogue){
   npcPrompt.textContent="E · Ask nearby player";npcPrompt.hidden=false;return;
  }
@@ -967,7 +979,7 @@ function leaveSharedVehicle(result){
  const model=registeredVehicles().find(v=>v.model===prior);
  if(prior?.type==="bike"&&model?.sprite)model.sprite.setVisible(true);
  player.x=result.x??prior?.x??player.x;player.y=result.y??prior?.y??player.y;
- character.setPosition(player.x,player.y).setVisible(true);
+ character.setPosition(player.x,player.y).setVisible(!!gameplay?.hasCharacter());
  scene.cameras.main.startFollow(character,true,.13,.13);
  status.textContent="On foot";
  show(result.message||"Exited vehicle");
@@ -1011,7 +1023,7 @@ function syncVehicleFromRoom(delta=16){
     target.sprite.setVisible(false);
     updateBikeRider(model,Math.abs(model.speed)>6);
    }else{
-    target.sprite.setVisible(!bikeOccupied&&!insidePub);
+    target.sprite.setVisible((!bikeOccupied||!rider)&&!insidePub);
    }
    if(rider){
     rider.setVisible(bikeOccupied&&!localBike&&!insidePub);
