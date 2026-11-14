@@ -383,7 +383,7 @@ export class ConsumableRoom{
    const token=(request.method==="GET"?new URL(request.url).searchParams.get("token"):input.token)||"";
    if(!/^[a-zA-Z0-9_-]{20,100}$/.test(token))return Response.json(bad("Invalid session token"),{status:400});
    let initialVehicleSettings={};
-   if(!(await this.ctx.storage.get("room"))&&this.env?.SETTINGS_STORE){
+   if(this.env?.SETTINGS_STORE&&!(await this.ctx.storage.get?.("room"))){
     try{
      const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
      const response=await settingsStub.fetch(new Request("https://settings.internal/",{method:"GET"}));
