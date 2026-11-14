@@ -57,6 +57,15 @@ test("exact NPC roster and lifecycle guards",()=>{
  assert.ok(source.includes("showInteriorNPCs(null)"));
 });
 
+test("NPC asset proxy validates IDs in Worker scope without browser globals",()=>{
+ const route=source.match(/if\(\/\^\\\/assets\\\/npc[\s\S]*?if\(url\.pathname==="\/assets\/world\.webp"\)/);
+ assert.ok(route,"NPC image route missing");
+ assert.ok(!route[0].includes("NPC_DEFINITIONS"),"Worker route references browser-only NPC registry");
+ for(const def of defs)assert.ok(route[0].includes(def.id.split("_")[0])||
+   (/maestro_regular_[123]/.test(route[0])&&def.id.startsWith("maestro_regular"))||
+   (/spar_shopper_[12]/.test(route[0])&&def.id.startsWith("spar_shopper")),"Asset whitelist may omit "+def.id);
+});
+
 test("every NPC sprite is included",()=>{
  for(const def of defs)assert.ok(existsSync(join(root,"Assets/NPCs",def.id+".webp")),def.id+" missing sprite");
 });
