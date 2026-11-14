@@ -86,6 +86,10 @@ function positionAtVehicle(s,p){
 // Tram and player share world coordinates, measured in Phaser map pixels.
 const TRAM_TRACK={start:{x:-170,y:0},stop:{x:455,y:524},end:{x:1130,y:1090}};
 const TRAM_DEATH_MS=5000;
+const GRAVE_LIFETIME_MS=30000;
+const CAR_HIT_MIN_SPEED=22;
+const CAR_DIMENSIONS={skoda:{width:32,length:72},octavia:{width:32,length:64}};
+const PLAYER_HIT_RADIUS=12;
 const TRAM_PLAYER_RADIUS=12;
 const TRAM_SPAWN={x:859,y:577};
 const TRAM_DEFAULTS={interval:20,travelTime:14.5,width:40,length:144};
@@ -122,8 +126,73 @@ export function tramHitsPlayer(tram,point,radius=TRAM_PLAYER_RADIUS){
  const trackX=Math.sin(tram.angle),trackY=-Math.cos(tram.angle);
  const along=dx*trackX+dy*trackY;
  const across=dx*trackY-dy*trackX;
- return Math.abs(along)<=tram.length/2+radius&&Math.abs(across)<=tram.width/2+radius;
+ // The tram's leading nose, not its sides/rear, is lethal.
+ return along>=tram.length/2-TRAM_PLAYER_RADIUS&&
+        along<=tram.length/2+radius+6&&
+        Math.abs(across)<=tram.width/2+radius;
 }
+// Vehicle sprite angles use forward = (sin(angle), -cos(angle)).
+// Only the leading bumper of a forward-moving car/tram can strike a pedestrian.
+export function frontImpact(vehicle,point,playerRadius=PLAYER_HIT_RADIUS){
+ const speed=Number(vehicle.speed);
+ if(!Number.isFinite(speed)||speed<=CAR_HIT_MIN_SPEED)return false;
+ const fx=Math.sin(vehicle.angle),fy=-Math.cos(vehicle.angle);
+ const sideX=-fy,sideY=fx,dx=point.x-vehicle.x,dy=point.y-vehicle.y;
+ const forward=dx*fx+dy*fy,lateral=dx*sideX+dy*sideY;
+ const halfLength=vehicle.length/2,halfWidth=vehicle.width/2;
+ return forward>=halfLength-PLAYER_HIT_RADIUS&&
+        forward<=halfLength+playerRadius+6&&
+        Math.abs(lateral)<=halfWidth+playerRadius;
+}
+export function sweptFrontImpact(from,to,point){
+ // At 10 Hz, the front of a fast car may cross a player between frames.
+ // This tests the leading bumper's swept segment with a radius.
+ const fx=Math.sin(to.angle),fy=-Math.cos(to.angle);
+ const sideX=-fy,sideY=fx;
+ const ax=from.x+Math.sin(from.angle)*from.length/2;
+ const ay=from.y-Math.cos(from.angle)*from.length/2;
+ const bx=to.x+fx*to.length/2,by=to.y+fy*to.length/2;
+ const dx=bx-ax,dy=by-ay,span=dx*dx+dy*dy;
+ const t=span>0?Math.max(0,Math.min(1,((point.x-ax)*dx+(point.y-ay)*dy)/span)):0;
+ const hitX=ax+t*dx,hitY=ay+t*dy;
+ const lateral=Math.abs((point.x-hitX)*sideX+(point.y-hitY)*sideY);
+ const distance=Math.hypot(point.x-hitX,point.y-hitY);
+ return to.speed>CAR_HIT_MIN_SPEED&&lateral<=to.width/2+PLAYER_HIT_RADIUS&&
+  distance<=to.width/2+PLAYER_HIT_RADIUS&&
+  // Never count someone behind the vehicle as a front hit.
+  (point.x-to.x)*fx+(point.y-to.y)*fy>=-PLAYER_HIT_RADIUS;
+}
+function carHitPlayer(vehicle,from,player){
+ const dims=CAR_DIMENSIONS[vehicle.id];
+ if(!dims||vehicle.speed<=CAR_HIT_MIN_SPEED)return false;
+ const next={...vehicle,...dims},previous={...from,...dims};
+ return frontImpact(next,player)||sweptFrontImpact(previous,next,player);
+}
+function recordVehicleDeath(s,player,hit,reason,sourceId){
+ if(player.deadUntil||player.scene!=="street"||seatOf(s,player))return null;
+ const at=now(),fx=Math.sin(hit.angle),fy=-Math.cos(hit.angle);
+ const death={id:uid("death"),at,until:at+TRAM_DEATH_MS,x:player.x,y:player.y,
+  knockX:fx*47,knockY:fy*47,reason,sourceId};
+ player.deadUntil=death.until;player.lastDeath=death;player.action=null;
+ player.equippedId=null;player.moving=false;
+ s.items=s.items.filter(item=>item.location.kind!=="inventory"||item.location.playerId!==player.id);
+ s.orders=s.orders.filter(order=>order.playerId!==player.id);
+ s.requests=s.requests.filter(req=>req.fromId!==player.id&&req.toId!==player.id);
+ if(s.rally?.status==="gathering")s.rally.status="cancelled";
+ if(!s.graves)s.graves=[];
+ s.graves.push({id:death.id,x:death.x,y:death.y,at,expiresAt:at+GRAVE_LIFETIME_MS,
+  playerId:player.id,label:"RIP",reason});
+ if(s.graves.length>70)s.graves.splice(0,s.graves.length-70);
+ return death;
+}
+function checkCarPedestrians(s,vehicle,previous){
+ for(const player of Object.values(s.players)){
+  if(!player.characterId||player.deadUntil||player.scene!=="street"||
+     seatOf(s,player)||now()-player.lastSeen>30000)continue;
+  if(carHitPlayer(vehicle,previous,player))recordVehicleDeath(s,player,vehicle,"car",vehicle.id);
+ }
+}
+
 function tramCollisionAt(timestamp,config,position){
  // Permit a small network delay without allowing hits outside the moving tram.
  for(const offset of [-350,-175,0,175,350]){
@@ -232,6 +301,9 @@ function checkRally(s){
 
 function settle(s){
  const time=now();
+ // RIP stones expire for every client from the same authoritative room clock.
+ if(!s.graves)s.graves=[];
+ s.graves=s.graves.filter(g=>time<(g.expiresAt??g.at+GRAVE_LIFETIME_MS));
  for(const player of Object.values(s.players)){
   if(player.deadUntil&&time>=player.deadUntil){
    player.deadUntil=null;player.scene="street";
@@ -372,18 +444,8 @@ function operation(s,p,d){
   if(dist(p,{x,y})>110)return bad("Stale tram collision position");
   if(!tramCollisionAt(now(),s.tramConfig||TRAM_DEFAULTS,{x,y}))return bad("Tram is not colliding with the player");
   const hit=tramWorldAt(now(),s.tramConfig||TRAM_DEFAULTS);
-  const awayX=x-hit.x,awayY=y-hit.y,norm=Math.hypot(awayX,awayY)||1;
-  const death={id:uid("death"),at:now(),until:now()+TRAM_DEATH_MS,x,y,
-   knockX:awayX/norm*28,knockY:awayY/norm*28,reason:"tram"};
-  p.scene="street";p.x=x;p.y=y;p.deadUntil=death.until;p.lastDeath=death;
-  p.action=null;p.equippedId=null;p.moving=false;
-  s.items=s.items.filter(item=>item.location.kind!=="inventory"||item.location.playerId!==p.id);
-  s.orders=s.orders.filter(order=>order.playerId!==p.id);
-  s.requests=s.requests.filter(request=>request.fromId!==p.id&&request.toId!==p.id);
-  if(s.rally?.status==="gathering")s.rally.status="cancelled";
-  if(!s.graves)s.graves=[];
-  s.graves.push({id:death.id,x,y,at:death.at,playerId:p.id,label:"RIP"});
-  if(s.graves.length>50)s.graves.splice(0,s.graves.length-50);
+  const death=recordVehicleDeath(s,p,hit,"tram","tram");
+  if(!death)return bad("Already hit");
   return ok({death,message:"Hit by tram! Respawning in 5 seconds…"});
  }
  if(p.deadUntil&&now()<p.deadUntil){
@@ -442,7 +504,9 @@ function operation(s,p,d){
    return bad("Invalid vehicle movement");
   const elapsed=Math.max(.05,Math.min(1,(now()-v.updatedAt)/1000));
   if(dist(v,{x,y})>Math.max(55,elapsed*330+25))return bad("Vehicle moved too far");
+  const previous={x:v.x,y:v.y,angle:v.angle,speed:v.speed};
   v.x=x;v.y=y;v.angle=angle;v.speed=speed;v.updatedAt=now();v.revision++;
+  if(v.type==="car")checkCarPedestrians(s,v,previous);
   for(const occupantId of v.seats){
    const rider=s.players[occupantId];
    if(rider)positionAtVehicle(s,rider);
@@ -473,6 +537,18 @@ function operation(s,p,d){
   // last reported position for interactions but cannot authenticate movement paths.
   if(p.action&&(p.scene!==scene||dist(p,{x,y})>7))p.action=null;
   p.scene=scene;p.x=x;p.y=y;p.face=["down","up","right","left"].includes(d.face)?d.face:"down";p.moving=!!d.moving;p.lastSeen=now();
+  if(scene==="street"&&p.characterId&&!p.deadUntil){
+   // Check also when a pedestrian walks across the moving car's nose.
+   for(const vehicle of Object.values(s.vehicles||{})){
+    if(vehicle.type!=="car"||vehicle.speed<=CAR_HIT_MIN_SPEED)continue;
+    if(now()-vehicle.updatedAt>650)continue;
+    const dims=CAR_DIMENSIONS[vehicle.id];
+    if(dims&&frontImpact({...vehicle,...dims},p)){
+     recordVehicleDeath(s,p,vehicle,"car",vehicle.id);
+     break;
+    }
+   }
+  }
   return ok();
  }
  if(op==="resetRound"){
