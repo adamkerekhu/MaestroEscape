@@ -812,7 +812,7 @@ export class ConsumableRoom{
  }
  async getPlayerInteractionRange(){
   if(!this.env?.SETTINGS_STORE)return PLAYER_INTERACT_DEFAULT;
-  if(this.playerRangeCache&&now()-this.playerRangeCache.time<1500)return this.playerRangeCache.value;
+  if(this.playerRangeCache&&now()-this.playerRangeCache.time<15000)return this.playerRangeCache.value;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
    const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
@@ -828,7 +828,7 @@ export class ConsumableRoom{
  }
  async getNpcSettings(){
   if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{},tram:TRAM_DEFAULTS,vehicleDimensions:CAR_DIMENSIONS};
-  if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<1500)return this.npcSettingsCache.data;
+  if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<15000)return this.npcSettingsCache.data;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
    const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
