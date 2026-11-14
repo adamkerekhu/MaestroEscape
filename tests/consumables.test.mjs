@@ -457,3 +457,40 @@ test("moving car cannot be exited; stopped car exits near the shared position",a
   assert.equal(player.y,500);
  }finally{Date.now=old}
 });
+
+test("vehicle occupancy is explicit on every multiplayer player snapshot",async()=>{
+ const {send,get}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(1,"selectCharacter",{characterId:"casual"});
+ await send(0,"syncPosition",{scene:"street",x:697,y:505});
+ await send(1,"syncPosition",{scene:"street",x:699,y:509});
+ const driver=await send(0,"boardVehicle",{vehicleId:"skoda",seat:0});
+ const passenger=await send(1,"boardVehicle",{vehicleId:"skoda",seat:1});
+ assert.equal(driver.ok,true);assert.equal(passenger.ok,true);
+ const snapshot=(await get(1)).snapshot;
+ const driverView=snapshot.players.find(p=>p.id===driver.snapshot.playerId);
+ const passengerView=snapshot.players.find(p=>p.id===passenger.snapshot.playerId);
+ assert.equal(driverView.vehicleId,"skoda");
+ assert.equal(driverView.seatIndex,0);
+ assert.equal(driverView.moving,false);
+ assert.equal(passengerView.vehicleId,"skoda");
+ assert.equal(passengerView.seatIndex,1);
+ assert.equal(snapshot.vehicles.find(v=>v.id==="skoda").seats[0],driverView.id);
+});
+test("same default lobby is used across browsers and remote occupants are not walking sprites",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT}=await import("../src/consumables-client.js");
+ const {readFileSync}=await import("node:fs");
+ const browser=CONSUMABLE_CLIENT_SCRIPT;
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ assert.ok(browser.includes('"maestro-main"'),"All bare game URLs must join the same default lobby");
+ assert.ok(!browser.includes('room=requested||localStorage.getItem("maestroescape.room.v1")'),
+  "Local browser storage must not decide which default room a player joins");
+ assert.ok(browser.includes('roomLabel.textContent="Room: "+room'),
+  "Room ID must be visible to players");
+ assert.ok(browser.includes('q.vehicleId||this.vehicles.some(v=>v.seats.includes(q.id))'),
+  "A seated player must never be rendered as a remote walking sprite");
+ assert.ok(worker.includes("vehicleWorldSynchronized=true"),
+  "Every client must initialize vehicles from the server snapshot");
+ assert.ok(worker.includes("firstAuthoritativeFrame||distance>150?1:"),
+  "First server position must not be interpolated from a different local spawn");
+});
