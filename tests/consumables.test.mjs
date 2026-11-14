@@ -309,3 +309,14 @@ test("four character slots match planned sprites and directions survive room sna
  const after=stopped.snapshot.players.find(q=>q.id===stopped.snapshot.playerId);
  assert.equal(after.face,"up");assert.equal(after.moving,false);
 });
+
+test("three custom character sprite files exist with correct WebP headers",async()=>{
+ const {readFileSync}=await import("node:fs");
+ const {resolve}=await import("node:path");
+ for(const id of ["casual","suit","muscular"]){
+  const bytes=readFileSync(resolve("Assets/Characters/"+id+"_walk.webp"));
+  assert.ok(bytes.length>10000,id+" sprite unexpectedly small");
+  assert.equal(bytes.toString("ascii",0,4),"RIFF",id+" must be RIFF WebP");
+  assert.equal(bytes.toString("ascii",8,12),"WEBP",id+" must be WebP");
+ }
+});
