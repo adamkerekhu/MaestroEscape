@@ -742,9 +742,16 @@ function displayTramDeath(death){
  player.x=death.x;player.y=death.y;
  moving=false;character.anims.stop();
  character.setPosition(death.x,death.y).setAlpha(1).setAngle(0).setVisible(true);
- scene.tweens.add({targets:character,x:death.x+death.knockX,
-  y:death.y+death.knockY-13,angle:65,alpha:0,
-  duration:460,ease:"Cubic.easeOut",onComplete:()=>character.setVisible(false)});
+ // Two-stage impact: thrown into the air, then tumbles onto the ground.
+ const side=Math.sign(death.knockX)||1;
+ scene.tweens.add({targets:character,
+  x:death.x+death.knockX*.55,y:death.y+death.knockY*.55-26,
+  angle:side*-32,scaleX:character.scaleX*.9,
+  duration:190,ease:"Cubic.easeOut",
+  onComplete:()=>scene.tweens.add({targets:character,
+   x:death.x+death.knockX,y:death.y+death.knockY,
+   angle:side*88,alpha:0,scaleY:character.scaleY*.65,
+   duration:370,ease:"Bounce.easeOut",onComplete:()=>character.setVisible(false)})});
 }
 function completeTramRespawn(serverPlayer){
  tramLocalDeath=null;
@@ -754,6 +761,7 @@ function completeTramRespawn(serverPlayer){
  player.x=serverPlayer?.x??SPAWN.x;
  player.y=serverPlayer?.y??SPAWN.y;player.face="down";moving=false;
  character.setPosition(player.x,player.y).setAlpha(1).setAngle(0);
+ character.setScale(cfg("character.streetScale"));
  character.setFrame(0).setVisible(true);
  scene.cameras.main.startFollow(character,true,.13,.13);
  scene.cameras.main.setZoom(cfg("camera.streetZoom"));
