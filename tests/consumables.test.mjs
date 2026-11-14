@@ -270,14 +270,14 @@ test("lobby character selections are unique per room and persist on reconnect",a
  const taken=await send(1,"selectCharacter",{characterId:"maestro"});
  assert.equal(taken.ok,false);
  assert.match(taken.error,/taken/i);
- const separate=await send(1,"selectCharacter",{characterId:"blue"});
+ const separate=await send(1,"selectCharacter",{characterId:"casual"});
  assert.ok(separate.ok);
- assert.equal(separate.snapshot.selectedCharacter,"blue");
+ assert.equal(separate.snapshot.selectedCharacter,"casual");
  const reload=(await get(0)).snapshot;
  assert.equal(reload.selectedCharacter,"maestro");
  const peer=reload.players.find(p=>p.id===separate.snapshot.playerId);
- assert.equal(peer.characterId,"blue");
- assert.equal(reload.characters.find(c=>c.id==="blue").selectedBy,peer.id);
+ assert.equal(peer.characterId,"casual");
+ assert.equal(reload.characters.find(c=>c.id==="casual").selectedBy,peer.id);
  const release=await send(0,"releaseCharacter");
  assert.ok(release.ok);
  const claim=await send(1,"selectCharacter",{characterId:"maestro"});
@@ -288,7 +288,7 @@ test("lobby rejects missing or unknown character IDs",async()=>{
  const wrong=await send(0,"selectCharacter",{characterId:"unknown"});
  assert.equal(wrong.ok,false);
  assert.equal((await get(0)).snapshot.selectedCharacter,null);
- const valid=await send(0,"selectCharacter",{characterId:"green"});
+ const valid=await send(0,"selectCharacter",{characterId:"muscular"});
  assert.ok(valid.ok);
- assert.equal(valid.snapshot.selectedCharacter,"green");
+ assert.equal(valid.snapshot.selectedCharacter,"muscular");
 });
