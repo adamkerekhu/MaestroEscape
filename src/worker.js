@@ -1689,6 +1689,11 @@ export default {
     if(!upstream.ok)return new Response("Map image unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300"}});
   }
+  if(url.pathname==="/assets/kaparos_buksza.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/UI/kaparos_buksza.webp");
+    if(!upstream.ok)return new Response("Buksza lottery artwork missing",{status:404,headers:{"cache-control":"no-store"}});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
+  }
   if(url.pathname==="/assets/basement.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_basement.webp");
     if(!upstream.ok)return new Response("Basement image unavailable",{status:404});
