@@ -1,5 +1,6 @@
 import { ConsumableRoom } from "./consumables.js";
 import { CONSUMABLE_CLIENT_SCRIPT } from "./consumables-client.js";
+import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 export { ConsumableRoom };
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
@@ -1576,7 +1577,10 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
    const data=await response.json();applyRemoteSettings(data);
    return data;
  }
- try{await syncSharedSettings();}
+ if(new URL(location.href).searchParams.get("mode")==="single"){
+   try{const local=JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"null");if(local&&typeof local==="object")applyRemoteSettings({settings:local,revision:0});}catch{}
+   const badge=document.getElementById("sync-status");if(badge){badge.textContent="🧪 Single player · offline";badge.title="No Cloudflare Durable Objects requests";}
+ }else try{await syncSharedSettings();}
  catch(error){
    console.error("Shared settings unavailable",error);
    const badge=document.getElementById("sync-status");
@@ -1585,11 +1589,11 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
  }
  new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- setInterval(()=>{syncSharedSettings().catch(error=>{
+ if(new URL(location.href).searchParams.get("mode")!=="single")setInterval(()=>{syncSharedSettings().catch(error=>{
    const badge=document.getElementById("sync-status");
    if(badge){badge.textContent="⚠ Sync offline";badge.title=error.message;}
  })},10000);
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
+ if(new URL(location.href).searchParams.get("mode")!=="single")document.addEventListener("visibilitychange",()=>{if(!document.hidden)syncSharedSettings().catch(console.error)});
 })();
 })();
 </script></body></html>`;
@@ -1630,6 +1634,8 @@ export class GameSettings {
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==="/assets/local-room.js")
+   return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables"){
