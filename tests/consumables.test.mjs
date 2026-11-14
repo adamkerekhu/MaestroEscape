@@ -705,7 +705,7 @@ test("moving tram hits only within the oriented tram body, never a distant sidew
  assert.equal(tramHitsPlayer(moving,across),false);
  const firstLeg=tramWorldAt(6000);
  assert.ok(firstLeg.visible);
- const platform=tramWorldAt(10000);
+ const platform=tramWorldAt(8500);
  assert.equal(platform.moving,false);
  assert.equal(tramHitsPlayer(platform,{x:platform.x,y:platform.y}),false);
  const gone=tramWorldAt(19500);
