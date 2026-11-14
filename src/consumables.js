@@ -187,10 +187,17 @@ function operation(s,p,d){
   if(Math.abs(riding.vehicle.speed)>8)return bad("Cannot exit a moving vehicle");
   const {vehicle,seat}=riding;
   const side=seat%2===0?1:-1;
-  const candidate={x:vehicle.x+Math.cos(vehicle.angle)*side*46,
-                   y:vehicle.y+Math.sin(vehicle.angle)*side*46};
+  const fallback={x:vehicle.x+Math.cos(vehicle.angle)*side*46,
+                  y:vehicle.y+Math.sin(vehicle.angle)*side*46};
+  // The Phaser client tests its collision polygons first. The server ensures
+  // any requested exit point is nearby, not a teleport across the map.
+  const proposed={x:Number(d.x),y:Number(d.y)};
+  const requested=Number.isFinite(proposed.x)&&Number.isFinite(proposed.y)&&
+   proposed.x>=25&&proposed.x<=1575&&proposed.y>=25&&proposed.y<=967&&
+   dist(vehicle,proposed)<=85?proposed:null;
+  const candidate=requested||fallback;
   releaseSeat(s,p);
-  p.scene="street";p.x=Math.max(20,Math.min(1580,candidate.x));p.y=Math.max(20,Math.min(970,candidate.y));
+  p.scene="street";p.x=Math.max(25,Math.min(1575,candidate.x));p.y=Math.max(25,Math.min(967,candidate.y));
   return ok({x:p.x,y:p.y,message:"Exited "+vehicle.name});
  }
  if(op==="driveVehicle"){
