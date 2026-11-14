@@ -532,7 +532,7 @@ function operation(s,p,d){
    p.lastSeen=now();
    return ok(); // Passenger and driver positions always follow the shared car.
   }
-  const scene=["street","pub","spar","gyros","dohanybolt"].includes(d.scene)?d.scene:null;
+  const scene=["street","pub","basement","spar","gyros","dohanybolt"].includes(d.scene)?d.scene:null;
   const x=Number(d.x),y=Number(d.y);
   if(!scene||!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>1800||y>1300)return bad("Invalid position");
   // Existing Phaser game remains the movement authority; this endpoint tracks the
