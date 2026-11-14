@@ -298,6 +298,18 @@ function operation(s,p,d){
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
  }
+ // NPC actions use the same instant player position as the open dialogue.
+ // Movement is already client-driven in this Phaser prototype; a queued 100 ms
+ // sync must not make a valid transaction fail as "move closer".
+ if(["orderBeer","refillBeer","orderKebab","buyPack","npcBorrow"].includes(op)&&d.actorPosition&&!seatOf(s,p)){
+  const a=d.actorPosition;
+  const expected=op==="orderKebab"?"gyros":op==="buyPack"?"dohanybolt":"pub";
+  const x=Number(a.x),y=Number(a.y);
+  if(a.scene===expected&&Number.isFinite(x)&&Number.isFinite(y)&&
+      x>=0&&x<=1800&&y>=0&&y<=1300){
+   p.scene=expected;p.x=x;p.y=y;p.lastSeen=now();
+  }
+ }
  if(!p.scene)return bad("Enter the game first");
  if(op==="orderBeer"||op==="refillBeer"||op==="orderKebab"||op==="buyPack"){
   const vendor=op==="orderKebab"?"gyros_employee":op==="buyPack"?"tobacco_cashier":"maestro_bartender";
