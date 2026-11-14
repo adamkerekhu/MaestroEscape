@@ -692,3 +692,106 @@ test("vehicle respawn control is exposed and all browsers snap to the new revisi
  assert.ok(worker.includes("vehicleLastRespawnRevision=respawnRevision"));
  assert.ok(worker.includes("respawnRevision!==vehicleLastRespawnRevision"));
 });
+
+test("moving tram hits only within the oriented tram body, never a distant sidewalk or parked platform",async()=>{
+ const {tramWorldAt,tramHitsPlayer}=await import("../src/consumables.js");
+ const moving=tramWorldAt(3500);
+ assert.equal(moving.visible,true);
+ assert.equal(moving.moving,true);
+ assert.equal(tramHitsPlayer(moving,{x:moving.x,y:moving.y}),true);
+ const along={x:moving.x+Math.sin(moving.angle)*100,y:moving.y-Math.cos(moving.angle)*100};
+ assert.equal(tramHitsPlayer(moving,along),false);
+ const across={x:moving.x-Math.cos(moving.angle)*85,y:moving.y-Math.sin(moving.angle)*85};
+ assert.equal(tramHitsPlayer(moving,across),false);
+ const firstLeg=tramWorldAt(6000);
+ assert.ok(firstLeg.visible);
+ const platform=tramWorldAt(10000);
+ assert.equal(platform.moving,false);
+ assert.equal(tramHitsPlayer(platform,{x:platform.x,y:platform.y}),false);
+ const gone=tramWorldAt(19500);
+ assert.equal(gone.visible,false);
+ assert.equal(tramHitsPlayer(gone,{x:gone.x,y:gone.y}),false);
+});
+test("tram death jumps player, clears only their inventory and orders, leaves RIP and respawns in five seconds",async()=>{
+ const old=Date.now;let time=2_000_000;Date.now=()=>time;
+ try{
+  const {tramWorldAt}=await import("../src/consumables.js");
+  const {send,get}=fixture();
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(1,"selectCharacter",{characterId:"casual"});
+  // Both participants obtain cigarettes, then move outside before the tram passes.
+  await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:425});
+  const packA=(await send(0,"buyPack")).snapshot.items.find(i=>i.type==="cigarette_pack");
+  await send(0,"collectItem",{itemId:packA.id});
+  await send(1,"syncPosition",{scene:"dohanybolt",x:519,y:425});
+  const packB=(await send(1,"buyPack")).snapshot.items.find(i=>i.type==="cigarette_pack"&&i.location.kind==="vendor");
+  await send(1,"collectItem",{itemId:packB.id});
+  const untouched=(await get(1)).snapshot.inventory[0].id;
+  assert.equal((await get(0)).snapshot.inventory.length,1);
+  time+=3500;
+  const tram=tramWorldAt(time);
+  await send(0,"syncPosition",{scene:"street",x:tram.x,y:tram.y});
+  await send(1,"syncPosition",{scene:"street",x:950,y:700});
+  const dead=await send(0,"tramHit",{actorPosition:{scene:"street",x:tram.x,y:tram.y}});
+  assert.equal(dead.ok,true,dead.error);
+  assert.equal(dead.snapshot.inventory.length,0);
+  assert.equal(dead.snapshot.equippedId,null);
+  assert.equal(dead.snapshot.graves.length,1);
+  assert.equal(dead.snapshot.graves[0].label,"RIP");
+  assert.equal(dead.snapshot.death.reason,"tram");
+  assert.equal(dead.snapshot.deadUntil,time+5000);
+  assert.equal((await get(1)).snapshot.inventory[0].id,untouched,"Other players keep their inventory");
+  const duplicate=await send(0,"tramHit",{actorPosition:{scene:"street",x:tram.x,y:tram.y}});
+  assert.equal(duplicate.ok,false);
+  const blocked=await send(0,"syncPosition",{scene:"street",x:1111,y:222});
+  assert.equal(blocked.snapshot.players.find(p=>p.id===dead.snapshot.playerId).x,tram.x);
+  time+=4999;
+  const dying=(await get(0)).snapshot;
+  assert.equal(dying.deadUntil,time+1);
+  assert.equal(dying.inventory.length,0);
+  time++;
+  const alive=(await get(0)).snapshot;
+  assert.equal(alive.deadUntil,null);
+  assert.equal(alive.respawnRevision,1);
+  const body=alive.players.find(p=>p.id===alive.playerId);
+  assert.equal(body.scene,"street");assert.equal(body.x,859);assert.equal(body.y,577);
+  assert.equal(alive.graves.length,1,"RIP grave must persist after respawn");
+  assert.equal((await get(1)).snapshot.inventory[0].id,untouched);
+ }finally{Date.now=old}
+});
+test("tram cannot kill players outside collision range, in shops or inside cars",async()=>{
+ const old=Date.now;let time=3_000_000+3500;Date.now=()=>time;
+ try{
+  const {tramWorldAt}=await import("../src/consumables.js");
+  const {send}=fixture();
+  const tram=tramWorldAt(time);
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(0,"syncPosition",{scene:"street",x:1400,y:200});
+  const far=await send(0,"tramHit",{actorPosition:{scene:"street",x:1400,y:200}});
+  assert.equal(far.ok,false);assert.match(far.error,/not colliding/i);
+  await send(0,"syncPosition",{scene:"pub",x:tram.x,y:tram.y});
+  const indoors=await send(0,"tramHit",{actorPosition:{scene:"pub",x:tram.x,y:tram.y}});
+  assert.equal(indoors.ok,false);
+  await send(0,"syncPosition",{scene:"street",x:697,y:505});
+  assert.ok((await send(0,"boardVehicle",{vehicleId:"skoda",seat:0})).ok);
+  const driving=await send(0,"tramHit",{actorPosition:{scene:"street",x:tram.x,y:tram.y}});
+  assert.equal(driving.ok,false);
+ }finally{Date.now=old}
+});
+test("client reports tram collisions and renders death, five-second countdown and RIP graves",async()=>{
+ const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
+ const {readFileSync}=await import("node:fs");
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ assert.doesNotThrow(()=>new Function(client));
+ assert.ok(client.includes('this.command("tramHit"'));
+ assert.ok(client.includes("this.ctx.onTramDeath?.("));
+ assert.ok(client.includes("this.ctx.onTramRespawn?.("));
+ assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead())return"));
+ assert.ok(worker.includes("function tramOverlapsPlayer("));
+ assert.ok(worker.includes('id="tram-death-overlay"'));
+ assert.ok(worker.includes("function renderTramGraves()"));
+ assert.ok(worker.includes("function completeTramRespawn("));
+ assert.ok(worker.includes("Respawning in "));
+ assert.ok(worker.includes("Date.now()%tramPeriodMs()"),
+  "The tram phase must use shared clock time rather than per-browser Phaser uptime");
+});
