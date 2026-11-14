@@ -419,7 +419,12 @@ const INTERIOR_SIZE={w:1448,h:1086};
 // FloorArt uses a single full-sized visual atlas. The WebP must be present in Assets/Maps.
 const BASEMENT_SIZE={w:1792,h:896},BASEMENT_SPAWN={x:490,y:349};
 const BASEMENT_STAIRS={x:401,y:373,w:86,h:74};
+// The visual stairway is at 1087,352, but the walkable approach is lower on the floor.
+// Screenshot-confirmed player feet at 1087,459 must activate the downstairs interaction.
 const PUB_BASEMENT_STAIRS={x:1087,y:352};
+const PUB_BASEMENT_APPROACH={x:1087,y:459,radius:70};
+const pubBasementStairsNear=()=>insidePub&&!insideBasement&&!activeShop&&
+ near(player,PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y,PUB_BASEMENT_APPROACH.radius);
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
  [60,752,245,45],[422,755,1240,42],
@@ -936,7 +941,7 @@ function npcUpdatePrompt(){
  if(insideBasement&&basementStairNear()){
   npcPrompt.textContent="E · Go upstairs";npcPrompt.hidden=false;return;
  }
- if(insidePub&&!activeShop&&near(player,PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y,85)){
+ if(pubBasementStairsNear()){
   npcPrompt.textContent="E · Go downstairs";npcPrompt.hidden=false;return;
  }
  if(!insidePub&&gameplay?.occupied){
@@ -985,7 +990,7 @@ function intersects(x,y){
 function enterBasement(){
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
- if(!basementImage){show("Basement artwork unavailable. Please publish Assets/Maps/maestro_basement.webp.");return;}
+ if(!basementImage){show("Cannot enter basement: map image is missing from GitHub (Assets/Maps/maestro_basement.webp).");return;}
  pubStairReturn={x:player.x,y:player.y};
  insideBasement=true;mapSize={...BASEMENT_SIZE};
  interiorImage?.setVisible(false);basementImage?.setVisible(true);
@@ -1286,7 +1291,7 @@ function interact(){
    if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
    show("Walk to the basement staircase and press E to go upstairs.");return;
   }
-  if(!activeShop&&near(player,PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y,85)){
+  if(pubBasementStairsNear()){
    enterBasement();return;
   }
   const nearest=npcNearestTarget();
@@ -1364,7 +1369,7 @@ class Explore extends Phaser.Scene{
      // Never substitute a schematic for the uploaded detailed floor artwork.
      console.error("Maestro basement artwork is missing at /assets/basement.webp");
    }
-   pubStairsHint=this.add.text(PUB_BASEMENT_STAIRS.x,PUB_BASEMENT_STAIRS.y-48,"STAIRS ↓ [E]",
+   pubStairsHint=this.add.text(PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y-44,"STAIRS ↓ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
    basementStairsHint=this.add.text(BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,BASEMENT_STAIRS.y-26,"STAIRS ↑ [E]",
