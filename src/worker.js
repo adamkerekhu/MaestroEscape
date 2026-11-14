@@ -1114,7 +1114,8 @@ class Explore extends Phaser.Scene{
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
     setCharacter:choice=>{
-      if(!choice||!character)return;
+      if(!character)return;
+      if(!choice){character.setVisible(false);return;}
       const key=choice.asset&&this.textures.exists("player_"+choice.id)?"player_"+choice.id:"maestro";
       character.setTexture(key,0).setTint(choice.tint??0xffffff).setVisible(true);
       character.setScale(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
