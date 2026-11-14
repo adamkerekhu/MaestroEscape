@@ -1,3 +1,6 @@
+import { ConsumableRoom } from "./consumables.js";
+import { CONSUMABLE_CLIENT_SCRIPT } from "./consumables-client.js";
+export { ConsumableRoom };
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
 // Original Pygame source remains available in the repository.
@@ -353,6 +356,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+<script src="/assets/consumables.js"></script>
 <script>
 (function(){
 'use strict';
@@ -698,35 +702,25 @@ document.getElementById("mobile-interact").addEventListener("pointerdown",event=
 
 const status=document.getElementById("status"),coords=document.getElementById("coords"),msg=document.getElementById("msg");
 
-// Phase 3: interaction UI. Only dialogue is currently a real gameplay action.
-// Purchases / item grants require an authoritative inventory + task system (TODO).
+// Consumables are now backed by ConsumableRoom, not placeholder NPC toasts.
 const NPC_DIALOGUES={
  maestro_bartender:{intro:"Welcome to Maestro. What can I get you?",talk:["Welcome in. The evening is just getting started.","Take your time, there's plenty of room at the bar."],
  actions:[["beer","Order beer"],["refill","Request refill"]]},
  maestro_regular_1:{intro:"He looks up from his drink.",talk:["Been here all evening. You know how it goes.","The tram's never on time when you need it."],
- actions:[["borrow","Borrow a cigarette"]]},
+ actions:[["borrow","Ask for cigarette"]]},
  maestro_regular_2:{intro:"He seems ready for a chat.",talk:["Another round, another story.","Don't forget where you parked."],
  actions:[["borrow","Borrow a cigarette"]]},
  maestro_regular_3:{intro:"He waves from his seat.",talk:["You heading somewhere?","There's always something happening here."],
  actions:[["borrow","Borrow a cigarette"]]},
  spar_cashier:{intro:"Welcome to SPAR.",talk:["The checkout is open.","Anything else for you?"],
- actions:[["shop","Browse / buy goods"]]},
+ actions:[]},
  spar_shopper_1:{intro:"Someone is browsing the shelves.",talk:["I'm just looking, thanks.","It gets busy in here around closing time."],actions:[]},
  spar_shopper_2:{intro:"A customer turns to you.",talk:["Can't decide what to buy.","I think I forgot my shopping list."],actions:[]},
  tobacco_cashier:{intro:"The cashier waits behind the counter.",talk:["Good evening.","What can I help you with?"],actions:[["cigarettes","Buy cigarettes"]]},
  gyros_employee:{intro:"The grill is hot and the counter is busy.",talk:["Fresh gyros coming up.","One moment, we're preparing another batch."],
  actions:[["kebab","Order kebab"],["collect","Collect kebab"]]}
 };
-const NPC_ACTION_UNAVAILABLE={
- beer:"Beer ordering and inventory are not implemented yet.",
- refill:"Refill requires a purchased beer and the drinking mechanic.",
- borrow:"Cigarette stock, borrowing and inventory are not implemented yet.",
- shop:"Product inventory, pricing and payment are not implemented yet.",
- cigarettes:"Cigarette inventory, age checks and purchases are not implemented yet.",
- kebab:"Kebab ordering and preparation timer are not implemented yet.",
- collect:"Collection requires a real prepared order; none exists yet."
-};
-let npcDialogue=null,npcActionAt=0,npcTalkCount=0;
+let npcDialogue=null,npcActionAt=0,npcTalkCount=0,gameplay=null;
 const npcPrompt=document.getElementById("npc-prompt");
 const npcModal=document.getElementById("npc-dialogue");
 const npcTitle=document.getElementById("npc-dialogue-title");
@@ -792,12 +786,12 @@ function npcOpenDialogue(entity){
   }
  };
  add("Talk","talk");
- for(const [action,label] of script.actions)add(label,action,NPC_ACTION_UNAVAILABLE[action]);
+ for(const [action,label] of script.actions)add(label,action,gameplay?.actionReason(action)||null);
  npcModal.hidden=false;
  npcPrompt.hidden=true;
  npcActionAt=performance.now();
 }
-function npcChooseAction(entity,action){
+async function npcChooseAction(entity,action){
  const now=performance.now();
  if(now-npcActionAt<cfg("npc.interactCooldownMs"))return;
  npcActionAt=now;
@@ -810,11 +804,19 @@ function npcChooseAction(entity,action){
   npcMessage.textContent=lines[npcTalkCount++%lines.length];
   return;
  }
- // TODO: connect to authoritative inventory, stock, timers and consumable actions.
- npcMessage.textContent=NPC_ACTION_UNAVAILABLE[action]||"This action is unavailable.";
+ if(!gameplay){npcMessage.textContent="Connecting to the item room…";return;}
+ npcMessage.textContent="Processing "+action+"…";
+ const result=await gameplay.npcAction(entity.definition.id,action);
+ npcMessage.textContent=result.ok?(result.message||"Action completed"):(result.error||"Cannot complete action");
+ // A new order, refill or pickup may change which actions are available.
+ for(const button of npcActions.querySelectorAll("button"))if(button.textContent==="Request refill"){
+   const reason=gameplay.actionReason("refill");button.disabled=!!reason;button.title=reason||"";
+ }
 }
 function npcUpdatePrompt(){
- if(npcDialogue){npcPrompt.hidden=true;return;}
+ if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
+ const pickup=gameplay?.prompt();
+ if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
  const closest=npcNearestTarget();
  if(!closest||npcExitDistance()<70){npcPrompt.hidden=true;return;}
  npcPrompt.textContent="E · Talk to "+closest.definition.name;
@@ -976,13 +978,16 @@ class VehicleController {
  }
 }
 function interact(){
+ if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
+ if(gameplay?.nearestItem()){void gameplay.interact();return;}
  if(insidePub){
   const nearest=npcNearestTarget();
   if(nearest&&npcInteractionDistance(nearest)<npcExitDistance()
      &&npcExitDistance()>=70){npcOpenDialogue(nearest);return;}
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(near(player,exit.x,exit.y,96))leavePub();
+  else if(gameplay?.tableInteract())return;
   else show("Return to the entrance and press E to exit.");
   return;
  }
@@ -1092,14 +1097,24 @@ class Explore extends Phaser.Scene{
    for(const [dir,start] of [["down",0],["up",8],["right",16],["left",24]])this.anims.create({key:"walk-"+dir,frames:this.anims.generateFrameNumbers("maestro",{start,end:start+7}),frameRate:cfg("character.animationFps"),repeat:-1});
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
-   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();this.respawn();});
+   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();gameplay?.close();this.respawn();});
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
    this.cameras.main.setZoom(cfg("camera.streetZoom"));
    this.input.mouse?.disableContextMenu();
+   gameplay=new MaestroConsumables({
+    player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
+    characterVisible:()=>!activeVehicle&&!!character?.visible,
+    inside:()=>insidePub,show,
+    closeNpc:()=>{if(npcDialogue)npcCloseDialogue()},
+    npcOpen:()=>!!npcDialogue
+   });
+   gameplay.bindScene(this);
    loadOriginalCollision().then(()=>this.respawn());
  }
  respawn(){
+   if(this.hasSpawned&&gameplay)void gameplay.command("resetRound");
+   this.hasSpawned=true;
    let x=SPAWN.x,y=SPAWN.y;
    showInteriorNPCs(npcInteriorKey());
    if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
@@ -1115,6 +1130,7 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
+   gameplay?.tick(time,delta);
    npcUpdatePrompt();
    if(!npcDialogue)npcTick(delta);
    // Tram follows the diagonal tracks, stops at the platform for 3 seconds, and repeats.
@@ -1139,10 +1155,14 @@ class Explore extends Phaser.Scene{
        tramSprite.setPosition(x,y).setRotation(TRAM_ANGLE).setVisible(true);
      }else tramSprite.setVisible(false);
    }
-   if(npcDialogue)return; // Keep character and vehicles still while an action menu is open.
+   if(npcDialogue||gameplay?.menuOpen())return; // Freeze walking while menus are open.
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
+   if(gameplay?.state?.action&&distance>0.01&&!gameplay.cancelRequested){
+     gameplay.cancelRequested=true;void gameplay.command("cancelConsume",{},true);
+   }
+   if(!gameplay?.state?.action&&gameplay)gameplay.cancelRequested=false;
    if(activeVehicle){
      const active=registeredVehicles().find(v=>v.model===activeVehicle);
      const sprite=active?.sprite;
@@ -1234,6 +1254,16 @@ export class GameSettings {
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
+  if(url.pathname==="/assets/consumables.js")
+   return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
+  if(url.pathname==="/api/consumables"){
+   if(!env?.ITEM_ROOMS)return Response.json({error:"Item room binding unavailable"},{status:503});
+   const room=url.searchParams.get("room")||"";
+   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({error:"Invalid room"},{status:400});
+   const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
+   return stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
+    headers:request.headers,body:request.method==="POST"?request.body:undefined}));
+  }
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
     const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
