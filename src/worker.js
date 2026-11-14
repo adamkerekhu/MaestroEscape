@@ -1746,12 +1746,27 @@ export default {
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables"){
-   if(!env?.ITEM_ROOMS)return Response.json({error:"Item room binding unavailable"},{status:503});
+   const jsonHeaders={"cache-control":"no-store","x-maestro-api":"room-v2"};
+   if(!env?.ITEM_ROOMS)return Response.json({ok:false,error:"Item room binding unavailable",code:"ROOM_BINDING_MISSING"},{status:503,headers:jsonHeaders});
    const room=url.searchParams.get("room")||"";
-   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({error:"Invalid room"},{status:400});
-   const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
-   return stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
-    headers:request.headers,body:request.method==="POST"?request.body:undefined}));
+   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({ok:false,error:"Invalid room",code:"INVALID_ROOM"},{status:400,headers:jsonHeaders});
+   try{
+    const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
+    const response=await stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
+     headers:request.headers,body:request.method==="POST"?request.body:undefined}));
+    const type=response.headers.get("content-type")||"";
+    if(!type.toLowerCase().includes("application/json")){
+     console.error("Room Durable Object returned non-JSON",response.status,type);
+     return Response.json({ok:false,error:"Multiplayer room returned an invalid response. Check the Cloudflare deployment and Durable Object logs.",code:"ROOM_NOT_JSON"},{status:502,headers:jsonHeaders});
+    }
+    const headers=new Headers(response.headers);
+    headers.set("cache-control","no-store");
+    headers.set("x-maestro-api","room-v2");
+    return new Response(response.body,{status:response.status,headers});
+   }catch(error){
+    console.error("Multiplayer room request failed",error);
+    return Response.json({ok:false,error:"Multiplayer room unavailable: "+String(error?.message||error),code:"ROOM_UNAVAILABLE"},{status:503,headers:jsonHeaders});
+   }
   }
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
@@ -1817,6 +1832,8 @@ export default {
     if(!upstream.ok)return new Response("Skoda asset unavailable",{status:502});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=86400","x-content-type-options":"nosniff"}});
   }
+  if(url.pathname.startsWith("/api/"))
+   return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
   return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS)),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
