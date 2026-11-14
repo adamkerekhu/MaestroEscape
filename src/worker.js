@@ -1507,6 +1507,8 @@ class Explore extends Phaser.Scene{
     localVehicle:id=>registeredVehicles().find(v=>v.id===id)?.model||null,
     face:()=>player.face,moving:()=>moving,
     npcPoint:id=>{const entity=npcEntities.get(id);return entity?npcInteractionPoint(entity):null},
+    npcDialogueRadius:()=>cfg("npc.interactRadius"),
+    localNpcSettings:()=>!settingsSynced&&!!readLocalGameSettings(),
     playerScale:()=>character?.scaleX||cfg("character.streetScale"),
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
