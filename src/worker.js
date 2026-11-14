@@ -789,7 +789,7 @@ function npcOpenDialogue(entity){
  for(const [action,label] of script.actions)add(label,action,gameplay?.actionReason(action)||null);
  npcModal.hidden=false;
  npcPrompt.hidden=true;
- npcActionAt=performance.now();
+ npcActionAt=performance.now()-cfg("npc.interactCooldownMs");
 }
 async function npcChooseAction(entity,action){
  const now=performance.now();
