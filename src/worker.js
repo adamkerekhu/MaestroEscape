@@ -1601,11 +1601,22 @@ document.getElementById("reset").onclick=()=>scene?.respawn();
 
 export class GameSettings {
  constructor(ctx,env){this.ctx=ctx;this.env=env;}
+ storageFailure(error){
+  const message=String(error?.message||error);
+  const quota=/exceeded allowed rows|quota|free tier|limit.*exceed|SQLITE_FULL/i.test(message);
+  return Response.json({
+   ok:false,
+   error:quota?"Cloudflare storage quota exhausted; cloud save is unavailable until the quota resets.":"Cloud settings storage failed.",
+   code:quota?"STORAGE_QUOTA":"STORAGE_FAILURE"
+  },{status:503,headers:{"cache-control":"no-store"}});
+ }
  async fetch(request){
   if(request.method==="GET"){
-   const current=await this.ctx.storage.get("settings");
-   const revision=await this.ctx.storage.get("revision")||0;
-   return Response.json({settings:{...SETTINGS_DEFAULTS,...current},initialized:!!current,revision},{headers:{"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache"}});
+   try{
+    const current=await this.ctx.storage.get("settings");
+    const revision=await this.ctx.storage.get("revision")||0;
+    return Response.json({settings:{...SETTINGS_DEFAULTS,...current},initialized:!!current,revision},{headers:{"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache"}});
+   }catch(error){console.error("GameSettings GET storage error",error);return this.storageFailure(error);}
   }
   if(request.method==="PUT"){
    try{
@@ -1626,7 +1637,7 @@ export class GameSettings {
      const revision=currentRevision+1;
      await this.ctx.storage.put({settings:clean,revision});
      return Response.json({settings:clean,revision,ok:true},{headers:{"cache-control":"no-store"}});
-   }catch(error){return new Response("Invalid settings request",{status:400});}
+   }catch(error){console.error("GameSettings PUT storage error",error);return error instanceof SyntaxError?Response.json({ok:false,error:"Malformed JSON",code:"INVALID_JSON"},{status:400}):this.storageFailure(error);}
   }
   return new Response("Method not allowed",{status:405});
  }
