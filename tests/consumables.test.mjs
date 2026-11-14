@@ -546,3 +546,72 @@ test("settings page exposes a player-only interaction radius and browser uses it
  assert.ok(browser.includes("this.state.config.playerInteractRadius??45"));
  assert.ok(browser.includes("!q.vehicleId"));
 });
+
+test("buying cigarettes works at a moved cashier, using the same NPC contact point as the dialogue",async()=>{
+ const npc={x:120,y:210},offset={x:0,y:9};
+ const env={SETTINGS_STORE:{idFromName:n=>n,get:()=>({fetch:async()=>({
+  ok:true,json:async()=>({settings:{
+   "npc.tobacco_cashier.x":npc.x,"npc.tobacco_cashier.y":npc.y,
+   "npc.interactRadius":108
+  }})
+ })})}};
+ const {send}=fixture(env);
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(0,"syncPosition",{scene:"dohanybolt",x:115,y:230});
+ const buy=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",npcPoint:{x:120,y:219},
+  actorPosition:{scene:"dohanybolt",x:115,y:230}
+ });
+ assert.equal(buy.ok,true,buy.error);
+ assert.equal(buy.snapshot.items.filter(i=>i.type==="cigarette_pack").length,1);
+ const far=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",npcPoint:{x:470,y:219},
+  actorPosition:{scene:"dohanybolt",x:470,y:220}
+ });
+ assert.equal(far.ok,false,"No remote buying with spoofed NPC contact points");
+ assert.match(far.error,/closer/i);
+});
+test("borrowing from an NPC moved or patrolling near the player works",async()=>{
+ const env={SETTINGS_STORE:{idFromName:n=>n,get:()=>({fetch:async()=>({
+  ok:true,json:async()=>({settings:{
+   "npc.maestro_regular_1.x":750,"npc.maestro_regular_1.y":650,
+   "npc.interactRadius":108
+  }})
+ })})}};
+ const {send}=fixture(env);
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(0,"syncPosition",{scene:"pub",x:150,y:150});
+ const borrowed=await send(0,"npcBorrow",{
+  npcId:"maestro_regular_1",npcPoint:{x:772,y:665},
+  actorPosition:{scene:"pub",x:775,y:676}
+ });
+ assert.equal(borrowed.ok,true,borrowed.error);
+ assert.equal(borrowed.snapshot.inventory.find(i=>i.type==="cigarette").remainingUnits,4);
+ const remote=await send(0,"npcBorrow",{
+  npcId:"maestro_regular_1",npcPoint:{x:1050,y:665},
+  actorPosition:{scene:"pub",x:1050,y:665}
+ });
+ assert.equal(remote.ok,false);
+ assert.match(remote.error,/closer/i);
+});
+test("NPC interaction radius is shared and enforces the same distance as dialogue",async()=>{
+ let radius=55;let tick=1000000;const old=Date.now;Date.now=()=>tick;
+ try{
+  const env={SETTINGS_STORE:{idFromName:n=>n,get:()=>({fetch:async()=>({
+   ok:true,json:async()=>({settings:{"npc.interactRadius":radius}})
+  })})}};
+  const {send,get}=fixture(env);
+  await send(0,"selectCharacter",{characterId:"maestro"});
+  await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:480});
+  const far=await send(0,"buyPack",{
+   npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:481}
+  });
+  assert.equal(far.ok,false);
+  assert.equal((await get(0)).snapshot.config.playerInteractRadius,45);
+  radius=120;tick+=1600;
+  const near=await send(0,"buyPack",{
+   npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:481}
+  });
+  assert.equal(near.ok,true,near.error);
+ }finally{Date.now=old}
+});
