@@ -32,6 +32,43 @@ export const LOBBY_CHARACTERS=[
  {id:"suit",name:"Suit",tint:0xffffff,asset:"suit"},
  {id:"muscular",name:"Muscular",tint:0xffffff,asset:"muscular"}
 ];
+// Room-owned vehicle objects. Driver and passenger seats are exclusive, bikes are solo.
+const VEHICLE_DEFS=[
+ {id:"skoda",name:"Skoda Superb 2.0TDI",type:"car",x:697,y:505,angle:135*Math.PI/180,seats:4},
+ {id:"octavia",name:"Octavia Checkengine",type:"car",x:632,y:453,angle:135*Math.PI/180,seats:4},
+ {id:"bike1",name:"Bubi Bike 1",type:"bike",x:670,y:850,angle:135*Math.PI/180,seats:1},
+ {id:"bike2",name:"Bubi Bike 2",type:"bike",x:688,y:860,angle:135*Math.PI/180,seats:1},
+ {id:"bike3",name:"Bubi Bike 3",type:"bike",x:706,y:870,angle:135*Math.PI/180,seats:1}
+];
+const VEHICLE_LEASE_MS=5000;
+function freshVehicles(){
+ return Object.fromEntries(VEHICLE_DEFS.map(def=>[def.id,{id:def.id,type:def.type,name:def.name,
+  x:def.x,y:def.y,angle:def.angle,speed:0,seats:Array(def.seats).fill(null),
+  updatedAt:now(),revision:0}]));
+}
+function seatOf(s,p){
+ for(const vehicle of Object.values(s.vehicles||{})){
+  const seat=vehicle.seats.indexOf(p.id);
+  if(seat!==-1)return {vehicle,seat};
+ }
+ return null;
+}
+function releaseSeat(s,p){
+ const sitting=seatOf(s,p);
+ if(!sitting)return null;
+ sitting.vehicle.seats[sitting.seat]=null;
+ if(sitting.seat===0)sitting.vehicle.speed=0;
+ sitting.vehicle.revision++;
+ p.vehicleId=null;p.seatIndex=null;
+ return sitting;
+}
+function positionAtVehicle(s,p){
+ const occupant=seatOf(s,p);
+ if(!occupant)return;
+ const vehicle=occupant.vehicle;
+ p.scene="street";p.x=vehicle.x;p.y=vehicle.y;p.face="down";p.moving=false;
+}
+
 const C=CONSUMABLE_CONFIG;
 const now=()=>Date.now();
 const uid=prefix=>prefix+"_"+crypto.randomUUID();
@@ -52,7 +89,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),createdAt:now()};}
+function fresh(){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(),createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -70,6 +107,12 @@ function create(s,type,units,location,id=null,generation=0){
 }
 function settle(s){
  const time=now();
+ if(!s.vehicles)s.vehicles=freshVehicles();
+ // A lost connection cannot reserve a vehicle seat forever.
+ for(const player of Object.values(s.players)){
+  if(time-player.lastSeen>VEHICLE_LEASE_MS&&seatOf(s,player))releaseSeat(s,player);
+ }
+ for(const player of Object.values(s.players))if(seatOf(s,player))positionAtVehicle(s,player);
  for(const order of [...s.orders]){
   if(order.readyAt>time)continue;
   const type=order.type,units=C[type].units;
@@ -83,6 +126,9 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  vehicles:Object.values(s.vehicles||{}).map(v=>({id:v.id,type:v.type,name:v.name,x:v.x,y:v.y,
+   angle:v.angle,speed:v.speed,seats:v.seats.slice(),revision:v.revision,updatedAt:v.updatedAt})),
+  occupiedVehicle:seatOf(s,p)?{vehicleId:seatOf(s,p).vehicle.id,seat:seatOf(s,p).seat}:null,
   characters:LOBBY_CHARACTERS.map(c=>({...c,selectedBy:Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===c.id&&now()-q.lastSeen<30000)?.id||null})),
   selectedCharacter:p.characterId||null,
   players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
@@ -121,6 +167,48 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="boardVehicle"){
+  if(!p.characterId)return bad("Choose a character first");
+  if(p.scene!=="street"||seatOf(s,p))return bad("You must be on foot to board");
+  const v=s.vehicles?.[d.vehicleId];
+  if(!v)return bad("Unknown vehicle");
+  if(!inRange(p,v,85))return bad("Move closer to the vehicle");
+  const seat=Number(d.seat);
+  if(!Number.isInteger(seat)||seat<0||seat>=v.seats.length)return bad("Invalid seat");
+  if(v.seats[seat])return bad("That seat is occupied");
+  if(seat===0&&Math.abs(v.speed)>3)return bad("Cannot take the wheel of a moving vehicle");
+  v.seats[seat]=p.id;v.revision++;p.vehicleId=v.id;p.seatIndex=seat;
+  positionAtVehicle(s,p);
+  return ok({vehicleId:v.id,seat,message:seat===0?"You are driving "+v.name:"You are a passenger in "+v.name});
+ }
+ if(op==="leaveVehicle"){
+  const riding=seatOf(s,p);
+  if(!riding)return bad("You are not in a vehicle");
+  if(Math.abs(riding.vehicle.speed)>8)return bad("Cannot exit a moving vehicle");
+  const {vehicle,seat}=riding;
+  const side=seat%2===0?1:-1;
+  const candidate={x:vehicle.x+Math.cos(vehicle.angle)*side*46,
+                   y:vehicle.y+Math.sin(vehicle.angle)*side*46};
+  releaseSeat(s,p);
+  p.scene="street";p.x=Math.max(20,Math.min(1580,candidate.x));p.y=Math.max(20,Math.min(970,candidate.y));
+  return ok({x:p.x,y:p.y,message:"Exited "+vehicle.name});
+ }
+ if(op==="driveVehicle"){
+  const riding=seatOf(s,p);
+  if(!riding||riding.seat!==0||riding.vehicle.id!==d.vehicleId)return bad("Driver seat required",403);
+  const v=riding.vehicle;
+  const x=Number(d.x),y=Number(d.y),angle=Number(d.angle),speed=Number(d.speed);
+  if(![x,y,angle,speed].every(Number.isFinite)||x<20||x>1580||y<20||y>970||Math.abs(speed)>300)
+   return bad("Invalid vehicle movement");
+  const elapsed=Math.max(.05,Math.min(1,(now()-v.updatedAt)/1000));
+  if(dist(v,{x,y})>Math.max(55,elapsed*330+25))return bad("Vehicle moved too far");
+  v.x=x;v.y=y;v.angle=angle;v.speed=speed;v.updatedAt=now();v.revision++;
+  for(const occupantId of v.seats){
+   const rider=s.players[occupantId];
+   if(rider)positionAtVehicle(s,rider);
+  }
+  return ok({vehicleId:v.id});
+ }
  if(op==="selectCharacter"){
   const character=LOBBY_CHARACTERS.find(c=>c.id===d.characterId);
   if(!character)return bad("Unknown character");
@@ -133,6 +221,11 @@ function operation(s,p,d){
   p.characterId=null;p.scene=null;return ok();
  }
  if(op==="syncPosition"){
+  if(seatOf(s,p)){
+   positionAtVehicle(s,p);
+   p.lastSeen=now();
+   return ok(); // Passenger and driver positions always follow the shared car.
+  }
   const scene=["street","pub","spar","gyros","dohanybolt"].includes(d.scene)?d.scene:null;
   const x=Number(d.x),y=Number(d.y);
   if(!scene||!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>1800||y>1300)return bad("Invalid position");
@@ -145,6 +238,7 @@ function operation(s,p,d){
  if(op==="resetRound"){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
+  s.vehicles=freshVehicles();
   s.items=[];s.orders=[];s.requests=[];s.completions=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
