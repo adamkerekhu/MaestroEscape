@@ -69,13 +69,6 @@ function seatOf(s,p){
 }
 // Won cars are room-owned rewards, not temporary effects or disposable default spawns.
 // Preserve them when stock vehicles are repositioned or a legacy client resets a round.
-function preservePrizeVehicles(s,settings){
- const regular=freshVehicles(settings);
- for(const [id,v] of Object.entries(s.vehicles||{})){
-  if(id.startsWith("maiybach_"))regular[id]=v;
- }
- return regular;
-}
 function releaseSeat(s,p){
  const sitting=seatOf(s,p);
  if(!sitting)return null;
@@ -97,7 +90,7 @@ const TRAM_TRACK={start:{x:-170,y:0},stop:{x:455,y:524},end:{x:1130,y:1090}};
 const TRAM_DEATH_MS=5000;
 const GRAVE_LIFETIME_MS=30000;
 const CAR_HIT_MIN_SPEED=22;
-const CAR_DIMENSIONS={skoda:{width:32,length:72},octavia:{width:32,length:64},maiybach:{width:37,length:90}};
+const CAR_DIMENSIONS={skoda:{width:32,length:72},octavia:{width:32,length:64}};
 const PLAYER_HIT_RADIUS=12;
 const TRAM_PLAYER_RADIUS=12;
 const TRAM_SPAWN={x:859,y:577};
@@ -172,7 +165,7 @@ export function sweptFrontImpact(from,to,point){
   (point.x-from.x)*Math.sin(from.angle)-(point.y-from.y)*Math.cos(from.angle)>=-PLAYER_HIT_RADIUS;
 }
 function carHitPlayer(vehicle,from,player,s){
- const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id]||(vehicle.id.startsWith("maiybach_")?CAR_DIMENSIONS.maiybach:null);
+ const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
  if(!dims||vehicle.speed<=CAR_HIT_MIN_SPEED)return false;
  const next={...vehicle,...dims},previous={...from,...dims};
  return frontImpact(next,player)||sweptFrontImpact(previous,next,player);
@@ -232,7 +225,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},pendingMaybach:{},orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -324,6 +317,21 @@ function settle(s){
   }
  }
  if(!s.vehicles)s.vehicles=freshVehicles();
+ // Migrate existing multiplayer rooms: remove all previously won Maíybach cars.
+ // Disembark occupants so no player is left attached to a deleted vehicle.
+ for(const [id,vehicle] of Object.entries(s.vehicles)){
+  if(!id.startsWith("maiybach_"))continue;
+  for(const occupantId of vehicle.seats||[]){
+   const occupant=s.players[occupantId];
+   if(!occupant)continue;
+   releaseSeat(s,occupant);
+   occupant.scene="street";
+   occupant.x=Math.max(25,Math.min(1575,vehicle.x+48));
+   occupant.y=Math.max(25,Math.min(967,vehicle.y+48));
+   occupant.face="down";occupant.moving=false;
+  }
+  delete s.vehicles[id];
+ }
  // A lost connection cannot reserve a vehicle seat forever.
  for(const player of Object.values(s.players)){
   if(time-player.lastSeen>VEHICLE_LEASE_MS&&seatOf(s,player))releaseSeat(s,player);
@@ -469,7 +477,7 @@ function operation(s,p,d){
   if(occupied)return bad("Everyone must exit vehicles before respawning");
   const settings=d.vehicleSpawnSettings&&typeof d.vehicleSpawnSettings==="object"?d.vehicleSpawnSettings:s.vehicleSpawnSettings||{};
   s.vehicleSpawnSettings=settings;
-  s.vehicles=preservePrizeVehicles(s,settings);
+  s.vehicles=freshVehicles(settings);
   s.vehicleRespawnRevision=(s.vehicleRespawnRevision||0)+1;
   return ok({vehicleRespawnRevision:s.vehicleRespawnRevision,message:"All vehicles respawned at their starting positions"});
  }
@@ -548,34 +556,12 @@ function operation(s,p,d){
   // last reported position for interactions but cannot authenticate movement paths.
   if(p.action&&(p.scene!==scene||dist(p,{x,y})>7))p.action=null;
   p.scene=scene;p.x=x;p.y=y;p.face=["down","up","right","left"].includes(d.face)?d.face:"down";p.moving=!!d.moving;p.lastSeen=now();
-  // Award a won car only after its owner returns outdoors; never spawn a car inside a shop.
-  if(scene==="street"&&s.pendingMaybach?.[p.id]>0){
-   s.vehicles??={};
-   let spawned=0;
-   while(s.pendingMaybach[p.id]>0&&spawned<3){
-    const id=uid("maiybach");
-    const forward={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[p.face]||[0,1];
-    const side=[-forward[1],forward[0]];
-    const spawnCandidates=[
-     {x:x+forward[0]*95,y:y+forward[1]*95},
-     {x:x+forward[0]*110+side[0]*55,y:y+forward[1]*110+side[1]*55},
-     {x:x+forward[0]*110-side[0]*55,y:y+forward[1]*110-side[1]*55},
-     {x:x+side[0]*100,y:y+side[1]*100},
-     {x:x-side[0]*100,y:y-side[1]*100}
-    ];
-    const spot=spawnCandidates.find(q=>q.x>70&&q.x<1530&&q.y>65&&q.y<925&&Object.values(s.vehicles).every(v=>dist(v,q)>75));
-    if(!spot)break;
-    s.vehicles[id]={id,type:"car",name:"Maíybach",x:spot.x,y:spot.y,angle:Math.PI/2,
-      speed:0,seats:[null,null,null,null],updatedAt:now(),revision:0};
-    s.pendingMaybach[p.id]--;spawned++;
-   }
-  }
   if(scene==="street"&&p.characterId&&!p.deadUntil){
    // Check also when a pedestrian walks across the moving car's nose.
    for(const vehicle of Object.values(s.vehicles||{})){
     if(vehicle.type!=="car"||vehicle.speed<=CAR_HIT_MIN_SPEED)continue;
     if(now()-vehicle.updatedAt>650)continue;
-    const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id]||(vehicle.id.startsWith("maiybach_")?CAR_DIMENSIONS.maiybach:null);
+    const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
     if(dims&&frontImpact({...vehicle,...dims},p)){
      recordVehicleDeath(s,p,vehicle,"car",vehicle.id);
      break;
@@ -587,8 +573,8 @@ function operation(s,p,d){
  if(op==="resetRound"){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
-  s.vehicles=preservePrizeVehicles(s,s.vehicleSpawnSettings||{});
-  s.items=[];s.scratchResults={};s.pendingMaybach={};s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
+  s.vehicles=freshVehicles(s.vehicleSpawnSettings||{});
+  s.items=[];s.scratchResults={};s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
  }
@@ -676,11 +662,8 @@ function operation(s,p,d){
   delete s.scratchResults[item.id];
   s.items.splice(s.items.indexOf(item),1);
   if(p.equippedId===item.id)p.equippedId=null;
-  if(won){
-   s.pendingMaybach??={};
-   s.pendingMaybach[p.id]=(s.pendingMaybach[p.id]||0)+1;
-  }
-  return ok({won,message:won?"NYERTÉL! A Maíybach a dohánybolt előtt fog megjelenni.":"NEM NYERT. Próbáld újra máskor!"});
+  // Preserve the 1-in-10 win roll. Vehicle prizes are disabled until a new reward is chosen.
+  return ok({won,message:won?"NYERTÉL! A nyeremény később kerül meghatározásra.":"NEM NYERT. Próbáld újra máskor!"});
  }
  if(op==="extractCigarette"){
   const i=owned(s,p,d.itemId);if(!i||i.type!=="cigarette_pack")return bad("Need a cigarette pack");
