@@ -901,28 +901,106 @@ function leavePub(){
  status.textContent="Outside Maestro Pub";
  show("Back on Mester utca.");
 }
-function enterOrExitCar(){
- if(!activeVehicle){
-  const choice=registeredVehicles().filter(v=>v.sprite).sort((a,b)=>Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
-  if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){show("Move closer to a car or Bubi bike.");return;}
-  activeVehicle=choice.model;choice.model.driver=true;choice.model.speed=0;choice.model.wheelTurn=0;character.setVisible(false);
-  if(choice.model.type==="bike"){
-    // Hide the empty bicycle only while the combined rider+bike sprite is visible.
-    if(riderSprite){choice.sprite.setVisible(false);riderSprite.anims.stop();riderSprite.setFrame(0);updateBikeRider(choice.model,false);}
-    else choice.sprite.setVisible(true);
-  }else if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
-  scene.cameras.main.startFollow(choice.sprite,true,.13,.13);status.textContent="Riding: "+choice.label;
-  show(choice.label+" · W pedal/accelerate · S brake · A/D steer · E dismount.");
- }else{
-  const vehicle=activeVehicle;
-  const offsets=vehicle.type==="bike"?[[22,0],[-22,0],[0,24],[0,-24],[25,25]]:[[41,0],[-41,0],[0,43],[0,-43],[40,35],[-40,35]];
-  const pos=offsets.map(([x,y])=>({x:vehicle.x+x,y:vehicle.y+y})).find(p=>!intersects(p.x,p.y));
-  if(!pos){show("No safe dismount location. Move farther.");return;}
-  vehicle.driver=false;vehicle.speed=0;vehicle.wheelTurn=0;activeVehicle=null;
-  if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
-  if(vehicle.type==="bike"){const parked=bikeSprites[bikes.indexOf(vehicle)];if(parked)parked.setVisible(true);}
-  player.x=pos.x;player.y=pos.y;character.setPosition(player.x,player.y).setVisible(true);
-  scene.cameras.main.startFollow(character,true,.13,.13);status.textContent="On foot";show("Dismounted.");
+// Vehicle seat selection is server-owned. There is no local claim of ownership.
+let vehicleSeatPanel=null,vehicleBusy=false,vehicleSeatRole=null;
+function vehicleSeatMenu(choice){
+ if(vehicleBusy||!gameplay?.ready)return;
+ vehicleSeatPanel?.remove();
+ const vehicle=gameplay.vehicle(choice.id);
+ if(!vehicle){show("Vehicle state still loading");return;}
+ const overlay=document.createElement("div");
+ overlay.id="vehicle-seat-menu";
+ overlay.style.cssText="position:absolute;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;background:#081627aa;padding:12px";
+ const panel=document.createElement("div");
+ panel.style.cssText="background:#1a2a40;border:1px solid #96a6bb;border-radius:12px;padding:17px;min-width:250px;max-width:360px;width:100%;color:white";
+ const title=document.createElement("h3");title.textContent=choice.label;title.style.margin="0 0 12px";panel.append(title);
+ const add=(label,seat,disabled=false)=>{
+  const button=document.createElement("button");button.textContent=label;button.disabled=disabled;
+  button.style.cssText="display:block;margin:7px 0;padding:9px;width:100%;text-align:left";
+  button.onclick=async()=>{
+   if(vehicleBusy)return;vehicleBusy=true;button.disabled=true;
+   try{
+    const result=await gameplay.boardVehicle(choice.id,seat);
+    if(!result.ok){show(result.error||"Seat unavailable");return}
+    overlay.remove();vehicleSeatPanel=null;
+    syncVehicleFromRoom();
+    show(result.message||"Boarded");
+   }finally{vehicleBusy=false}
+  };
+  panel.append(button);
+ };
+ add("Driver · steer with WASD",0,!!vehicle.seats[0]||Math.abs(vehicle.speed)>3);
+ if(vehicle.type!=="bike")for(let seat=1;seat<vehicle.seats.length;seat++)
+  add("Passenger seat "+seat,seat,!!vehicle.seats[seat]);
+ const close=document.createElement("button");close.textContent="Cancel";close.onclick=()=>{overlay.remove();vehicleSeatPanel=null};
+ close.style.cssText="padding:8px;width:100%;margin-top:8px";panel.append(close);
+ overlay.append(panel);document.getElementById("screen").append(overlay);vehicleSeatPanel=overlay;
+}
+async function enterOrExitCar(){
+ if(!gameplay?.ready){show("Connecting to multiplayer room…");return}
+ if(gameplay.occupied){
+  const result=await gameplay.leaveVehicle();
+  if(!result.ok){show(result.error||"Cannot exit vehicle");return}
+  leaveSharedVehicle(result);
+  return;
+ }
+ const choice=registeredVehicles().filter(v=>v.sprite).sort((a,b)=>
+  Math.hypot(player.x-a.model.x,player.y-a.model.y)-Math.hypot(player.x-b.model.x,player.y-b.model.y))[0];
+ if(!choice||!near(player,choice.model.x,choice.model.y,cfg("game.vehicleRadius"))){
+  show("Move closer to a car or bicycle.");return;
+ }
+ vehicleSeatMenu(choice);
+}
+function leaveSharedVehicle(result){
+ const prior=activeVehicle;
+ if(prior){prior.driver=false;prior.wheelTurn=0}
+ activeVehicle=null;vehicleSeatRole=null;
+ if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false)}
+ const model=registeredVehicles().find(v=>v.model===prior);
+ if(prior?.type==="bike"&&model?.sprite)model.sprite.setVisible(true);
+ player.x=result.x??prior?.x??player.x;player.y=result.y??prior?.y??player.y;
+ character.setPosition(player.x,player.y).setVisible(true);
+ scene.cameras.main.startFollow(character,true,.13,.13);
+ status.textContent="On foot";
+ show(result.message||"Exited vehicle");
+}
+function syncVehicleFromRoom(delta=16){
+ if(!gameplay?.state||!scene)return;
+ const occupied=gameplay.occupied;
+ const selected=occupied?registeredVehicles().find(v=>v.id===occupied.vehicleId):null;
+ if(occupied&&selected&&activeVehicle!==selected.model){
+  activeVehicle=selected.model;vehicleSeatRole=occupied.seat;
+  activeVehicle.driver=occupied.seat===0;
+  character.setVisible(false);
+  scene.cameras.main.startFollow(selected.sprite,true,.13,.13);
+  status.textContent=(occupied.seat===0?"Driving ":"Passenger in ")+selected.label;
+ }
+ if(!occupied&&activeVehicle){leaveSharedVehicle({message:"Vehicle seat released"})}
+ for(const remote of gameplay.vehicles){
+  const target=registeredVehicles().find(v=>v.id===remote.id);
+  if(!target?.sprite)continue;
+  const model=target.model,driving=occupied?.vehicleId===remote.id&&occupied.seat===0;
+  // Driver predicts locally; all other viewers interpolate the shared position.
+  if(!driving){
+   const distance=Math.hypot(remote.x-model.x,remote.y-model.y);
+   const alpha=distance>150?1:1-Math.exp(-Math.min(50,delta)/90);
+   model.x+=(remote.x-model.x)*alpha;
+   model.y+=(remote.y-model.y)*alpha;
+   const diff=Math.atan2(Math.sin(remote.angle-model.angle),Math.cos(remote.angle-model.angle));
+   model.angle+=diff*alpha;model.speed=remote.speed;
+  }
+  target.sprite.setPosition(model.x,model.y).setRotation(model.angle);
+  target.sprite.setVisible(!insidePub);
+  const bikeOccupied=remote.type==="bike"&&!!remote.seats[0];
+  // A single rider+bike visual on the local bike; remote bike still visible to others.
+  if(remote.type==="bike"&&occupied?.vehicleId===remote.id&&riderSprite){
+   target.sprite.setVisible(false);
+   updateBikeRider(model,Math.abs(model.speed)>6);
+  }else if(remote.type==="bike")target.sprite.setVisible(!insidePub);
+ }
+ if(occupied&&activeVehicle){
+  player.x=activeVehicle.x;player.y=activeVehicle.y;
+  character.setVisible(false);
  }
 }
 // The playable avatar is drawn on top of the bicycle and rotates with its heading.
@@ -982,6 +1060,7 @@ class VehicleController {
 }
 function interact(){
  if(gameplay&&!gameplay.hasCharacter())return;
+ if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
  if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
  if(gameplay?.nearestItem()){void gameplay.interact();return;}
@@ -996,7 +1075,7 @@ function interact(){
   else show("Return to the entrance and press E to exit.");
   return;
  }
- if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){enterOrExitCar();return;}
+ if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){void enterOrExitCar();return;}
  if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
  if(near(player,PUB_DOOR.x,PUB_DOOR.y,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
@@ -1114,13 +1193,14 @@ class Explore extends Phaser.Scene{
    }
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
-   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();gameplay?.close();this.respawn();});
+   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();gameplay?.close();if(gameplay?.occupied){show("Exit the vehicle before respawning.");return;}this.respawn();});
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
    this.cameras.main.setZoom(cfg("camera.streetZoom"));
    this.input.mouse?.disableContextMenu();
    gameplay=new MaestroConsumables({
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
+    localVehicle:id=>registeredVehicles().find(v=>v.id===id)?.model||null,
     face:()=>player.face,moving:()=>moving,
     playerScale:()=>character?.scaleX||cfg("character.streetScale"),
     characterVisible:()=>!activeVehicle&&!!character?.visible,
@@ -1141,24 +1221,25 @@ class Explore extends Phaser.Scene{
    loadOriginalCollision().then(()=>{this.respawn();if(!gameplay?.hasCharacter())character.setVisible(false)});
  }
  respawn(){
-   if(this.hasSpawned&&gameplay)void gameplay.command("resetRound");
+   if(this.hasSpawned&&gameplay&&!gameplay.occupied)void gameplay.command("resetRound");
    this.hasSpawned=true;
    let x=SPAWN.x,y=SPAWN.y;
    showInteriorNPCs(npcInteriorKey());
-   if(activeVehicle){activeVehicle.driver=false;activeVehicle.speed=0;activeVehicle.wheelTurn=0;activeVehicle=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
+   if(activeVehicle&&!gameplay?.occupied){activeVehicle.driver=false;activeVehicle=null;vehicleSeatRole=null;character.setVisible(true);this.cameras.main.startFollow(character,true,0.13,0.13);}
    if(riderSprite){riderSprite.anims.stop();riderSprite.setVisible(false);}
    for(const sprite of bikeSprites)if(sprite)sprite.setVisible(true);
-   car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
+   if(!gameplay?.state){car.x=cfg("vehicle.skoda.spawnX");car.y=cfg("vehicle.skoda.spawnY");car.frame=3;car.angle=cfg("vehicle.skoda.angle")*Math.PI/180;car.speed=0;car.wheelTurn=0;
    octavia.x=cfg("vehicle.octavia.spawnX");octavia.y=cfg("vehicle.octavia.spawnY");octavia.angle=cfg("vehicle.octavia.angle")*Math.PI/180;octavia.speed=0;octavia.wheelTurn=0;
    bikes.forEach((bike,i)=>{bike.x=cfg("vehicle."+bike.id+".spawnX");bike.y=cfg("vehicle."+bike.id+".spawnY");bike.angle=cfg("vehicle."+bike.id+".angle")*Math.PI/180;bike.speed=0;bike.wheelTurn=0;bikeSprites[i]?.setPosition(bike.x,bike.y).setRotation(bike.angle);});
    if(octaviaSprite)octaviaSprite.setPosition(octavia.x,octavia.y).setRotation(octavia.angle);
-   if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);
+   if(carSprite)carSprite.setPosition(car.x,car.y).setRotation(car.angle);}
    if(intersects(x,y)){for(let radius=25;radius<=500;radius+=25){let found=false;for(let a=0;a<Math.PI*2;a+=Math.PI/8){let px=x+Math.cos(a)*radius,py=y+Math.sin(a)*radius;if(!intersects(px,py)){x=px;y=py;found=true;break}}if(found)break;}}
    player.x=x;player.y=y;character.setPosition(x,y);show("Spawned on a walkable point. Explore the original map.");
  }
  update(time,delta){
    if(!character||!keys)return;
    if(gameplay&&!gameplay.hasCharacter())return;
+   syncVehicleFromRoom(delta);
    gameplay?.tick(time,delta);
    npcUpdatePrompt();
    if(!npcDialogue)npcTick(delta);
@@ -1197,7 +1278,8 @@ class Explore extends Phaser.Scene{
      const sprite=active?.sprite;
      const controller=active?.controller;
      if(sprite&&controller){
-       controller.update(dx,dy,Math.min(.04,delta/1000));
+       if(vehicleSeatRole===0)controller.update(dx,dy,Math.min(.04,delta/1000));
+       else{dx=0;dy=0;}
        sprite.setPosition(activeVehicle.x,activeVehicle.y).setRotation(activeVehicle.angle);
        if(activeVehicle.type==="bike"){
          // W / up-arrow / joystick forward pedals; idle frame is shown while coasting.
