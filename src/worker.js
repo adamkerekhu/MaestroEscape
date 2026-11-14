@@ -1122,6 +1122,7 @@ class Explore extends Phaser.Scene{
    gameplay=new MaestroConsumables({
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
     face:()=>player.face,moving:()=>moving,
+    playerScale:()=>character?.scaleX||cfg("character.streetScale"),
     characterVisible:()=>!activeVehicle&&!!character?.visible,
     inside:()=>insidePub,show,
     setCharacter:choice=>{
