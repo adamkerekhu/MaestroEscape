@@ -939,7 +939,15 @@ function vehicleSeatMenu(choice){
 async function enterOrExitCar(){
  if(!gameplay?.ready){show("Connecting to multiplayer room…");return}
  if(gameplay.occupied){
-  const result=await gameplay.leaveVehicle();
+  const vehicle=activeVehicle;
+  if(!vehicle)return;
+  if(Math.abs(vehicle.speed)>8){show("Stop the vehicle before exiting.");return}
+  const offsets=vehicle.type==="bike"?[[23,0],[-23,0],[0,24],[0,-24]]:
+    [[46,0],[-46,0],[0,48],[0,-48],[43,36],[-43,36]];
+  const safe=offsets.map(([x,y])=>({x:vehicle.x+x,y:vehicle.y+y}))
+   .find(p=>p.x>=25&&p.x<=1575&&p.y>=25&&p.y<=967&&!intersects(p.x,p.y));
+  if(!safe){show("No safe exit next to the vehicle.");return}
+  const result=await gameplay.command("leaveVehicle",safe);
   if(!result.ok){show(result.error||"Cannot exit vehicle");return}
   leaveSharedVehicle(result);
   return;
