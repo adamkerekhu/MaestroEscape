@@ -379,8 +379,8 @@ test("remote players have no name tags and movement uses fast updates with per-f
  assert.doesNotThrow(()=>new Function(browser));
  assert.ok(!browser.includes('this.scene.add.text(0,-91,q.alias'),"Player aliases should not float over characters");
  assert.ok(browser.includes('marker.add([avatar])'),"Remote avatars must have no name labels");
- assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,250\)/);
- assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,750\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.syncPosition\(\).*?,500\)/);
+ assert.match(browser,/setInterval\(\(\)=>this\.fetchSnapshot\(\).*?,2500\)/);
  assert.ok(browser.includes("this.positionPending"),"Network position requests must not overlap");
  assert.ok(browser.includes("this.snapshotPending"),"State snapshots must not overlap");
  assert.ok(browser.includes("1-Math.exp(-Math.min(50,Math.max(1,delta))/85)"),"Remote positions must be smoothed every frame");
@@ -699,7 +699,7 @@ test("NPC interaction radius is shared and enforces the same distance as dialogu
   });
   assert.equal(far.ok,false);
   assert.equal((await get(0)).snapshot.config.playerInteractRadius,45);
-  radius=120;tick+=1600;
+  radius=120;tick+=16000;
   const near=await send(0,"buyPack",{
    npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:481}
   });
@@ -877,7 +877,7 @@ test("client reports tram collisions and renders death, five-second countdown an
  assert.ok(client.includes('this.command("tramHit"'));
  assert.ok(client.includes("this.ctx.onTramDeath?.("));
  assert.ok(client.includes("this.ctx.onTramRespawn?.("));
- assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead())return"));
+ assert.ok(client.includes("if(!this.ready||!this.hasCharacter()||this.positionPending||this.isDead()||Date.now()<this.roomRetryAfter)return"));
  assert.ok(worker.includes("function tramOverlapsPlayer("));
  assert.ok(worker.includes('id="tram-death-overlay"'));
  assert.ok(worker.includes("function renderTramGraves()"));
