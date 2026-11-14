@@ -564,6 +564,12 @@ test("buying cigarettes works at a moved cashier, using the same NPC contact poi
  });
  assert.equal(buy.ok,true,buy.error);
  assert.equal(buy.snapshot.items.filter(i=>i.type==="cigarette_pack").length,1);
+ const pack=buy.snapshot.items.find(i=>i.type==="cigarette_pack");
+ assert.ok(Math.hypot(pack.location.x-115,pack.location.y-230)<82,
+  "Purchased cigarettes must appear in pickup range at the moved cashier");
+ const collected=await send(0,"collectItem",{itemId:pack.id});
+ assert.equal(collected.ok,true,collected.error);
+ assert.equal(collected.snapshot.inventory.find(i=>i.id===pack.id).type,"cigarette_pack");
  const far=await send(0,"buyPack",{
   npcId:"tobacco_cashier",npcPoint:{x:470,y:219},
   actorPosition:{scene:"dohanybolt",x:470,y:220}
