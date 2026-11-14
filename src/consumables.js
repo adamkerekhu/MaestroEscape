@@ -83,6 +83,55 @@ function positionAtVehicle(s,p){
  p.scene="street";p.x=vehicle.x;p.y=vehicle.y;p.face="down";p.moving=false;
 }
 
+// Tram and player share world coordinates, measured in Phaser map pixels.
+const TRAM_TRACK={start:{x:-170,y:0},stop:{x:455,y:524},end:{x:1130,y:1090}};
+const TRAM_DEATH_MS=5000;
+const TRAM_PLAYER_RADIUS=12;
+const TRAM_SPAWN={x:859,y:577};
+const TRAM_DEFAULTS={interval:20,travelTime:14.5,width:40,length:144};
+const tramConfigValue=(value,fallback,min,max)=>{
+ const n=Number(value);
+ return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
+};
+export function tramWorldAt(timestamp,config=TRAM_DEFAULTS){
+ const period=tramConfigValue(config.interval,20,5,90)*1000;
+ const dwell=3000;
+ const run=Math.max(1000,Math.min(tramConfigValue(config.travelTime,14.5,4,60)*1000,period-dwell-250));
+ const phase=((timestamp%period)+period)%period;
+ const full=Math.hypot(TRAM_TRACK.end.x-TRAM_TRACK.start.x,TRAM_TRACK.end.y-TRAM_TRACK.start.y);
+ const leg1=run*Math.hypot(TRAM_TRACK.stop.x-TRAM_TRACK.start.x,TRAM_TRACK.stop.y-TRAM_TRACK.start.y)/full;
+ const departure=leg1+dwell,finish=run+dwell;
+ const direction=Math.atan2(TRAM_TRACK.end.x-TRAM_TRACK.start.x,-(TRAM_TRACK.end.y-TRAM_TRACK.start.y));
+ const width=tramConfigValue(config.width,40,15,180),length=tramConfigValue(config.length,144,40,300);
+ let x,y,moving=false,visible=phase<finish;
+ if(phase<leg1){
+  const t=phase/leg1;x=TRAM_TRACK.start.x+(TRAM_TRACK.stop.x-TRAM_TRACK.start.x)*t;
+  y=TRAM_TRACK.start.y+(TRAM_TRACK.stop.y-TRAM_TRACK.start.y)*t;moving=true;
+ }else if(phase<departure){
+  x=TRAM_TRACK.stop.x;y=TRAM_TRACK.stop.y;
+ }else if(visible){
+  const t=(phase-departure)/(finish-departure);
+  x=TRAM_TRACK.stop.x+(TRAM_TRACK.end.x-TRAM_TRACK.stop.x)*t;
+  y=TRAM_TRACK.stop.y+(TRAM_TRACK.end.y-TRAM_TRACK.stop.y)*t;moving=true;
+ }else{x=TRAM_TRACK.start.x;y=TRAM_TRACK.start.y}
+ return {x,y,angle:direction,width,length,visible,moving,phase,period};
+}
+export function tramHitsPlayer(tram,point,radius=TRAM_PLAYER_RADIUS){
+ if(!tram.visible||!tram.moving)return false;
+ const dx=point.x-tram.x,dy=point.y-tram.y;
+ const trackX=Math.sin(tram.angle),trackY=-Math.cos(tram.angle);
+ const along=dx*trackX+dy*trackY;
+ const across=dx*trackY-dy*trackX;
+ return Math.abs(along)<=tram.length/2+radius&&Math.abs(across)<=tram.width/2+radius;
+}
+function tramCollisionAt(timestamp,config,position){
+ // Permit a small network delay without allowing hits outside the moving tram.
+ for(const offset of [-350,-175,0,175,350]){
+  if(tramHitsPlayer(tramWorldAt(timestamp+offset,config),position))return true;
+ }
+ return false;
+}
+
 const C=CONSUMABLE_CONFIG;
 const now=()=>Date.now();
 const uid=prefix=>prefix+"_"+crypto.randomUUID();
@@ -103,7 +152,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -127,6 +176,14 @@ function create(s,type,units,location,id=null,generation=0){
 }
 function settle(s){
  const time=now();
+ for(const player of Object.values(s.players)){
+  if(player.deadUntil&&time>=player.deadUntil){
+   player.deadUntil=null;player.scene="street";
+   player.x=TRAM_SPAWN.x;player.y=TRAM_SPAWN.y;
+   player.face="down";player.moving=false;
+   player.respawnRevision=(player.respawnRevision||0)+1;
+  }
+ }
  if(!s.vehicles)s.vehicles=freshVehicles();
  // A lost connection cannot reserve a vehicle seat forever.
  for(const player of Object.values(s.players)){
@@ -146,13 +203,17 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  death:p.lastDeath||null,deadUntil:p.deadUntil||null,
+  respawnRevision:p.respawnRevision||0,
+  graves:(s.graves||[]).slice(),
+  tram:tramWorldAt(now(),s.tramConfig||TRAM_DEFAULTS),
   vehicleRespawnRevision:s.vehicleRespawnRevision||0,
   vehicles:Object.values(s.vehicles||{}).map(v=>({id:v.id,type:v.type,name:v.name,x:v.x,y:v.y,
    angle:v.angle,speed:v.speed,seats:v.seats.slice(),revision:v.revision,updatedAt:v.updatedAt})),
   occupiedVehicle:seatOf(s,p)?{vehicleId:seatOf(s,p).vehicle.id,seat:seatOf(s,p).seat}:null,
   characters:LOBBY_CHARACTERS.map(c=>({...c,selectedBy:Object.values(s.players).find(q=>q.id!==p.id&&q.characterId===c.id&&now()-q.lastSeen<30000)?.id||null})),
   selectedCharacter:p.characterId||null,
-  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,vehicleId:seatOf(s,q)?.vehicle.id||null,seatIndex:seatOf(s,q)?.seat??null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
+  players:Object.values(s.players).filter(q=>now()-q.lastSeen<30000).map(q=>({id:q.id,scene:q.scene,x:q.x,y:q.y,face:q.face||"down",moving:!!q.moving,alias:q.alias,characterId:q.characterId||null,deadUntil:q.deadUntil||null,death:q.lastDeath||null,respawnRevision:q.respawnRevision||0,vehicleId:seatOf(s,q)?.vehicle.id||null,seatIndex:seatOf(s,q)?.seat??null,online:true,equippedId:q.id===p.id?q.equippedId:null})),
   orders:s.orders.filter(o=>o.playerId===p.id),requests:s.requests.filter(q=>q.toId===p.id||q.fromId===p.id),
   action:p.action,objectives:{...p.objectives},equippedId:p.equippedId,
   tables:C.pubTables,config:{...C,playerInteractRadius:s.playerInteractRadius??PLAYER_INTERACT_DEFAULT},serverTime:now()};
@@ -222,6 +283,35 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="tramHit"){
+  if(!p.characterId||p.scene!=="street"||seatOf(s,p))return bad("Tram collision requires a walking player on the street");
+  if(p.deadUntil&&now()<p.deadUntil)return bad("Already hit by tram");
+  const at=d.actorPosition;
+  if(!at||at.scene!=="street")return bad("Invalid tram collision position");
+  const x=Number(at.x),y=Number(at.y);
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1800||y<0||y>1300)return bad("Invalid position");
+  // Recent player tracking is already client-originated; keep the collision
+  // report close to the latest tracked position to avoid arbitrary deaths.
+  if(dist(p,{x,y})>110)return bad("Stale tram collision position");
+  if(!tramCollisionAt(now(),s.tramConfig||TRAM_DEFAULTS,{x,y}))return bad("Tram is not colliding with the player");
+  const hit=tramWorldAt(now(),s.tramConfig||TRAM_DEFAULTS);
+  const awayX=x-hit.x,awayY=y-hit.y,norm=Math.hypot(awayX,awayY)||1;
+  const death={id:uid("death"),at:now(),until:now()+TRAM_DEATH_MS,x,y,
+   knockX:awayX/norm*28,knockY:awayY/norm*28,reason:"tram"};
+  p.scene="street";p.x=x;p.y=y;p.deadUntil=death.until;p.lastDeath=death;
+  p.action=null;p.equippedId=null;p.moving=false;
+  s.items=s.items.filter(item=>item.location.kind!=="inventory"||item.location.playerId!==p.id);
+  s.orders=s.orders.filter(order=>order.playerId!==p.id);
+  s.requests=s.requests.filter(request=>request.fromId!==p.id&&request.toId!==p.id);
+  if(!s.graves)s.graves=[];
+  s.graves.push({id:death.id,x,y,at:death.at,playerId:p.id,label:"RIP"});
+  if(s.graves.length>50)s.graves.splice(0,s.graves.length-50);
+  return ok({death,message:"Hit by tram! Respawning in 5 seconds…"});
+ }
+ if(p.deadUntil&&now()<p.deadUntil){
+  if(op==="syncPosition")return ok();
+  return bad("Wait for your tram respawn");
+ }
  if(op==="respawnVehicles"){
   if(!p.characterId)return bad("Choose a character before respawning vehicles");
   const occupied=Object.values(s.vehicles||{}).some(vehicle=>vehicle.seats.some(Boolean));
@@ -463,7 +553,7 @@ export class ConsumableRoom{
   }
  }
  async getNpcSettings(){
-  if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{}};
+  if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{},tram:TRAM_DEFAULTS};
   if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<1500)return this.npcSettingsCache.data;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
@@ -477,12 +567,18 @@ export class ConsumableRoom{
     const x=Number(values["npc."+npc+".x"]),y=Number(values["npc."+npc+".y"]);
     if(Number.isFinite(x)&&Number.isFinite(y))positions[npc]={x,y};
    }
-   const data={radius,positions};
+   const tram={
+    interval:tramConfigValue(values["tram.interval"],20,5,90),
+    travelTime:tramConfigValue(values["tram.travelTime"],14.5,4,60),
+    width:tramConfigValue(values["tram.width"],40,15,180),
+    length:tramConfigValue(values["tram.length"],144,40,300)
+   };
+   const data={radius,positions,tram};
    this.npcSettingsCache={data,time:now()};
    return data;
   }catch(err){
    console.warn("Using last NPC interaction settings",String(err));
-   return this.npcSettingsCache?.data||{radius:108,positions:{}};
+   return this.npcSettingsCache?.data||{radius:108,positions:{},tram:TRAM_DEFAULTS};
   }
  }
  async fetch(request){
@@ -540,10 +636,11 @@ export class ConsumableRoom{
     s.playerInteractRadius=playerInteractionRange;
     s.npcInteractionRadius=npcSettings.radius;
     s.npcPositions=npcSettings.positions;
+    s.tramConfig=npcSettings.tram||TRAM_DEFAULTS;
     let p=findPlayer(s,token);
     if(!p){
      p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,face:"down",moving:false,
-      lastSeen:now(),equippedId:null,action:null,objectives:{beer:0,kebab:0,cigarette:0}};
+      lastSeen:now(),equippedId:null,action:null,deadUntil:null,lastDeath:null,respawnRevision:0,objectives:{beer:0,kebab:0,cigarette:0}};
      s.players[p.id]=p;
     }
     p.lastSeen=now();
