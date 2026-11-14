@@ -22,6 +22,32 @@ function fixture(env={}){
  };
  return {send,get,map};
 }
+test("Buksza scratch variants remain tied to server-authenticated ticket outcomes",async()=>{
+ const {send,get}=fixture();
+ assert.ok((await send(0,"selectCharacter",{characterId:"maestro"})).ok);
+ assert.ok((await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:470})).ok);
+ for(let n=0;n<12;n++){
+  const order=await send(0,"buyScratchTicket",{npcId:"tobacco_cashier",
+   npcPoint:{x:519,y:425},actorPosition:{scene:"dohanybolt",x:519,y:470}});
+  assert.equal(order.ok,true,order.error);
+  const item=order.snapshot.items.find(i=>i.type==="scratch_ticket"&&i.location.kind==="vendor");
+  assert.ok(item,"Purchased scratch card available at cashier");
+  const pickup=await send(0,"collectItem",{itemId:item.id});
+  assert.equal(pickup.ok,true,pickup.error);
+  const variant=pickup.snapshot.scratchVariants[item.id];
+  assert.ok(Number.isInteger(variant)&&variant>=1&&variant<=10);
+  assert.equal((await get(0)).snapshot.scratchVariants[item.id],variant,
+   "Same ticket reveals the same variant on room refresh");
+  const scratch=await send(0,"scratchTicket",{itemId:item.id});
+  assert.equal(scratch.ok,true,scratch.error);
+  assert.equal(scratch.variant,variant);
+  assert.equal(scratch.won,variant===10,"Only variant 10 is the winning three-of-a-kind card");
+  assert.equal(scratch.snapshot.scratchVariants[item.id],undefined);
+  const second=await send(0,"scratchTicket",{itemId:item.id});
+  assert.equal(second.ok,false,"Tickets cannot be scratched twice");
+ }
+});
+
 test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
