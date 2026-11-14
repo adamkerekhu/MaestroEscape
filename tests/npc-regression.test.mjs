@@ -150,3 +150,27 @@ test("shared storage readback, cross-device values, stale revision and invalid u
  assert.equal((await mobile.fetch(request("PUT",{...savedValues,"npc.maestro_regular_2.x":"invalid"},"1"))).status,400);
  assert.equal((await desktop.fetch(request("GET"))).body.settings["npc.maestro_regular_2.x"],777);
 });
+
+test("NPC location multipliers and individual NPC sizes are independent and persisted",()=>{
+ const locationGroup=groups.find(g=>g.title==="NPC size · By location");
+ assert.ok(locationGroup,"NPC size-by-location group is missing");
+ const areas=["pub","spar","dohanybolt","gyros"];
+ assert.equal(locationGroup.fields.length,4);
+ for(const area of areas){
+  const key="npc.location."+area+".scale";
+  assert.equal(defaults[key],1,"Existing NPC sizes must remain unchanged by default");
+  const field=locationGroup.fields.find(f=>f.key===key);
+  assert.ok(field&&field.min<1&&field.max>1,"Missing adjustable multiplier "+key);
+ }
+ for(const def of defs)assert.ok(defaults["npc."+def.id+".scale"]>0,def.id+" lost its independent scale");
+ assert.ok(source.includes('npcConfig(id,"scale")*cfg("npc.location."+interior+".scale")'),
+  "Game must multiply individual NPC size by the interior's size setting");
+ assert.ok(source.includes('npcEffectiveScale(id,entity.definition.interior)'),
+  "Updated shared settings must resize existing NPCs");
+ assert.ok(source.includes('npcEffectiveScale(def.id,def.interior)'),
+  "Newly spawned NPCs must use interior sizes");
+ assert.ok(source.includes('scale=npcEffectiveScale(id),img=npcImages[id]'),
+  "NPC placement map must preview each NPC's effective scale");
+ assert.ok(source.includes('id="npc-location-scale"'),
+  "NPC placement editor must expose the active location's multiplier");
+});
