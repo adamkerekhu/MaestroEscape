@@ -691,6 +691,75 @@ let carSprite=null,octaviaSprite=null,tramSprite=null;
 // Tram follows the diagonal rails on the new map, with a 3-second station dwell.
 const TRAM_START={x:-170,y:0},TRAM_STOP={x:455,y:524},TRAM_END={x:1130,y:1090};
 const TRAM_DWELL_MS=3000;
+let tramDeathOverlay=null,tramLocalDeath=null;
+const tramGraveSprites=new Map();
+function tramOverlapsPlayer(tram,person){
+ if(!tram?.visible||!person)return false;
+ const angle=tram.rotation,dx=person.x-tram.x,dy=person.y-tram.y;
+ const forwardX=Math.sin(angle),forwardY=-Math.cos(angle);
+ const along=dx*forwardX+dy*forwardY;
+ const across=dx*forwardY-dy*forwardX;
+ return Math.abs(along)<=cfg("tram.length")/2+12&&
+        Math.abs(across)<=cfg("tram.width")/2+12;
+}
+function renderTramGraves(){
+ if(!scene||!gameplay?.state)return;
+ const ids=new Set();
+ for(const grave of gameplay.state.graves||[]){
+  ids.add(grave.id);
+  let marker=tramGraveSprites.get(grave.id);
+  if(!marker){
+   marker=scene.add.container(grave.x,grave.y).setDepth(6+grave.y/2000);
+   const stone=scene.add.graphics();
+   stone.fillStyle(0x121a29,.5).fillEllipse(0,1,37,12);
+   stone.fillStyle(0x6e7782,1).fillRoundedRect(-15,-31,30,32,8);
+   stone.lineStyle(2,0xaeb6c0,1).strokeRoundedRect(-15,-31,30,32,8);
+   stone.fillStyle(0x7b8896,1).fillRoundedRect(-12,-7,24,7,2);
+   const rip=scene.add.text(0,-17,"RIP",{fontFamily:"Arial",fontSize:"11px",
+    color:"#f3f3ef",fontStyle:"bold",stroke:"#364252",strokeThickness:1}).setOrigin(.5);
+   marker.add([stone,rip]);tramGraveSprites.set(grave.id,marker);
+  }
+  marker.setVisible(!insidePub&&Date.now()>=grave.at+430);
+ }
+ for(const [id,marker] of tramGraveSprites){
+  if(!ids.has(id)){marker.destroy();tramGraveSprites.delete(id);}
+ }
+}
+function displayTramDeath(death){
+ tramLocalDeath=death;
+ npcCloseDialogue();
+ vehicleSeatPanel?.remove();vehicleSeatPanel=null;
+ if(!tramDeathOverlay){
+  tramDeathOverlay=document.createElement("div");
+  tramDeathOverlay.id="tram-death-overlay";
+  tramDeathOverlay.style.cssText="position:absolute;left:50%;top:9%;transform:translateX(-50%);z-index:18;background:#1c1725e8;border:2px solid #b7b8c0;border-radius:12px;padding:10px 20px;color:#fff;text-align:center;font:700 19px Arial;pointer-events:none";
+  document.getElementById("screen").append(tramDeathOverlay);
+ }
+ tramDeathOverlay.hidden=false;
+ if(!scene||!character)return;
+ scene.tweens.killTweensOf(character);
+ player.x=death.x;player.y=death.y;
+ moving=false;character.anims.stop();
+ character.setPosition(death.x,death.y).setAlpha(1).setAngle(0).setVisible(true);
+ scene.tweens.add({targets:character,x:death.x+death.knockX,
+  y:death.y+death.knockY-13,angle:65,alpha:0,
+  duration:460,ease:"Cubic.easeOut",onComplete:()=>character.setVisible(false)});
+}
+function completeTramRespawn(serverPlayer){
+ tramLocalDeath=null;
+ if(tramDeathOverlay)tramDeathOverlay.hidden=true;
+ if(!scene||!character)return;
+ scene.tweens.killTweensOf(character);
+ player.x=serverPlayer?.x??SPAWN.x;
+ player.y=serverPlayer?.y??SPAWN.y;player.face="down";moving=false;
+ character.setPosition(player.x,player.y).setAlpha(1).setAngle(0);
+ character.setFrame(0).setVisible(true);
+ scene.cameras.main.startFollow(character,true,.13,.13);
+ scene.cameras.main.setZoom(cfg("camera.streetZoom"));
+ status.textContent="On foot";
+ show("Respawned! Your inventory is empty.");
+}
+
 const tramPeriodMs=()=>cfg("tram.interval")*1000;
 const tramRunMs=()=>Math.max(1000,Math.min(cfg("tram.travelTime")*1000,tramPeriodMs()-TRAM_DWELL_MS-250));
 const tramFirstLegRatio=Math.hypot(TRAM_STOP.x-TRAM_START.x,TRAM_STOP.y-TRAM_START.y)/Math.hypot(TRAM_END.x-TRAM_START.x,TRAM_END.y-TRAM_START.y);
@@ -1137,6 +1206,7 @@ class VehicleController {
  }
 }
 function interact(){
+ if(gameplay?.isDead())return;
  if(gameplay&&!gameplay.hasCharacter())return;
  if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
  if(gameplay?.menuOpen()){gameplay.close();return;}
@@ -1272,12 +1342,14 @@ class Explore extends Phaser.Scene{
    }
    keys=this.input.keyboard.addKeys("W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SHIFT,R");
    this.input.keyboard.on("keydown-E",event=>{if(!event.repeat)interact();});
-   this.input.keyboard.on("keydown-R",()=>{npcCloseDialogue();gameplay?.close();if(gameplay?.occupied){show("Exit the vehicle before respawning.");return;}this.respawn();});
+   this.input.keyboard.on("keydown-R",()=>{if(gameplay?.isDead())return;npcCloseDialogue();gameplay?.close();if(gameplay?.occupied){show("Exit the vehicle before respawning.");return;}this.respawn();});
    this.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
    this.cameras.main.startFollow(character,true,0.13,0.13);
    this.cameras.main.setZoom(cfg("camera.streetZoom"));
    this.input.mouse?.disableContextMenu();
    gameplay=new MaestroConsumables({
+    onTramDeath:displayTramDeath,
+    onTramRespawn:completeTramRespawn,
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
     localVehicle:id=>registeredVehicles().find(v=>v.id===id)?.model||null,
     face:()=>player.face,moving:()=>moving,
@@ -1302,6 +1374,7 @@ class Explore extends Phaser.Scene{
    loadOriginalCollision().then(()=>{this.respawn();if(!gameplay?.hasCharacter())character.setVisible(false)});
  }
  respawn(){
+   if(gameplay?.isDead())return;
    if(this.hasSpawned&&gameplay&&!gameplay.occupied)void gameplay.command("resetRound");
    this.hasSpawned=true;
    let x=SPAWN.x,y=SPAWN.y;
@@ -1323,10 +1396,10 @@ class Explore extends Phaser.Scene{
    syncVehicleFromRoom(delta);
    gameplay?.tick(time,delta);
    npcUpdatePrompt();
-   if(!npcDialogue)npcTick(delta);
+   if(!npcDialogue&&!gameplay?.isDead())npcTick(delta);
    // Tram follows the diagonal tracks, stops at the platform for 3 seconds, and repeats.
    if(tramSprite){
-     const phase=time%tramPeriodMs();
+     const phase=Date.now()%tramPeriodMs();
      const leg1=tramRunMs()*tramFirstLegRatio;
      const departure=leg1+TRAM_DWELL_MS;
      const finish=tramRunMs()+TRAM_DWELL_MS;
@@ -1345,6 +1418,19 @@ class Explore extends Phaser.Scene{
        }
        tramSprite.setPosition(x,y).setRotation(TRAM_ANGLE).setVisible(true);
      }else tramSprite.setVisible(false);
+   }
+   renderTramGraves();
+   if(gameplay?.isDead()){
+    const remaining=Math.max(0,gameplay.state.deadUntil-Date.now());
+    if(tramDeathOverlay)tramDeathOverlay.textContent="🪦 RIP · Respawning in "+Math.ceil(remaining/1000)+"s";
+    moving=false;return;
+   }
+   if(!insidePub&&!activeVehicle&&tramSprite?.visible&&gameplay?.hasCharacter()){
+    const phase=Date.now()%tramPeriodMs();
+    const leg1=tramRunMs()*tramFirstLegRatio;
+    const departure=leg1+TRAM_DWELL_MS,finish=tramRunMs()+TRAM_DWELL_MS;
+    if((phase<leg1||phase>=departure&&phase<finish)&&tramOverlapsPlayer(tramSprite,player))
+     void gameplay.reportTramCollision();
    }
    if(npcDialogue||gameplay?.menuOpen()){moving=false;return;} // Freeze walking while menus are open.
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
