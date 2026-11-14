@@ -159,11 +159,11 @@ export function sweptFrontImpact(from,to,point){
  const distance=Math.hypot(point.x-hitX,point.y-hitY);
  return to.speed>CAR_HIT_MIN_SPEED&&lateral<=to.width/2+PLAYER_HIT_RADIUS&&
   distance<=to.width/2+PLAYER_HIT_RADIUS&&
-  // Never count someone behind the vehicle as a front hit.
-  (point.x-to.x)*fx+(point.y-to.y)*fy>=-PLAYER_HIT_RADIUS;
+  // The swept segment represents the front bumper, even after it has passed.
+  (point.x-from.x)*Math.sin(from.angle)-(point.y-from.y)*Math.cos(from.angle)>=-PLAYER_HIT_RADIUS;
 }
-function carHitPlayer(vehicle,from,player){
- const dims=CAR_DIMENSIONS[vehicle.id];
+function carHitPlayer(vehicle,from,player,s){
+ const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
  if(!dims||vehicle.speed<=CAR_HIT_MIN_SPEED)return false;
  const next={...vehicle,...dims},previous={...from,...dims};
  return frontImpact(next,player)||sweptFrontImpact(previous,next,player);
@@ -189,7 +189,7 @@ function checkCarPedestrians(s,vehicle,previous){
  for(const player of Object.values(s.players)){
   if(!player.characterId||player.deadUntil||player.scene!=="street"||
      seatOf(s,player)||now()-player.lastSeen>30000)continue;
-  if(carHitPlayer(vehicle,previous,player))recordVehicleDeath(s,player,vehicle,"car",vehicle.id);
+  if(carHitPlayer(vehicle,previous,player,s))recordVehicleDeath(s,player,vehicle,"car",vehicle.id);
  }
 }
 
@@ -542,7 +542,7 @@ function operation(s,p,d){
    for(const vehicle of Object.values(s.vehicles||{})){
     if(vehicle.type!=="car"||vehicle.speed<=CAR_HIT_MIN_SPEED)continue;
     if(now()-vehicle.updatedAt>650)continue;
-    const dims=CAR_DIMENSIONS[vehicle.id];
+    const dims=s.vehicleCollisionDimensions?.[vehicle.id]||CAR_DIMENSIONS[vehicle.id];
     if(dims&&frontImpact({...vehicle,...dims},p)){
      recordVehicleDeath(s,p,vehicle,"car",vehicle.id);
      break;
@@ -707,7 +707,7 @@ export class ConsumableRoom{
   }
  }
  async getNpcSettings(){
-  if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{},tram:TRAM_DEFAULTS};
+  if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{},tram:TRAM_DEFAULTS,vehicleDimensions:CAR_DIMENSIONS};
   if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<1500)return this.npcSettingsCache.data;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
@@ -727,12 +727,19 @@ export class ConsumableRoom{
     width:tramConfigValue(values["tram.width"],40,15,180),
     length:tramConfigValue(values["tram.length"],144,40,300)
    };
-   const data={radius,positions,tram};
+   const vehicleDimensions={};
+   for(const [id,def] of Object.entries(CAR_DIMENSIONS)){
+    vehicleDimensions[id]={
+     width:tramConfigValue(values["vehicle."+id+".width"],def.width,14,100),
+     length:tramConfigValue(values["vehicle."+id+".length"],def.length,30,180)
+    };
+   }
+   const data={radius,positions,tram,vehicleDimensions};
    this.npcSettingsCache={data,time:now()};
    return data;
   }catch(err){
    console.warn("Using last NPC interaction settings",String(err));
-   return this.npcSettingsCache?.data||{radius:108,positions:{},tram:TRAM_DEFAULTS};
+   return this.npcSettingsCache?.data||{radius:108,positions:{},tram:TRAM_DEFAULTS,vehicleDimensions:CAR_DIMENSIONS};
   }
  }
  async fetch(request){
@@ -791,6 +798,7 @@ export class ConsumableRoom{
     s.npcInteractionRadius=npcSettings.radius;
     s.npcPositions=npcSettings.positions;
     s.tramConfig=npcSettings.tram||TRAM_DEFAULTS;
+    s.vehicleCollisionDimensions=npcSettings.vehicleDimensions||CAR_DIMENSIONS;
     let p=findPlayer(s,token);
     if(!p){
      p={id:uid("player"),token,alias:"Player "+(Object.keys(s.players).length+1),characterId:null,scene:null,x:0,y:0,face:"down",moving:false,
