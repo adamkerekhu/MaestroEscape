@@ -67,7 +67,7 @@ test("NPC asset proxy validates IDs in Worker scope without browser globals",()=
 });
 
 test("NPC sprite loading uses published character assets, never player fallback",()=>{
- assert.ok(source.includes("MaestroEscape@main/Assets/NPCs/"),"NPC loader must use repaired images from main");
+ assert.ok(source.includes("MaestroEscape@2f0f38b8bdae807b3075b62371208040cc1cda0f/Assets/NPCs/"),"NPC loader must use repaired images from main");
  assert.ok(source.includes('this.load.spritesheet("npc_"+def.id'),"NPC spritesheets not registered");
  assert.ok(!source.includes('scene.add.sprite(def.x,def.y,"maestro",0)'),"NPC must never fall back to playable character");
  assert.ok(source.includes('scene.add.sprite(def.x,def.y,"__MISSING",0)'),"Missing-asset condition must remain visible");
