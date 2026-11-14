@@ -174,27 +174,30 @@ function create(s,type,units,location,id=null,generation=0){
  const item={id:id||uid("item"),generation,type,remainingUnits:units,maxUnits:units,location:copy(location),lit:false,revision:0};
  s.items.push(item);return item;
 }
+// The pulsing floor ring is the actual server-side arrival area for all group calls.
+// The cigarette ring is OUTSIDE Maestro, on the pavement to the left of the door.
+const GROUP_CIGARETTE_PAVEMENT={scene:"street",x:746,y:632};
+const GROUP_RALLY_RADIUS=68;
 const GROUP_RALLY_RULES={
- beer:{scene:"pub",label:"Group beers",icon:"🍺",radius:110},
- cigarette:{scene:"pub",label:"Group cigarettes",icon:"🚬",radius:110},
- kebab:{scene:"gyros",label:"Group kebab",icon:"🥙",radius:110}
+ beer:{scene:"pub",label:"Group beers",icon:"🍺",radius:GROUP_RALLY_RADIUS},
+ cigarette:{scene:"street",label:"Group cigarettes",icon:"🚬",radius:GROUP_RALLY_RADIUS},
+ kebab:{scene:"gyros",label:"Group kebab",icon:"🥙",radius:GROUP_RALLY_RADIUS}
 };
 const GROUP_RALLY_EXPIRES_MS=90000;
 function rallyTarget(s,type){
  if(type==="beer"){
-  const table=C.pubTables.find(t=>t.id==="pub_left");
-  return {scene:"pub",x:table.x+table.w+35,y:table.y+table.h/2,
-   label:"Left table at Maestro"};
- }
- if(type==="cigarette"){
   const contact=npcConfiguredPoint(s,"maestro_bartender")||{x:413,y:398};
   return {scene:"pub",x:contact.x,y:contact.y,
-   label:"In front of Maestro"};
+   label:"In front of the bartender"};
+ }
+ if(type==="cigarette"){
+  return {...GROUP_CIGARETTE_PAVEMENT,
+   label:"Outside Maestro · pavement"};
  }
  if(type==="kebab"){
   const contact=npcConfiguredPoint(s,"gyros_employee")||{x:294,y:315};
   return {scene:"gyros",x:contact.x,y:contact.y,
-   label:"Mester Gyros counter"};
+   label:"In front of the kebab employee"};
  }
  return null;
 }
@@ -205,7 +208,7 @@ function rallyStatus(s,rally){
   return player&&player.characterId&&!player.deadUntil&&!seatOf(s,player)&&
    player.scene===rally.target.scene&&dist(player,rally.target)<=rule.radius;
  });
- return {...rally,presentIds:present,ready:present.length,required:rally.playerIds.length};
+ return {...rally,radius:rule.radius,presentIds:present,ready:present.length,required:rally.playerIds.length};
 }
 function checkRally(s){
  const rally=s.rally;
@@ -348,7 +351,7 @@ function operation(s,p,d){
   if(playerIds.length<2)return bad("At least two active players are needed for a group call");
   const target=rallyTarget(s,d.type);
   s.rally={id:uid("rally"),type:d.type,target,callerId:p.id,
-   playerIds,startedAt:now(),expiresAt:now()+GROUP_RALLY_EXPIRES_MS,status:"gathering"};
+   playerIds,radius:GROUP_RALLY_RULES[d.type].radius,startedAt:now(),expiresAt:now()+GROUP_RALLY_EXPIRES_MS,status:"gathering"};
   checkRally(s);
   return ok({rallyId:s.rally.id,message:GROUP_RALLY_RULES[d.type].label+"! Everyone head to "+target.label});
  }
