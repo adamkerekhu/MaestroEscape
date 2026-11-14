@@ -67,8 +67,7 @@ test("NPC asset proxy validates IDs in Worker scope without browser globals",()=
 });
 
 test("NPC sprite loading uses published character assets, never player fallback",()=>{
- const atlasCommit="75ddb29a71b32ff1eeff637c3188bfd1c27f1dd6";
- assert.ok(source.includes("MaestroEscape@"+atlasCommit+"/Assets/NPCs/"),"Missing published NPC CDN atlas");
+ assert.ok(source.includes("MaestroEscape@main/Assets/NPCs/"),"NPC loader must use repaired images from main");
  assert.ok(source.includes('this.load.spritesheet("npc_"+def.id'),"NPC spritesheets not registered");
  assert.ok(!source.includes('scene.add.sprite(def.x,def.y,"maestro",0)'),"NPC must never fall back to playable character");
  assert.ok(source.includes('scene.add.sprite(def.x,def.y,"__MISSING",0)'),"Missing-asset condition must remain visible");
