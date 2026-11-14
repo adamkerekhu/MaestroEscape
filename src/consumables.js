@@ -734,11 +734,26 @@ export class ConsumableRoom{
  async loadRoom(initialSettings={}){
   // One in-memory authoritative room per Durable Object instance. Never reload on polling.
   if(this.roomState)return this.roomState;
-  if(!this.roomLoad)this.roomLoad=this.ctx.storage.get("room").then(saved=>{
-   this.roomWasStored=!!saved;
-   this.roomState=saved||fresh(initialSettings);
-   return this.roomState;
-  }).catch(error=>{this.roomLoad=null;throw error;});
+  if(!this.roomLoad){
+   // Native Durable Objects expose get()/put(). Keep transaction-only mocks
+   // compatible with the same room lifecycle so regression tests catch breakage.
+   const read=typeof this.ctx.storage.get==="function"
+    ?()=>this.ctx.storage.get("room")
+    :()=>this.ctx.storage.transaction(tx=>tx.get("room"));
+   this.roomLoad=Promise.resolve().then(read).catch(error=>{
+    if(/exceeded allowed rows written|exceeded allowed rows read|storage.*quota|quota.*exceed/i.test(String(error))){
+     this.storageQuotaExceeded=true;
+     this.storageQuotaRetryAt=now()+60000;
+     console.warn("Storage quota prevents room load; using temporary room",String(error));
+     return null;
+    }
+    throw error;
+   }).then(saved=>{
+    this.roomWasStored=!!saved;
+    this.roomState=saved||fresh(initialSettings);
+    return this.roomState;
+   }).catch(error=>{this.roomLoad=null;throw error;});
+  }
   return this.roomLoad;
  }
  async persistRoom(force=false){
@@ -746,7 +761,10 @@ export class ConsumableRoom{
   if(this.storageQuotaExceeded&&now()<this.storageQuotaRetryAt)return;
   if(!force&&now()-this.lastPersistAt<30000)return;
   try{
-   await this.ctx.storage.put("room",this.roomState);
+   if(typeof this.ctx.storage.put==="function")
+    await this.ctx.storage.put("room",this.roomState);
+   else
+    await this.ctx.storage.transaction(tx=>tx.put("room",this.roomState));
    this.lastPersistAt=now();this.storageQuotaExceeded=false;this.storageQuotaRetryAt=0;
   }catch(error){
    if(/exceeded allowed rows written|storage.*quota|quota.*exceed/i.test(String(error))){
@@ -856,7 +874,11 @@ export class ConsumableRoom{
    }
    const result=await (async()=>{
     const s=await this.loadRoom(initialVehicleSettings);
-    if(!s.vehicles){
+    if(!this.roomWasStored&&Object.keys(initialVehicleSettings).length){
+     s.vehicleSpawnSettings=initialVehicleSettings;
+     s.vehicles=freshVehicles(initialVehicleSettings);
+     this.roomWasStored=true;
+    }else if(!s.vehicles){
      s.vehicleSpawnSettings=initialVehicleSettings;
      s.vehicles=freshVehicles(initialVehicleSettings);
     }
