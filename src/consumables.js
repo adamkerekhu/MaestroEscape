@@ -88,7 +88,7 @@ const TRAM_TRACK={start:{x:-170,y:0},stop:{x:455,y:524},end:{x:1130,y:1090}};
 const TRAM_DEATH_MS=5000;
 const GRAVE_LIFETIME_MS=30000;
 const CAR_HIT_MIN_SPEED=22;
-const CAR_DIMENSIONS={skoda:{width:32,length:72},octavia:{width:32,length:64}};
+const CAR_DIMENSIONS={skoda:{width:32,length:72},octavia:{width:32,length:64},maiybach:{width:37,length:90}};
 const PLAYER_HIT_RADIUS=12;
 const TRAM_PLAYER_RADIUS=12;
 const TRAM_SPAWN={x:859,y:577};
@@ -176,6 +176,8 @@ function recordVehicleDeath(s,player,hit,reason,sourceId){
  player.deadUntil=death.until;player.lastDeath=death;player.action=null;
  player.equippedId=null;player.moving=false;
  s.items=s.items.filter(item=>item.location.kind!=="inventory"||item.location.playerId!==player.id);
+ if(s.scratchResults)for(const key of Object.keys(s.scratchResults))
+   if(!s.items.some(i=>i.id===key))delete s.scratchResults[key];
  s.orders=s.orders.filter(order=>order.playerId!==player.id);
  s.requests=s.requests.filter(req=>req.fromId!==player.id&&req.toId!==player.id);
  if(s.rally?.status==="gathering")s.rally.status="cancelled";
@@ -221,7 +223,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},pendingMaybach:{},orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -537,6 +539,20 @@ function operation(s,p,d){
   // last reported position for interactions but cannot authenticate movement paths.
   if(p.action&&(p.scene!==scene||dist(p,{x,y})>7))p.action=null;
   p.scene=scene;p.x=x;p.y=y;p.face=["down","up","right","left"].includes(d.face)?d.face:"down";p.moving=!!d.moving;p.lastSeen=now();
+  // Award a won car only after its owner returns outdoors; never spawn a car inside a shop.
+  if(scene==="street"&&s.pendingMaybach?.[p.id]>0){
+   s.vehicles??={};
+   let spawned=0;
+   while(s.pendingMaybach[p.id]>0&&spawned<3){
+    const id=uid("maiybach");
+    const spawnCandidates=[{x:x+75,y:y},{x:x-75,y:y},{x:x,y:y+80},{x:x,y:y-80}];
+    const spot=spawnCandidates.find(q=>q.x>70&&q.x<1530&&q.y>65&&q.y<925&&Object.values(s.vehicles).every(v=>dist(v,q)>75));
+    if(!spot)break;
+    s.vehicles[id]={id,type:"car",name:"Maíybach",x:spot.x,y:spot.y,angle:Math.PI/2,
+      speed:0,seats:[null,null,null,null],updatedAt:now(),revision:0};
+    s.pendingMaybach[p.id]--;spawned++;
+   }
+  }
   if(scene==="street"&&p.characterId&&!p.deadUntil){
    // Check also when a pedestrian walks across the moving car's nose.
    for(const vehicle of Object.values(s.vehicles||{})){
@@ -555,16 +571,16 @@ function operation(s,p,d){
   // No player may delete another room's state. In multiplayer this must be host-gated.
   if(Object.keys(s.players).length>1)return bad("Room reset requires host authority",403);
   s.vehicles=freshVehicles(s.vehicleSpawnSettings||{});
-  s.items=[];s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
+  s.items=[];s.scratchResults={};s.pendingMaybach={};s.orders=[];s.requests=[];s.completions=[];s.rally=null;s.groupEvents=[];s.npcStock=copy(C.npcCigarettes);
   for(const q of Object.values(s.players)){q.equippedId=null;q.action=null;q.objectives={beer:0,kebab:0,cigarette:0}}
   return ok();
  }
  // NPC actions use the same instant player position as the open dialogue.
  // Movement is already client-driven in this Phaser prototype; a queued 100 ms
  // sync must not make a valid transaction fail as "move closer".
- if(["orderBeer","refillBeer","orderKebab","buyPack","npcBorrow"].includes(op)&&d.actorPosition&&!seatOf(s,p)){
+ if(["orderBeer","refillBeer","orderKebab","buyPack","buyScratchTicket","npcBorrow"].includes(op)&&d.actorPosition&&!seatOf(s,p)){
   const a=d.actorPosition;
-  const expected=op==="orderKebab"?"gyros":op==="buyPack"?"dohanybolt":"pub";
+  const expected=op==="orderKebab"?"gyros":["buyPack","buyScratchTicket"].includes(op)?"dohanybolt":"pub";
   const x=Number(a.x),y=Number(a.y);
   if(a.scene===expected&&Number.isFinite(x)&&Number.isFinite(y)&&
       x>=0&&x<=1800&&y>=0&&y<=1300){
@@ -572,12 +588,19 @@ function operation(s,p,d){
   }
  }
  if(!p.scene)return bad("Enter the game first");
- if(op==="orderBeer"||op==="refillBeer"||op==="orderKebab"||op==="buyPack"){
-  const vendor=op==="orderKebab"?"gyros_employee":op==="buyPack"?"tobacco_cashier":"maestro_bartender";
+ if(op==="orderBeer"||op==="refillBeer"||op==="orderKebab"||op==="buyPack"||op==="buyScratchTicket"){
+  const vendor=op==="orderKebab"?"gyros_employee":["buyPack","buyScratchTicket"].includes(op)?"tobacco_cashier":"maestro_bartender";
   const err=npcVendor(s,p,vendor,d);if(err)return err;
   if(s.orders.some(q=>q.playerId===p.id&&q.vendorId===vendor))return bad("Your order is still being prepared");
   const point=vendorSpot(s,vendor,p);if(!point)return bad("Counter pickup spots are full");
   if(op==="buyPack"){const item=create(s,"cigarette_pack",5,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});return ok({itemId:item.id,message:"Cigarette pack ready at the counter"});}
+  if(op==="buyScratchTicket"){
+   const item=create(s,"scratch_ticket",1,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});
+   s.scratchResults??={};
+   const bytes=new Uint32Array(1);crypto.getRandomValues(bytes);
+   s.scratchResults[item.id]=(bytes[0]%10)===0;
+   return ok({itemId:item.id,message:"Kaparós sorsjegy ready at the counter. Pick it up, then use it from Inventory."});
+  }
   let reuseId=null,generation=0;
   if(op==="refillBeer"){
    const glass=playerInventory(s,p).find(i=>i.type==="empty_glass");
@@ -626,6 +649,21 @@ function operation(s,p,d){
   }
   if(p.equippedId===i.id)p.equippedId=null;
   return ok();
+ }
+ if(op==="scratchTicket"){
+  const item=owned(s,p,d.itemId);
+  if(!item||item.type!=="scratch_ticket")return bad("You do not own this scratch ticket");
+  s.scratchResults??={};
+  if(!Object.prototype.hasOwnProperty.call(s.scratchResults,item.id))return bad("Ticket result unavailable");
+  const won=s.scratchResults[item.id];
+  delete s.scratchResults[item.id];
+  s.items.splice(s.items.indexOf(item),1);
+  if(p.equippedId===item.id)p.equippedId=null;
+  if(won){
+   s.pendingMaybach??={};
+   s.pendingMaybach[p.id]=(s.pendingMaybach[p.id]||0)+1;
+  }
+  return ok({won,message:won?"NYERTÉL! A Maíybach a dohánybolt előtt fog megjelenni.":"NEM NYERT. Próbáld újra máskor!"});
  }
  if(op==="extractCigarette"){
   const i=owned(s,p,d.itemId);if(!i||i.type!=="cigarette_pack")return bad("Need a cigarette pack");
