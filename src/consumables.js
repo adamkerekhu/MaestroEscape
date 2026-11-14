@@ -225,7 +225,7 @@ function tablePoint(t,slot){
  // 3 columns x 2 rows. Slots are physically atop the existing table collider.
  return {x:t.x+t.w*(.23+.27*(slot%3)),y:t.y+t.h*(.32+.36*Math.floor(slot/3))};
 }
-function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
+function fresh(settings={}){return {revision:0,players:{},items:[],scratchResults:{},chatMessages:[],orders:[],requests:[],used:[],completions:[],npcStock:copy(C.npcCigarettes),vehicles:freshVehicles(settings),vehicleSpawnSettings:settings,vehicleRespawnRevision:0,graves:[],rally:null,groupEvents:[],createdAt:now()};}
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
@@ -355,7 +355,10 @@ function settle(s){
 function snapshot(s,p){
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
+  scratchVariants:Object.fromEntries(playerInventory(s,p).filter(i=>i.type==="scratch_ticket")
+   .map(i=>[i.id,typeof s.scratchResults?.[i.id]==="object"?s.scratchResults[i.id].variant:(s.scratchResults?.[i.id]===true?10:1)])),
   completionEvents:s.completions.filter(event=>now()-event.time<9000),
+  chatMessages:(s.chatMessages||[]).slice(-40),
   groupEvents:(s.groupEvents||[]).filter(event=>now()-event.at<10000),
   rally:s.rally?(s.rally.status==="gathering"?rallyStatus(s,s.rally):{...s.rally}):null,
   death:p.lastDeath||null,deadUntil:p.deadUntil||null,
@@ -411,8 +414,21 @@ function npcInReach(s,p,id,d){
 }
 function npcVendor(s,p,npc,d){
  if(C.vendors[npc]!==p.scene)return bad("Visit the correct shop");
- if(!npcInReach(s,p,npc,d))return bad("Move closer to the counter");
- return null;
+ if(npcInReach(s,p,npc,d))return null;
+ // Browser-only settings can legitimately relocate the shopkeeper or change
+ // dialogue range while Cloudflare settings storage is unavailable.
+ // Accept that same client-side dialogue contact, but only within the proper
+ // shop and a bounded interaction range. Other server actions remain unchanged.
+ if(d?.localNpcSettings===true&&d.npcId===npc&&d.npcPoint){
+  const bounds={dohanybolt:{w:608,h:832},gyros:{w:768,h:480},pub:{w:1448,h:1086}}[p.scene];
+  const point={x:Number(d.npcPoint.x),y:Number(d.npcPoint.y)};
+  const clientRadius=Number(d.dialogueRadius);
+  if(bounds&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&
+     point.x>=0&&point.x<=bounds.w&&point.y>=0&&point.y<=bounds.h&&
+     Number.isFinite(clientRadius)&&clientRadius>=40&&clientRadius<=190&&
+     dist(p,point)<=clientRadius+2)return null;
+ }
+ return bad("Move closer to the counter");
 }
 function itemById(s,id){return s.items.find(i=>i.id===id)}
 function owned(s,p,id){const item=itemById(s,id);return item?.location.kind==="inventory"&&item.location.playerId===p.id?item:null}
@@ -438,6 +454,21 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ if(op==="sendChat"){
+  if(!p.characterId)return bad("Select a character before chatting");
+  if(typeof d.message!=="string")return bad("Invalid chat message");
+  const message=d.message.replace(/[\u0000-\u001F\u007F]/g," ").replace(/\s+/g," ").trim();
+  if(!message||message.length>200)return bad("Chat messages must be 1–200 characters");
+  if(now()-(p.lastChatAt||0)<900)return bad("Please wait before sending another message");
+  p.lastChatAt=now();
+  s.chatMessages??=[];
+  const character=LOBBY_CHARACTERS.find(c=>c.id===p.characterId);
+  const displayName=character?.name||p.alias||"Player";
+  const record={id:uid("chat"),playerId:p.id,name:displayName,message,at:now()};
+  s.chatMessages.push(record);
+  if(s.chatMessages.length>40)s.chatMessages.splice(0,s.chatMessages.length-40);
+  return ok({chatId:record.id});
+ }
  if(op==="callGroup"){
   if(!p.characterId||p.deadUntil)return bad("Select a living character to call a group");
   if(!GROUP_RALLY_RULES[d.type])return bad("Unknown group activity");
@@ -601,7 +632,9 @@ function operation(s,p,d){
    const item=create(s,"scratch_ticket",1,{kind:"vendor",vendorId:vendor,sceneId:p.scene,...point});
    s.scratchResults??={};
    const bytes=new Uint32Array(1);crypto.getRandomValues(bytes);
-   s.scratchResults[item.id]=(bytes[0]%10)===0;
+   const won=(bytes[0]%10)===0;
+   const variant=won?10:1+((bytes[0]>>>4)%9);
+   s.scratchResults[item.id]={won,variant};
    return ok({itemId:item.id,message:"Kaparós sorsjegy ready at the counter. Pick it up, then use it from Inventory."});
   }
   let reuseId=null,generation=0;
@@ -658,12 +691,14 @@ function operation(s,p,d){
   if(!item||item.type!=="scratch_ticket")return bad("You do not own this scratch ticket");
   s.scratchResults??={};
   if(!Object.prototype.hasOwnProperty.call(s.scratchResults,item.id))return bad("Ticket result unavailable");
-  const won=s.scratchResults[item.id];
+  const result=s.scratchResults[item.id];
+  const won=typeof result==="object"?!!result.won:result===true;
+  const variant=typeof result==="object"?result.variant:(won?10:1);
   delete s.scratchResults[item.id];
   s.items.splice(s.items.indexOf(item),1);
   if(p.equippedId===item.id)p.equippedId=null;
   // Preserve the 1-in-10 win roll. Vehicle prizes are disabled until a new reward is chosen.
-  return ok({won,message:won?"NYERTÉL! A nyeremény később kerül meghatározásra.":"NEM NYERT. Próbáld újra máskor!"});
+  return ok({won,variant,message:won?"NYERTÉL! Három egyforma szimbólum!":"NEM NYERT. Nincs három egyforma szimbólum."});
  }
  if(op==="extractCigarette"){
   const i=owned(s,p,d.itemId);if(!i||i.type!=="cigarette_pack")return bad("Need a cigarette pack");
@@ -727,10 +762,57 @@ function operation(s,p,d){
  return bad("Unknown action");
 }
 export class ConsumableRoom{
- constructor(ctx,env){this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null}
+ constructor(ctx,env){
+  this.ctx=ctx;this.env=env;this.playerRangeCache=null;this.npcSettingsCache=null;
+  this.roomState=null;this.roomLoad=null;this.lastPersistAt=0;this.storageQuotaRetryAt=0;this.storageQuotaExceeded=false;
+ }
+ async loadRoom(initialSettings={}){
+  // One in-memory authoritative room per Durable Object instance. Never reload on polling.
+  if(this.roomState)return this.roomState;
+  if(!this.roomLoad){
+   // Native Durable Objects expose get()/put(). Keep transaction-only mocks
+   // compatible with the same room lifecycle so regression tests catch breakage.
+   const read=typeof this.ctx.storage.get==="function"
+    ?()=>this.ctx.storage.get("room")
+    :()=>this.ctx.storage.transaction(tx=>tx.get("room"));
+   this.roomLoad=Promise.resolve().then(read).catch(error=>{
+    if(/exceeded allowed rows written|exceeded allowed rows read|storage.*quota|quota.*exceed/i.test(String(error))){
+     this.storageQuotaExceeded=true;
+     this.storageQuotaRetryAt=now()+60000;
+     console.warn("Storage quota prevents room load; using temporary room",String(error));
+     return null;
+    }
+    throw error;
+   }).then(saved=>{
+    this.roomWasStored=!!saved;
+    this.roomState=saved||fresh(initialSettings);
+    return this.roomState;
+   }).catch(error=>{this.roomLoad=null;throw error;});
+  }
+  return this.roomLoad;
+ }
+ async persistRoom(force=false){
+  // Most movement/snapshot requests must not write SQLite.
+  if(this.storageQuotaExceeded&&now()<this.storageQuotaRetryAt)return;
+  if(!force&&now()-this.lastPersistAt<30000)return;
+  try{
+   if(typeof this.ctx.storage.put==="function")
+    await this.ctx.storage.put("room",this.roomState);
+   else
+    await this.ctx.storage.transaction(tx=>tx.put("room",this.roomState));
+   this.lastPersistAt=now();this.storageQuotaExceeded=false;this.storageQuotaRetryAt=0;
+  }catch(error){
+   if(/exceeded allowed rows written|storage.*quota|quota.*exceed/i.test(String(error))){
+    // The free-tier cap is account-wide. Keep this active room playable in memory
+    // until the quota resets, but it cannot be durable across instance eviction.
+    this.storageQuotaExceeded=true;this.storageQuotaRetryAt=now()+60000;
+    console.warn("MaestroEscape storage quota reached: running in volatile room mode",String(error));
+   }else throw error;
+  }
+ }
  async getPlayerInteractionRange(){
   if(!this.env?.SETTINGS_STORE)return PLAYER_INTERACT_DEFAULT;
-  if(this.playerRangeCache&&now()-this.playerRangeCache.time<1500)return this.playerRangeCache.value;
+  if(this.playerRangeCache&&now()-this.playerRangeCache.time<15000)return this.playerRangeCache.value;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
    const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
@@ -746,7 +828,7 @@ export class ConsumableRoom{
  }
  async getNpcSettings(){
   if(!this.env?.SETTINGS_STORE)return {radius:108,positions:{},tram:TRAM_DEFAULTS,vehicleDimensions:CAR_DIMENSIONS};
-  if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<1500)return this.npcSettingsCache.data;
+  if(this.npcSettingsCache&&now()-this.npcSettingsCache.time<15000)return this.npcSettingsCache.data;
   try{
    const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
    const response=await this.env.SETTINGS_STORE.get(id).fetch(new Request("https://settings.internal/",{method:"GET"}));
@@ -809,8 +891,8 @@ export class ConsumableRoom{
    const playerInteractionRange=await this.getPlayerInteractionRange();
    const npcSettings=await this.getNpcSettings();
    let initialVehicleSettings={};
-   const priorRoom=await this.ctx.storage.get?.("room");
-   if(this.env?.SETTINGS_STORE&&(!priorRoom||!priorRoom.vehicles)){
+   const priorRoom=await this.loadRoom();
+   if(this.env?.SETTINGS_STORE&&(!this.roomWasStored||!priorRoom.vehicles)){
     try{
      const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
      const response=await settingsStub.fetch(new Request("https://settings.internal/",{method:"GET"}));
@@ -825,9 +907,13 @@ export class ConsumableRoom{
      }
     }catch(err){console.warn("Room using default vehicle positions",String(err))}
    }
-   const result=await this.ctx.storage.transaction(async tx=>{
-    const s=await tx.get("room")||fresh(initialVehicleSettings);
-    if(!s.vehicles){
+   const result=await (async()=>{
+    const s=await this.loadRoom(initialVehicleSettings);
+    if(!this.roomWasStored&&Object.keys(initialVehicleSettings).length){
+     s.vehicleSpawnSettings=initialVehicleSettings;
+     s.vehicles=freshVehicles(initialVehicleSettings);
+     this.roomWasStored=true;
+    }else if(!s.vehicles){
      s.vehicleSpawnSettings=initialVehicleSettings;
      s.vehicles=freshVehicles(initialVehicleSettings);
     }
@@ -861,9 +947,14 @@ export class ConsumableRoom{
     }else if(request.method!=="GET")answer=bad("Method not allowed",405);
     checkRally(s);
     s.revision++;
-    await tx.put("room",s);
-    return {...answer,snapshot:snapshot(s,p)};
-   });
+    const result={...answer,snapshot:snapshot(s,p)};
+    // Persist item transactions and character/vehicle changes, but batch position
+    // tracking and frequent GET snapshots into at most one write per 30 seconds.
+    const lowPriority=request.method==="GET"||
+      (request.method==="POST"&&["syncPosition","driveVehicle","sendChat"].includes(input.op));
+    await this.persistRoom(!lowPriority);
+    return result;
+   })();
    return Response.json(result,{status:result.status||200,headers:{"cache-control":"no-store"}});
   }catch(error){return Response.json(bad("Room error: "+error.message,500),{status:500,headers:{"cache-control":"no-store"}})}
  }
