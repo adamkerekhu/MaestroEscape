@@ -12,4 +12,4 @@ To activate uploaded custom characters, put the three WebP files directly in thi
 
 Changing only the artwork (keeping sheet format and stable filenames) will not require a gameplay or backend code change.
 
-**Current status**: The three prepared image files were generated outside GitHub. Their repository upload must be completed before these slots can be selected in the deployed game.
+**Current status**: All three original 640×480 WebP sheets are uploaded and committed in this directory. Each lobby slot now has a corresponding published asset.
