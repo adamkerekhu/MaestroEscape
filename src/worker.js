@@ -1017,7 +1017,7 @@ class Explore extends Phaser.Scene{
    // The player sprite already loads successfully from jsDelivr. Load NPC sheets the same way,
    // pinned to the immutable commit that added all nine files (avoids Worker proxy 500/cache).
    for(const def of NPC_DEFINITIONS)this.load.spritesheet("npc_"+def.id,
-     "https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/NPCs/"+def.id+".webp",
+     "https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@2f0f38b8bdae807b3075b62371208040cc1cda0f/Assets/NPCs/"+def.id+".webp",
      {frameWidth:48,frameHeight:60});
    this.load.spritesheet("maestro","https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/Assets/Characters/maestro_walk.webp",{frameWidth:80,frameHeight:120});
    this.load.image("skoda","/assets/skoda-highres.webp");
