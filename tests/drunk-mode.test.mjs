@@ -134,3 +134,26 @@ test("single-player HUD has beer simulation controls and inventory explains five
  assert.equal(d.level,3);
  d.reset();assert.equal(d.level,0);
 });
+
+test("actual Worker response contains parseable scripts, build ID and diagnostic location",async()=>{
+ const {default:worker}=await import("../src/worker.js");
+ const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
+ const html=await response.text();
+ assert.equal(response.status,200);
+ assert.ok(html.includes('drunk-startup-diagnostics-20261115'));
+ assert.ok(html.includes('event.lineno'));
+ assert.ok(html.includes('event.colno'));
+ assert.ok(html.includes('const drunk=drunkControllerAvailable'));
+ assert.ok(!html.includes('__DRUNK_MODE_SCRIPT__'));
+ assert.ok(!html.includes('__MAESTRO_DEFAULT_SETTINGS__'));
+ const snippets=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+ assert.ok(snippets.length>=2);
+ for(const [index,match] of snippets.entries()){
+  assert.doesNotThrow(()=>new Function(match[1]),"Inline script "+index+" is syntactically valid");
+ }
+ const version=await worker.fetch(new Request("https://maestroescape.test/api/build"),{});
+ assert.equal(version.status,200);
+ const build=await version.json();
+ assert.equal(build.build,"drunk-startup-diagnostics-20261115");
+ assert.equal(build.drunkControllerBundled,true);
+});
