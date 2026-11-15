@@ -477,6 +477,25 @@ const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)retu
   const st=drunk.getState(),names=["Sober","Tipsy","Drunk","Wasted"];
   el.textContent=st.level?"🍺 "+names[st.level]+" "+st.level+"/"+st.maxLevel+" · "+st.seconds+"s":"🍺 Sober";
 };
+let drunkTestCounter=0;
+if(new URL(location.href).searchParams.get("mode")==="single"){
+ const hud=document.getElementById("hud"),status=document.getElementById("drunk-status");
+ const test=document.createElement("button");
+ test.type="button";test.id="drunk-test-next";test.textContent="🍺 Test drunk +1";
+ test.title="Single Player test: simulate finishing one whole beer. Does not consume inventory.";
+ test.style.cssText="padding:5px 9px;font-size:11px;border:1px solid #e2ba68;border-radius:7px;background:#493b25;color:#ffe2a2;cursor:pointer";
+ test.addEventListener("click",()=>{
+  if(!drunk.config("enabled")){const msg=document.getElementById("msg");if(msg)msg.textContent="Drunk Mode is disabled in Settings.";return;}
+  drunk.onBeerFinished("test-beer-"+(++drunkTestCounter));
+  drunkHud();
+ });
+ const sober=document.createElement("button");sober.type="button";sober.id="drunk-test-sober";
+ sober.textContent="↺ Sober";sober.title="Reset test intoxication";
+ sober.style.cssText="padding:5px 9px;font-size:11px;border:1px solid #7799ae;border-radius:7px;background:#21384d;color:#fff;cursor:pointer";
+ sober.addEventListener("click",()=>{drunk.reset();drunkHud();});
+ if(hud){status?.after(test);test.after(sober);}
+}
+drunkHud();
 // Mobile camera multiplier affects world rendering only; DOM controls/HUD retain their size.
 const isMobileView=()=>window.matchMedia("(pointer: coarse)").matches||window.innerWidth<=768;
 const displayZoom=base=>base*(isMobileView()?cfg("camera.mobileZoom"):1);
