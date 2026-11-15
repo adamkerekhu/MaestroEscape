@@ -42,8 +42,8 @@ const overlay=document.createElement("div");overlay.id="maestro-inventory-wheel"
 overlay.innerHTML='<div class="wheel-backdrop"></div><section class="wheel-wrap" role="group" aria-label="Choose inventory item"><div class="wheel-disk"></div><div class="wheel-center"><strong>🎒 INVENTORY</strong><span id="wheel-caption">Choose an item</span></div><div class="wheel-empty" hidden>Nothing in your bag</div><div class="wheel-hint">Hold Q · Release to use · Drag outside to drop</div></section>';
 screen.append(overlay);
 const wrap=overlay.querySelector(".wheel-wrap"),caption=overlay.querySelector("#wheel-caption"),hint=overlay.querySelector(".wheel-hint"),empty=overlay.querySelector(".wheel-empty");
-const BUTTONS={beer:"🍺",empty_glass:"🥛",kebab:"🥙",cigarette:"🚬",cigarette_pack:"📦",scratch_ticket:"🎟️"};
-const NAMES={beer:"Beer",empty_glass:"Glass",kebab:"Kebab",cigarette:"Cigarette",cigarette_pack:"Pack",scratch_ticket:"Scratch"};
+const BUTTONS={beer:"🍺",kebab:"🥙",cigarette:"🚬",cigarette_pack:"📦",scratch_ticket:"🎟️"};
+const NAMES={beer:"Beer",kebab:"Kebab",cigarette:"Cigarette",cigarette_pack:"Pack",scratch_ticket:"Scratch"};
 let visible=false,holding=false,selected=-1,items=[],lastPointerType="mouse",busy=false;
 let dragging=null,dragGhost=null,suppressClickUntil=0,dropMessageTimer=0;
 function cleanupDrag(){
