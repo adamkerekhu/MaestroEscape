@@ -46,6 +46,49 @@ jobs:
             if(status.casino.length!==0)throw Error('Casino image objects exist outdoors: '+JSON.stringify(status.casino));
             if(!status.players.some(p=>p.visible))throw Error('No visible player sprite after startup: '+JSON.stringify(status.players));
             console.log('PASS: No casino layer on street; visible player sprite');
+            // Configure a visible manhole at the normal player spawn, without modifying production settings.
+            const testContext=await browser.newContext({viewport:{width:1440,height:900}});
+            await testContext.addInitScript(()=>{
+              localStorage.setItem('maestroescape.gameSettings.v1',JSON.stringify({
+                'casino.manhole.enabled':1,
+                'interaction.street_casino.x':859,
+                'interaction.street_casino.y':577,
+                'interaction.street_casino.radius':100,
+                'transition.casino.x':808,
+                'transition.casino.y':301,
+                'interaction.casino_exit.x':818,
+                'interaction.casino_exit.y':275,
+                'interaction.casino_exit.radius':96
+              }));
+              localStorage.setItem('maestroescape.gameSettings.pending.v1','1');
+            });
+            const enterPage=await testContext.newPage();
+            const enterErrors=[];
+            enterPage.on('pageerror',e=>enterErrors.push(e.message));
+            await enterPage.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-casino-enter-smoke',{waitUntil:'domcontentloaded',timeout:30000});
+            await enterPage.waitForTimeout(5500);
+            const inspect=()=>enterPage.evaluate(()=>{
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const items=scene?.children?.list||[];
+              return {casino:items.filter(o=>o.texture?.key==='casino'&&o.visible).length,
+                street:items.filter(o=>o.texture?.key==='world'&&o.visible).length,
+                prompt:document.querySelector('#npc-prompt')?.textContent,
+                message:document.querySelector('#msg')?.textContent,
+                character:items.filter(o=>o.texture?.key==='maestro'&&o.visible).length};
+            });
+            console.log('CASINO_BEFORE_E',JSON.stringify(await inspect()));
+            await enterPage.keyboard.press('e');
+            await enterPage.waitForTimeout(650);
+            const entered=await inspect();
+            console.log('CASINO_AFTER_E',JSON.stringify(entered),'ERRORS',JSON.stringify(enterErrors));
+            if(!entered.casino||entered.street)throw Error('E did not enter underground casino');
+            await enterPage.keyboard.press('e');
+            await enterPage.waitForTimeout(650);
+            const exited=await inspect();
+            console.log('CASINO_AFTER_EXIT',JSON.stringify(exited));
+            if(exited.casino||!exited.street)throw Error('E did not return to Mester utca');
+            await testContext.close();
+            console.log('PASS: Pressing E enters and exits configured casino manhole');
           }finally{await browser.close()}
           JS
       - uses: actions/upload-artifact@v4
