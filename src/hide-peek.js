@@ -56,9 +56,9 @@ export const HIDE_POINT_DEFS=[
     "roomId": "basement",
     "type": "table",
     "label": "Basement table 1",
-    "x": 0,
-    "y": 0,
-    "enabled": 0,
+    "x": 1248,
+    "y": 365,
+    "enabled": 1,
     "peekSide": "bottom"
   },
   {
@@ -66,9 +66,9 @@ export const HIDE_POINT_DEFS=[
     "roomId": "basement",
     "type": "table",
     "label": "Basement table 2",
-    "x": 0,
-    "y": 0,
-    "enabled": 0,
+    "x": 1530,
+    "y": 365,
+    "enabled": 1,
     "peekSide": "bottom"
   },
   {
@@ -76,9 +76,9 @@ export const HIDE_POINT_DEFS=[
     "roomId": "basement",
     "type": "table",
     "label": "Basement table 3",
-    "x": 0,
-    "y": 0,
-    "enabled": 0,
+    "x": 1248,
+    "y": 673,
+    "enabled": 1,
     "peekSide": "bottom"
   },
   {
