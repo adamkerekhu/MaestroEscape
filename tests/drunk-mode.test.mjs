@@ -110,3 +110,19 @@ test("game HTML embeds the drunk module before Phaser startup",async()=>{
  new Function("window",embedded)(window);
  assert.equal(typeof window.MaestroDrunkMode,"function");
 });
+
+test("single-player HUD has beer simulation controls and inventory explains five sips",async()=>{
+ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
+ const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
+ assert.ok(worker.includes('get("mode")==="single"){\n const hud=document.getElementById("hud")'));
+ assert.ok(worker.includes('test.id="drunk-test-next"'));
+ assert.ok(worker.includes('drunk.onBeerFinished("test-beer-"+(++drunkTestCounter))'));
+ assert.ok(worker.includes('sober.id="drunk-test-sober"'));
+ assert.ok(worker.includes('drunk.reset();drunkHud();'));
+ assert.ok(client.includes('Drink sip "+(i.maxUnits-i.remainingUnits+1)+"/"+i.maxUnits'));
+ assert.ok(client.includes('this.ctx.onBeerFinished(event.id)'));
+ const d=new DrunkMode();
+ for(let i=0;i<3;i++)d.onBeerFinished("test-beer-"+i);
+ assert.equal(d.level,3);
+ d.reset();assert.equal(d.level,0);
+});
