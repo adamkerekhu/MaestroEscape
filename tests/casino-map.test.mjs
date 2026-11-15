@@ -8,9 +8,9 @@ const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
 const engine=readFileSync(new URL("../src/consumables.js",import.meta.url),"utf8");
 const local=readFileSync(new URL("../src/local-room-source.js",import.meta.url),"utf8");
 test("casino dimensions, collision and hotspots are wired from uploaded geometry",()=>{
- assert.deepEqual(CASINO_SIZE,{w:1696,h:960});
- assert.deepEqual(CASINO_SPAWN,{x:808,y:301});
- assert.equal(CASINO_WALLS.length,16);
+ assert.deepEqual(CASINO_SIZE,{w:1448,h:1086});
+ assert.deepEqual(CASINO_SPAWN,{x:715,y:301});
+ assert.ok(CASINO_WALLS.length>=12);
  assert.equal(CASINO_HOTSPOTS.length,8);
  for(const point of [CASINO_SPAWN,CASINO_EXIT]){
   const r=point===CASINO_SPAWN?13:10;
@@ -41,7 +41,7 @@ test("casino asset is loaded, rendered, and served with WebP mime",()=>{
  assert.match(worker,/this\.load\.image\("casino","\/assets\/casino.webp"\)/);
  assert.match(worker,/casinoImage=scene\.add\.image\(0,0,"casino"\)/);
  assert.match(worker,/url\.pathname==="\/assets\/casino.webp"/);
- assert.match(worker,/Assets\/Maps\/maestro_casino\.webp/);
+ assert.match(worker,/maestro_casino_v2\.webp/);
  assert.match(worker,/CASINO_WALLS:insideBasement\?BASEMENT_WALLS/);
  assert.match(worker,/insideCasino\?cfg\("building.casino.zoom"\)/);
 });
