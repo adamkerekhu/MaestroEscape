@@ -386,7 +386,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 const HTML = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maestro Escape | Explore</title>
-<meta name="maestro-build" content="drunk-external-controller-20261115">
+<meta name="maestro-build" content="drunk-inline-native-20261115">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f6f3ea;font:15px system-ui,Arial}
 header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 20px;max-width:1360px;margin:auto}
@@ -440,7 +440,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script>
-window.__MAESTRO_BUILD__="drunk-external-controller-20261115";
+window.__MAESTRO_BUILD__="drunk-inline-native-20261115";
 window.addEventListener("error",function(event){
  const splash=document.getElementById("splash");
  const filename=event.filename?event.filename.split("/").pop().slice(0,90):"inline script";
@@ -459,8 +459,104 @@ window.addEventListener("unhandledrejection",function(event){
 </script>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script src="/assets/consumables.js"></script>
-<script src="/assets/drunk-mode.js" onerror="window.__maestroDrunkLoadError='Could not download /assets/drunk-mode.js'"></script>
 <script>
+const DRUNK_DEFAULTS=Object.freeze({
+ "drunkMode.enabled":1,"drunkMode.maxLevel":3,"drunkMode.recoverySecondsPerLevel":20,
+ "drunkMode.visualsEnabled":1,"drunkMode.reduceMotion":0,
+ "drunkMode.level1SwayDeg":0.4,"drunkMode.level2SwayDeg":0.4,"drunkMode.level3SwayDeg":2,
+ "drunkMode.level1ZoomPulsePct":0.3,"drunkMode.level2ZoomPulsePct":0.3,"drunkMode.level3ZoomPulsePct":1.5,
+ "drunkMode.swayCycleSeconds":3,"drunkMode.level2MistakesPerMinute":8,"drunkMode.level3MistakesPerMinute":20,
+ "drunkMode.level2MaxDeviationDeg":20,"drunkMode.level3MaxDeviationDeg":50,
+ "drunkMode.mistakeDurationMs":550,"drunkMode.transitionMs":650,"drunkMode.showStatus":1
+});
+const DRUNK_RANGES=Object.freeze({"enabled":[0,1],"maxLevel":[1,3],"recoverySecondsPerLevel":[5,120],"visualsEnabled":[0,1],"reduceMotion":[0,1],"level1SwayDeg":[0,3],"level2SwayDeg":[0,3],"level3SwayDeg":[0,5],"level1ZoomPulsePct":[0,2],"level2ZoomPulsePct":[0,2],"level3ZoomPulsePct":[0,4],"swayCycleSeconds":[1,8],"level2MistakesPerMinute":[0,30],"level3MistakesPerMinute":[0,45],"level2MaxDeviationDeg":[0,45],"level3MaxDeviationDeg":[0,80],"mistakeDurationMs":[150,1500],"transitionMs":[0,1500],"showStatus":[0,1]});
+class DrunkMode {
+ constructor(getSettings=()=>DRUNK_DEFAULTS, random=Math.random){
+  this.getSettings=getSettings;this.random=random;this.level=0;this.elapsed=0;this.phase=0;
+  this.angle=0;this.target=0;this.episode=0;this.nextMistake=0;this.visual=0;
+  this.paused=false;this.lastEventIds=new Set();this.recoverySetting=this.config("recoverySecondsPerLevel");
+ }
+ config(key){
+  const raw=this.getSettings()?.["drunkMode."+key],n=Number(raw);
+  const fallback=DRUNK_DEFAULTS["drunkMode."+key];
+  const [min,max]=DRUNK_RANGES[key]||[0,Infinity];
+  if(raw===undefined||raw===null||!Number.isFinite(n))return fallback;
+  const safe=Math.min(max,Math.max(min,n));
+  return ["enabled","visualsEnabled","reduceMotion","showStatus"].includes(key)?Number(safe>=.5):
+   key==="maxLevel"?Math.round(safe):safe;
+ }
+ reset(){this.level=0;this.elapsed=0;this.phase=0;this.angle=0;this.target=0;this.episode=0;this.nextMistake=0;this.visual=0;this.lastEventIds.clear();}
+ pause(){this.paused=true;}
+ resume(){this.paused=false;}
+ onBeerFinished(eventId){
+  if(!this.config("enabled"))return false;
+  if(eventId!=null){if(this.lastEventIds.has(eventId))return false;this.lastEventIds.add(eventId);if(this.lastEventIds.size>300)this.lastEventIds.delete(this.lastEventIds.values().next().value);}
+  this.level=Math.min(this.config("maxLevel"),this.level+1);
+  this.elapsed=0;this.nextMistake=0;return true;
+ }
+ setConfig(){
+  if(!this.config("enabled")){this.reset();return;}
+  this.level=Math.min(this.level,this.config("maxLevel"));
+  const threshold=this.config("recoverySecondsPerLevel");
+  if(threshold!==this.recoverySetting){
+   this.elapsed=Math.min(this.elapsed,Math.max(0,threshold*1000-1));
+   this.recoverySetting=threshold;
+  }
+ }
+ update(deltaMs,paused=false){
+  this.setConfig();
+  const dt=Math.max(0,Math.min(1000,Number(deltaMs)||0));
+  if(paused||this.paused)return;
+  this.phase+=dt/1000;
+  if(this.level){
+   this.elapsed+=dt;
+   const threshold=Math.max(1,this.config("recoverySecondsPerLevel"))*1000;
+   while(this.level>0&&this.elapsed>=threshold){this.elapsed-=threshold;this.level--;}
+   if(!this.level)this.elapsed=0;
+  }
+  const fade=this.config("transitionMs")||0;
+  const f=fade?Math.min(1,dt/fade):1;
+  this.visual+=(this.level-this.visual)*f;
+  if(this.level<2){this.target=0;this.episode=0;this.nextMistake=0;}
+  else{
+   this.episode=Math.max(0,this.episode-dt);
+   if(this.episode===0)this.target=0;
+   this.nextMistake-=dt;
+   if(this.nextMistake<=0){
+    const rate=this.config(this.level===2?"level2MistakesPerMinute":"level3MistakesPerMinute");
+    if(rate>0){
+     const maxAngle=this.config(this.level===2?"level2MaxDeviationDeg":"level3MaxDeviationDeg");
+     this.target=(this.random()<.5?-1:1)*maxAngle*(.4+this.random()*.6)*Math.PI/180;
+     this.episode=this.config("mistakeDurationMs");
+     this.nextMistake=Math.max(400,-Math.log(Math.max(.001,1-this.random()))*60000/rate);
+    }else{this.nextMistake=1000;}
+   }
+  }
+  this.angle+=(this.target-this.angle)*Math.min(1,dt/150);
+ }
+ direction(x,y){
+  if(!this.config("enabled")||this.level<2||(!x&&!y))return {x,y};
+  const c=Math.cos(this.angle),s=Math.sin(this.angle);
+  const nx=x*c-y*s,ny=x*s+y*c;
+  const length=Math.hypot(nx,ny);
+  return length>1?{x:nx/length,y:ny/length}:{x:nx,y:ny};
+ }
+ camera(baseZoom){
+  if(!this.config("enabled")||!this.config("visualsEnabled")||this.config("reduceMotion")||this.visual<.001)
+   return {rotation:0,zoom:baseZoom};
+  const l=Math.max(1,Math.min(3,Math.round(this.visual)));
+  const sway=this.config("level"+l+"SwayDeg")*Math.PI/180;
+  const zoom=this.config("level"+l+"ZoomPulsePct")/100;
+  const wave=this.phase*2*Math.PI/Math.max(.5,this.config("swayCycleSeconds"));
+  const blend=Math.min(1,this.visual);
+  return {rotation:Math.sin(wave)*sway*blend,zoom:baseZoom*(1+Math.sin(wave*.8)*zoom*blend)};
+ }
+ getState(){
+  const seconds=this.level?Math.max(0,Math.ceil(this.config("recoverySecondsPerLevel")-this.elapsed/1000)):0;
+  return {level:this.level,maxLevel:this.config("maxLevel"),seconds};
+ }
+}
+
 (function(){
 'use strict';
 if(!window.Phaser){document.getElementById('splash').textContent="Could not load Phaser. Check internet access.";return;}
@@ -472,14 +568,9 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-const drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
-const drunkLoadError=drunkControllerAvailable?"":window.__maestroDrunkLoadError||
- "Drunk controller script was not executed. Check /assets/drunk-mode.js and Content Security Policy.";
-if(!drunkControllerAvailable)console.error("Drunk Mode startup:",drunkLoadError);
-const drunk=drunkControllerAvailable
- ?new window.MaestroDrunkMode(()=>overrides)
- :{level:0,phase:0,reset(){},update(){},config(){return 0},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
-if(!drunkControllerAvailable)console.error("Drunk Mode failed to initialize; game running with sober fallback");
+const drunkControllerAvailable=typeof DrunkMode==="function";
+const drunkLoadError=drunkControllerAvailable?"":"Drunk controller was not initialized within the game script.";
+const drunk=new DrunkMode(()=>overrides);
 let lastDrunkHud=-1;
 const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)return;
   if(!cfg("drunkMode.showStatus")){el.textContent="";return;}
@@ -1893,7 +1984,7 @@ export default {
   if(url.pathname==="/assets/local-room.js")
    return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/build")
-   return Response.json({build:"drunk-external-controller-20261115",drunkControllerBundled:true},
+   return Response.json({build:"drunk-inline-native-20261115",drunkControllerBundled:true},
     {headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
