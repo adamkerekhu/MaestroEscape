@@ -108,9 +108,11 @@ test("rendered game compiles drunk controller safely from a quoted string",async
  assert.ok(start>=0&&end>start,"Game script should be present and self-contained");
  const gameScript=html.slice(start+8,end);
  assert.doesNotThrow(()=>new Function(gameScript));
- const match=gameScript.match(/new Function\\("window",([\\s\\S]*?)\\) \\(window\\)/);
- assert.ok(match,"Quoted controller source should be safely evaluated");
- const controllerSource=JSON.parse(match[1]);
+ const marker='new Function("window",';
+ const controllerStart=gameScript.indexOf(marker);
+ const controllerEnd=gameScript.indexOf(') (window);',controllerStart);
+ assert.ok(controllerStart>=0&&controllerEnd>controllerStart,"Quoted controller source should be safely evaluated");
+ const controllerSource=JSON.parse(gameScript.slice(controllerStart+marker.length,controllerEnd));
  const window={};
  assert.doesNotThrow(()=>new Function("window",controllerSource)(window));
  assert.equal(typeof window.MaestroDrunkMode,"function");
