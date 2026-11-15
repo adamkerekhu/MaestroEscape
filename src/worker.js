@@ -46,7 +46,9 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 </section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
- const singleMode=new URL(location.href).searchParams.get("mode")==="single";
+ // Multiplayer is retired; the settings editor must write to the same
+ // browser-local storage that the active single-player room reads.
+ const singleMode=true;
  if(singleMode){
   const back=document.querySelector(".toolbar a[href='/']");
   if(back)back.href="/?mode=single";
@@ -571,7 +573,7 @@ const configDefaults=__MAESTRO_DEFAULT_SETTINGS__;
 let overrides={};
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
 if(new URL(location.href).searchParams.get("mode")==="single"){
- const link=document.querySelector("a.settings-nav");
+ const link=document.querySelector('a.settings-nav[href="/settings"]');
  if(link)link.href="/settings?mode=single";
 }
 const drunkControllerAvailable=typeof DrunkMode==="function";
