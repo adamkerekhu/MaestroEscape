@@ -29,3 +29,20 @@ test("invalid registration does not create accounts",async()=>{
  assert.equal((await app.fetch(request("register",{email:"invalid",password:"example-password-12345"}))).status,400);
  assert.equal((await app.fetch(request("register",{email:"test@example.com",password:"short"}))).status,400);
 });
+
+test("asynchronous account storage errors return JSON rather than Worker HTML 500",async()=>{
+ const ctx={storage:{get:async()=>{throw new Error("Simulated account storage failure")},put:async()=>{}}};
+ const app=new MaestroAccounts(ctx,{});
+ const res=await app.fetch(request("register",{email:"valid@example.com",password:"example-password-12345"}));
+ assert.equal(res.status,503);
+ assert.match(res.headers.get("content-type")||"",/application\/json/);
+ assert.equal((await res.json()).error,"Account service unavailable");
+});
+test("Durable Object health actually checks storage",async()=>{
+ let calls=0;const ctx={storage:{get:async()=>{calls++;return null}}};
+ const app=new MaestroAccounts(ctx,{});
+ const res=await app.fetch(new Request(base+"/health"));
+ assert.equal(res.status,200);
+ assert.equal((await res.json()).storageReachable,true);
+ assert.equal(calls,1);
+});
