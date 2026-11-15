@@ -36,7 +36,7 @@ export const INTERACTION_EDITOR_SCRIPT = String.raw`
   street:{w:1600,h:992,asset:"/assets/world.webp"},
   pub:{w:1448,h:1086,asset:"/assets/interior.webp"},
   basement:{w:1792,h:896,asset:"/assets/basement.webp"},
-  casino:{w:1696,h:960,asset:"/assets/casino.webp"},
+  casino:{w:1448,h:1086,asset:"/assets/casino.webp"},
   spar:{w:736,h:384,asset:"/assets/shop-spar.webp"},
   dohanybolt:{w:608,h:832,asset:"/assets/shop-dohanybolt.webp"},
   gyros:{w:768,h:480,asset:"/assets/shop-gyros.webp"}
