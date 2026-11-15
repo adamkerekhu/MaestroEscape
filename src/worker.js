@@ -4,8 +4,10 @@ import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 import { DRUNK_MODE_CLIENT_SCRIPT } from "./drunk-mode.js";
 import { PUB_MENU, PUB_TABLES } from "./pub-menu-data.js";
 import { PUB_ORDERS_CLIENT_SCRIPT } from "./pub-orders-client.js";
-import { adminAuthorized, loginPage, loginRequest, logoutResponse, forbiddenResponse, mutationOriginAllowed } from "./admin-auth.js";
-export { ConsumableRoom };
+import { mutationOriginAllowed } from "./admin-auth.js";
+import { MaestroAccounts } from "./accounts.js";
+import { ACCOUNT_PAGE, ACCOUNT_HOME } from "./account-pages.js";
+export { ConsumableRoom, MaestroAccounts };
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
 // Original Pygame source remains available in the repository.
@@ -2045,20 +2047,62 @@ export default {
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables")return Response.json({ok:false,error:"Multiplayer has been shut down. Use single-player test mode.",code:"MULTIPLAYER_DISABLED"},{status:410,headers:{"cache-control":"no-store"}});
-  if(url.pathname==="/admin/login"){
-   if(request.method==="POST")return loginRequest(request,env);
-   if(request.method!=="GET")return new Response("Method not allowed",{status:405});
-   if(await adminAuthorized(request,env))return Response.redirect(url.origin+"/settings",303);
-   return new Response(loginPage(env?.ADMIN_PASSWORD&&env?.ADMIN_SESSION_SECRET?"":"missing"),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY","content-security-policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
+  // Public account registration and authentication. No registration is privileged.
+  const accountCookie=(request.headers.get("cookie")||"").split(";").map(v=>v.trim()).find(v=>v.startsWith("maestro_account="))?.slice("maestro_account=".length)||"";
+  const accountStore=()=>env?.ACCOUNTS_STORE?.get(env.ACCOUNTS_STORE.idFromName("maestroescape-accounts-v1"));
+  const accountAuth=async()=>{
+   const stub=accountStore();if(!stub)return null;
+   if(!/^[A-Za-z0-9_-]{43}$/.test(accountCookie))return null;
+   const result=await stub.fetch("https://accounts.internal/session",{headers:{"x-session-token":accountCookie}});
+   if(!result.ok)return null;
+   return (await result.json()).user;
+  };
+  const accountHTML={"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY","x-robots-tag":"noindex, nofollow","content-security-policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"};
+  if(url.pathname==="/admin/login")return Response.redirect(url.origin+"/account/login",303);
+  if(url.pathname==="/account/login"||url.pathname==="/account/register")return new Response(ACCOUNT_PAGE,{headers:accountHTML});
+  if(url.pathname==="/account"){
+   const user=await accountAuth();
+   if(!user)return Response.redirect(url.origin+"/account/login",303);
+   return new Response(ACCOUNT_HOME,{headers:accountHTML});
+  }
+  if(url.pathname==="/api/account/me"){
+   const user=await accountAuth();
+   if(!user)return Response.json({ok:false,error:"Not authenticated"},{status:401,headers:{"cache-control":"no-store"}});
+   return Response.json({ok:true,user},{headers:{"cache-control":"no-store"}});
+  }
+  if(["/api/account/register","/api/account/login","/api/account/logout"].includes(url.pathname)){
+   if(request.method!=="POST")return new Response("Method not allowed",{status:405});
+   if(!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid origin"},{status:403});
+   if(!env?.ACCOUNTS_STORE)return Response.json({ok:false,error:"Account storage not configured"},{status:503});
+   if(url.pathname!=="/api/account/logout"&&!(request.headers.get("content-type")||"").includes("application/json"))return Response.json({ok:false,error:"JSON required"},{status:415});
+   const contentLength=Number(request.headers.get("content-length")||0);
+   if(contentLength>4096)return Response.json({ok:false,error:"Request too large"},{status:413});
+   const kind=url.pathname.split("/").pop();
+   const stub=accountStore();
+   const upstream=await stub.fetch(new Request("https://accounts.internal/"+kind,{method:"POST",headers:{"content-type":"application/json","x-client-ip":request.headers.get("cf-connecting-ip")||"unknown"},body:kind==="logout"?JSON.stringify({}):request.body}));
+   if(kind==="login"&&upstream.ok){
+    const result=await upstream.json();
+    const headers=new Headers({"cache-control":"no-store","content-type":"application/json","set-cookie":"maestro_account="+result.token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800"});
+    return Response.json({ok:true,user:result.user},{headers});
+   }
+   if(kind==="logout"){
+    if(accountCookie)await stub.fetch("https://accounts.internal/logout",{method:"POST",headers:{"x-session-token":accountCookie}});
+    return Response.json({ok:true},{headers:{"cache-control":"no-store","set-cookie":"maestro_account=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0"}});
+   }
+   return upstream;
   }
   if(url.pathname==="/admin/logout"){
-   if(request.method!=="POST")return new Response("Method not allowed",{status:405});
-   if(!mutationOriginAllowed(request))return new Response("Invalid origin",{status:403});
-   return logoutResponse();
+   if(request.method!=="POST"||!mutationOriginAllowed(request))return new Response("Forbidden",{status:403});
+   if(accountCookie&&accountStore())await accountStore().fetch("https://accounts.internal/logout",{method:"POST",headers:{"x-session-token":accountCookie}});
+   return new Response(null,{status:303,headers:{"location":"/account/login","set-cookie":"maestro_account=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0","cache-control":"no-store"}});
   }
   if(url.pathname==="/settings"||url.pathname==="/settings/schema"||url.pathname==="/api/settings"){
-   if(!await adminAuthorized(request,env))return forbiddenResponse(request);
-   if(url.pathname==="/api/settings"&&request.method!=="GET"&&!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid request origin"},{status:403,headers:{"cache-control":"no-store"}});
+   const user=await accountAuth();
+   if(user?.role!=="admin"){
+    if(url.pathname==="/settings")return Response.redirect(url.origin+(user?"/account":"/account/login"),303);
+    return Response.json({ok:false,error:"Administrator role required",code:"ADMIN_REQUIRED"},{status:403,headers:{"cache-control":"no-store"}});
+   }
+   if(url.pathname==="/api/settings"&&request.method!=="GET"&&!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid origin"},{status:403,headers:{"cache-control":"no-store"}});
   }
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
