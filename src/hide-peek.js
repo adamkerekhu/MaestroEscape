@@ -164,7 +164,7 @@ class MaestroHideController {
   // Slide only along a fully walkable line, at most the configured interaction radius.
   // Never leap through furniture, walls, counters or other players.
   if(distance>Math.max(12,point.interactionRadius||this.cfg("hide.radius")))return false;
-  const steps=Math.max(1,Math.ceil(distance/5));
+  const steps=Math.max(1,Math.ceil(distance)); // 1px steps prevent skipping thin collision boundaries
   for(let n=1;n<=steps;n++){
    const x=start.x+(target.x-start.x)*n/steps,y=start.y+(target.y-start.y)*n/steps;
    if(this.collides(x,y))return false;
