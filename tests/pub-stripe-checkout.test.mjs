@@ -48,3 +48,11 @@ test("12% service charge and Stripe HUF charge conversion",()=>{
  assert.equal(subtotal,3300);assert.equal(fee,396);assert.equal(subtotal+fee,3696);
  assert.equal((subtotal+fee)*100,369600);
 });
+
+test("shop initializes a window element before mounting embedded checkout",()=>{
+ const windowInit=PUB_SHOP_SCRIPT.indexOf('const el=root.querySelector(".shop-window")');
+ const insert=PUB_SHOP_SCRIPT.indexOf('el.insertBefore(checkoutScreen');
+ assert.ok(windowInit>0,"Shop window reference must be defined");
+ assert.ok(insert>windowInit,"Shop window must exist before inserting checkout view");
+ assert.match(PUB_SHOP_SCRIPT,/window\.MaestroRealOrders=\{open,close/);
+});
