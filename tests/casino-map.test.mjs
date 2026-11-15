@@ -56,3 +56,12 @@ test("casino hotspots are non-wagering placeholders",()=>{
  assert.match(worker,/interaction is ready for a future mini-game\. No wagering is implemented/);
  assert.equal(CASINO_HOTSPOTS.filter(x=>x.id.startsWith("slot_")).length,5);
 });
+
+test("casino WebP is physically committed and has valid RIFF/WEBP header",()=>{
+ const asset=readFileSync(new URL("../Assets/Maps/maestro_casino.webp",import.meta.url));
+ assert.ok(asset.length>5000,"Casino map asset should not be a missing stub");
+ assert.equal(asset.toString("ascii",0,4),"RIFF");
+ assert.equal(asset.toString("ascii",8,12),"WEBP");
+ const riffSize=asset.readUInt32LE(4);
+ assert.equal(riffSize+8,asset.length,"WebP RIFF length must match file bytes");
+});
