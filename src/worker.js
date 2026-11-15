@@ -461,7 +461,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script>
-window.__MAESTRO_BUILD__="drunk-ghost-overlay-20261115";
+window.__MAESTRO_BUILD__="casino-lazy-character-fix-20261115";
 window.addEventListener("error",function(event){
  const splash=document.getElementById("splash");
  const filename=event.filename?event.filename.split("/").pop().slice(0,90):"inline script";
