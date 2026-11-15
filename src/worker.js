@@ -493,8 +493,11 @@ if(testMode){
  test.addEventListener("click",()=>{
   try{
    if(!drunkControllerAvailable){report("⚠ Drunk Mode controller did not load. Refresh the latest version.");return;}
-   const enabled=drunk.config("enabled");
-   if(!enabled){report("⚠ Drunk Mode is OFF in Settings. Enable it to test.");return;}
+   // This button is a controlled demonstration. Temporarily enable intoxication
+   // visuals and controls without overwriting saved settings.
+   if(!drunk.config("enabled")||!drunk.config("visualsEnabled")||drunk.config("reduceMotion")){
+    overrides={...overrides,"drunkMode.enabled":1,"drunkMode.visualsEnabled":1,"drunkMode.reduceMotion":0,"drunkMode.showStatus":1};
+   }
    const before=drunk.getState().level;
    const accepted=drunk.onBeerFinished("test-beer-"+(++drunkTestCounter));
    const state=drunk.getState();
