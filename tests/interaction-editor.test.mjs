@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT} from "../src/interaction-editor.js";
 import {TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT} from "../src/transition-editor.js";
+import {HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT} from "../src/hide-editor.js";
+import {HIDE_POINT_DEFS} from "../src/hide-peek.js";
 const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
 const ids=["street_pub","street_spar","street_dohanybolt","street_gyros","pub_exit","pub_downstairs","basement_upstairs","spar_exit","dohanybolt_exit","gyros_exit"];
 test("ten independent door and stair points have X Y and radius settings",()=>{
@@ -34,8 +36,8 @@ test("both editors compile inside real Settings page template",()=>{
  const start=worker.indexOf("const SETTINGS_HTML=String.raw`");
  const end=worker.indexOf(";"+String.fromCharCode(10)+"const HTML = String.raw`",start);
  assert.ok(start>=0&&end>start);
- const make=new Function("TRANSITION_EDITOR_CSS","TRANSITION_EDITOR_HTML","TRANSITION_EDITOR_SCRIPT","INTERACTION_EDITOR_CSS","INTERACTION_EDITOR_HTML","INTERACTION_EDITOR_SCRIPT",worker.slice(start,end+1)+"\nreturn SETTINGS_HTML;");
- const html=make(TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT,INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT);
+ const make=new Function("TRANSITION_EDITOR_CSS","TRANSITION_EDITOR_HTML","TRANSITION_EDITOR_SCRIPT","INTERACTION_EDITOR_CSS","INTERACTION_EDITOR_HTML","INTERACTION_EDITOR_SCRIPT","HIDE_EDITOR_CSS","HIDE_EDITOR_HTML","HIDE_EDITOR_SCRIPT","HIDE_POINT_DEFS",worker.slice(start,end+1)+"\nreturn SETTINGS_HTML;");
+ const html=make(TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT,INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT,HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT,HIDE_POINT_DEFS);
  assert.ok(html.includes('id="interaction-map"'));
  assert.ok(html.includes('id="transition-map"'));
  new Function(html.split("<script>")[1].split("</script>")[0]);
