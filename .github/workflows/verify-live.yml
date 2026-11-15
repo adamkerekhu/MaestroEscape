@@ -1,0 +1,36 @@
+name: Verify deployed MaestroEscape
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - ".github/workflows/verify-live.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Cloudflare Git-connected Worker received latest build
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://maestroescape.adam-kerek.workers.dev/?mode=single"
+          MARKER="casino-lazy-character-fix-20261115"
+          for attempt in 1 2 3 4 5 6 7 8; do
+            echo "Live build check attempt $attempt"
+            if curl -fsSL --max-time 15 "$URL" -o /tmp/maestro-live.html; then
+              if grep -Fq "$MARKER" /tmp/maestro-live.html; then
+                echo "PASS: Live Cloudflare Worker serves $MARKER"
+                exit 0
+              fi
+              echo "Worker reachable; repair marker not yet deployed"
+              grep -oE 'window.__MAESTRO_BUILD__="[^"]*"' /tmp/maestro-live.html | head -1 || :
+            else
+              echo "Worker HTTP request failed"
+            fi
+            sleep 10
+          done
+          echo "::error::Cloudflare live Worker has not served the repair build. Check Git integration deployments."
+          exit 1
