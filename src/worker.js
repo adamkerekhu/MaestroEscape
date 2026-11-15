@@ -1319,6 +1319,23 @@ function intersects(x,y){
  if(x>=635&&x<=765&&y>=785&&y<=935)return false;
  return collisionPolygons.some(poly=>[[x,y],[x-w,y-h],[x+w,y-h],[x-w,y+h],[x+w,y+h]].some(p=>insidePolygon(p[0],p[1],poly)));
 }
+// Resolve saved destinations in the new scene's coordinate space. Invalid or
+// blocked placements are moved to the nearest walkable point; old saves still work.
+function transitionArrival(id,fallback){
+ const rawX=cfg("transition."+id+".x"),rawY=cfg("transition."+id+".y");
+ const x=Number.isFinite(rawX)?Math.max(25,Math.min(mapSize.w-25,rawX)):fallback.x;
+ const y=Number.isFinite(rawY)?Math.max(25,Math.min(mapSize.h-25,rawY)):fallback.y;
+ const safe=(px,py)=>!intersects(px,py);
+ if(safe(x,y))return {x,y};
+ for(let radius=15;radius<=220;radius+=15){
+  for(let angle=0;angle<Math.PI*2;angle+=Math.PI/12){
+   const px=Math.round(Math.max(25,Math.min(mapSize.w-25,x+Math.cos(angle)*radius)));
+   const py=Math.round(Math.max(25,Math.min(mapSize.h-25,y+Math.sin(angle)*radius)));
+   if(safe(px,py))return {x:px,y:py};
+  }
+ }
+ return safe(fallback.x,fallback.y)?fallback:{x,y};
+}
 function enterBasement(){
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
@@ -1329,7 +1346,8 @@ function enterBasement(){
  pubStairsHint?.setVisible(false);exitHint?.setVisible(false);
  showInteriorNPCs("basement");
  character.setScale(cfg("building.pub.scale"));
- player.x=BASEMENT_SPAWN.x;player.y=BASEMENT_SPAWN.y;
+ const basementArrival=transitionArrival("basement",BASEMENT_SPAWN);
+ player.x=basementArrival.x;player.y=basementArrival.y;
  character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
  scene.cameras.main.setZoom(displayZoom(cfg("building.basement.zoom")));
@@ -1342,7 +1360,7 @@ function leaveBasement(){
  insideBasement=false;mapSize={...INTERIOR_SIZE};
  basementImage?.setVisible(false);interiorImage?.setVisible(true);
  showInteriorNPCs("pub");
- const returnPos=pubStairReturn||INTERIOR_SPAWN;
+ const returnPos=transitionArrival("upstairs",pubStairReturn||INTERIOR_SPAWN);
  player.x=returnPos.x;player.y=returnPos.y;
  character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,mapSize.w,mapSize.h);
@@ -1362,7 +1380,9 @@ function enterShop(shop){
  if(octaviaSprite)octaviaSprite.setVisible(false);
  for(const sprite of bikeSprites)sprite.setVisible(false);
  if(tramSprite)tramSprite.setVisible(false);
- player.x=shop.spawn.x;player.y=shop.spawn.y;character.setPosition(player.x,player.y);
+ const shopId=Object.keys(SHOPS).find(id=>SHOPS[id]===shop);
+ const shopArrival=transitionArrival(shopId,shop.spawn);
+ player.x=shopArrival.x;player.y=shopArrival.y;character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,shop.size.w,shop.size.h);scene.cameras.main.setZoom(displayZoom(shopZoom(shop)));
  status.textContent="Inside "+shop.label;
  show("Inside "+shop.label+". Press E near the entrance to exit.");
@@ -1379,7 +1399,8 @@ function enterPub(){
  if(octaviaSprite)octaviaSprite.setVisible(false);
  for(const sprite of bikeSprites)sprite.setVisible(false);
  if(tramSprite)tramSprite.setVisible(false);
- player.x=INTERIOR_SPAWN.x;player.y=INTERIOR_SPAWN.y;
+ const pubArrival=transitionArrival("pub",INTERIOR_SPAWN);
+ player.x=pubArrival.x;player.y=pubArrival.y;
  character.setPosition(player.x,player.y);
  scene.cameras.main.setBounds(0,0,INTERIOR_SIZE.w,INTERIOR_SIZE.h);
  scene.cameras.main.setZoom(displayZoom(cfg("building.pub.zoom")));
