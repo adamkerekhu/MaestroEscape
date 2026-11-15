@@ -82,4 +82,4 @@ export class DrunkMode {
   return {level:this.level,maxLevel:this.config("maxLevel"),seconds};
  }
 }
-export const DRUNK_MODE_CLIENT_SCRIPT=DrunkMode.toString()+";window.MaestroDrunkMode=DrunkMode;";
+export const DRUNK_MODE_CLIENT_SCRIPT="const DRUNK_DEFAULTS="+JSON.stringify(DRUNK_DEFAULTS)+";"+DrunkMode.toString()+";window.MaestroDrunkMode=DrunkMode;";
