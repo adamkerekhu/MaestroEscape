@@ -8,16 +8,21 @@ export const DRUNK_DEFAULTS=Object.freeze({
  "drunkMode.level2MaxDeviationDeg":20,"drunkMode.level3MaxDeviationDeg":50,
  "drunkMode.mistakeDurationMs":550,"drunkMode.transitionMs":650,"drunkMode.showStatus":1
 });
+export const DRUNK_RANGES=Object.freeze({"enabled":[0,1],"maxLevel":[1,3],"recoverySecondsPerLevel":[5,120],"visualsEnabled":[0,1],"reduceMotion":[0,1],"level1SwayDeg":[0,3],"level2SwayDeg":[0,3],"level3SwayDeg":[0,5],"level1ZoomPulsePct":[0,2],"level2ZoomPulsePct":[0,2],"level3ZoomPulsePct":[0,4],"swayCycleSeconds":[1,8],"level2MistakesPerMinute":[0,30],"level3MistakesPerMinute":[0,45],"level2MaxDeviationDeg":[0,45],"level3MaxDeviationDeg":[0,80],"mistakeDurationMs":[150,1500],"transitionMs":[0,1500],"showStatus":[0,1]});
 export class DrunkMode {
  constructor(getSettings=()=>DRUNK_DEFAULTS, random=Math.random){
   this.getSettings=getSettings;this.random=random;this.level=0;this.elapsed=0;this.phase=0;
   this.angle=0;this.target=0;this.episode=0;this.nextMistake=0;this.visual=0;
-  this.paused=false;this.lastEventIds=new Set();
+  this.paused=false;this.lastEventIds=new Set();this.recoverySetting=this.config("recoverySecondsPerLevel");
  }
  config(key){
-  const raw=Number(this.getSettings()?.["drunkMode."+key]);
+  const raw=this.getSettings()?.["drunkMode."+key],n=Number(raw);
   const fallback=DRUNK_DEFAULTS["drunkMode."+key];
-  return Number.isFinite(raw)?raw:fallback;
+  const [min,max]=DRUNK_RANGES[key]||[0,Infinity];
+  if(raw===undefined||raw===null||!Number.isFinite(n))return fallback;
+  const safe=Math.min(max,Math.max(min,n));
+  return ["enabled","visualsEnabled","reduceMotion","showStatus"].includes(key)?Number(safe>=.5):
+   key==="maxLevel"?Math.round(safe):safe;
  }
  reset(){this.level=0;this.elapsed=0;this.phase=0;this.angle=0;this.target=0;this.episode=0;this.nextMistake=0;this.visual=0;this.lastEventIds.clear();}
  pause(){this.paused=true;}
@@ -28,10 +33,18 @@ export class DrunkMode {
   this.level=Math.min(this.config("maxLevel"),this.level+1);
   this.elapsed=0;this.nextMistake=0;return true;
  }
- setConfig(){if(!this.config("enabled"))this.reset();else this.level=Math.min(this.level,this.config("maxLevel"));}
+ setConfig(){
+  if(!this.config("enabled")){this.reset();return;}
+  this.level=Math.min(this.level,this.config("maxLevel"));
+  const threshold=this.config("recoverySecondsPerLevel");
+  if(threshold!==this.recoverySetting){
+   this.elapsed=Math.min(this.elapsed,Math.max(0,threshold*1000-1));
+   this.recoverySetting=threshold;
+  }
+ }
  update(deltaMs,paused=false){
   this.setConfig();
-  const dt=Math.max(0,Math.min(250,Number(deltaMs)||0));
+  const dt=Math.max(0,Math.min(1000,Number(deltaMs)||0));
   if(paused||this.paused)return;
   this.phase+=dt/1000;
   if(this.level){
@@ -82,4 +95,4 @@ export class DrunkMode {
   return {level:this.level,maxLevel:this.config("maxLevel"),seconds};
  }
 }
-export const DRUNK_MODE_CLIENT_SCRIPT="const DRUNK_DEFAULTS="+JSON.stringify(DRUNK_DEFAULTS)+";"+DrunkMode.toString()+";window.MaestroDrunkMode=DrunkMode;";
+export const DRUNK_MODE_CLIENT_SCRIPT="const DRUNK_DEFAULTS="+JSON.stringify(DRUNK_DEFAULTS)+";const DRUNK_RANGES="+JSON.stringify(DRUNK_RANGES)+";"+DrunkMode.toString()+";window.MaestroDrunkMode=DrunkMode;";
