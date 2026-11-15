@@ -2024,6 +2024,12 @@ export class GameSettings {
 export default {
  async fetch(request,env){
   const url=new URL(request.url);
+  // Retire the publicly circulated maestro-main play link without affecting other rooms.
+  // Applied before every other route to prevent old room assets/API use via query string.
+  if(url.searchParams.get("room")==="maestro-main"){
+   const headers={"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-robots-tag":"noindex, nofollow"};
+   return new Response('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session closed · MaestroEscape</title></head><body style="font:18px system-ui;background:#101a2b;color:#fff;min-height:90vh;display:grid;place-items:center;text-align:center"><main><h1>Session closed</h1><p>This MaestroEscape test link is no longer available.</p></main></body></html>',{status:410,headers:{...headers,"x-maestro-status":"CIRCULATED_ROOM_DISABLED"}});
+  }
   if(url.pathname==="/assets/local-room.js")
    return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/build")
