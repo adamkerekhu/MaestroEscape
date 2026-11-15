@@ -438,9 +438,23 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
  <button type="button" class="action" id="mobile-interact" aria-label="Interact">E</button>
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
+<script>
+window.addEventListener("error",function(event){
+ const splash=document.getElementById("splash");
+ if(splash&&splash.offsetParent!==null){
+  splash.textContent="Game startup error: "+(event.message||"Unknown JavaScript error")+". Check Console.";
+ }
+});
+window.addEventListener("unhandledrejection",function(event){
+ const splash=document.getElementById("splash");
+ if(splash&&splash.offsetParent!==null){
+  splash.textContent="Game startup failed: "+(event.reason?.message||String(event.reason||"Unknown error"))+". Check Console.";
+ }
+});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script src="/assets/consumables.js"></script>
- <script src="/assets/drunk-mode.js"></script>
+ <script>__DRUNK_MODE_SCRIPT__</script>
 <script>
 (function(){
 'use strict';
@@ -453,7 +467,10 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-const drunk=new window.MaestroDrunkMode(()=>overrides);
+const drunk=window.MaestroDrunkMode
+ ?new window.MaestroDrunkMode(()=>overrides)
+ :{level:0,phase:0,reset(){},update(){},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
+if(!window.MaestroDrunkMode)console.error("Drunk Mode failed to initialize; game running with sober fallback");
 let lastDrunkHud=-1;
 const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)return;
   if(!cfg("drunkMode.showStatus")){el.textContent="";return;}
@@ -1918,6 +1935,7 @@ export default {
   }
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
-  return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS)),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
+  return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
+    .replace("__DRUNK_MODE_SCRIPT__",DRUNK_MODE_CLIENT_SCRIPT),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
