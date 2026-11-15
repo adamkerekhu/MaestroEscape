@@ -6,13 +6,13 @@ export const CONSUMABLE_CONFIG={
  orderBeerMs:3000,refillMs:2000,orderKebabMs:5000,borrowExpiryMs:8000,
  interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:5,maxCarrySmall:5,maxPerItem:5,
  vendorPoints:{
-  casino_bartender:[{x:835,y:530},{x:865,y:530},{x:895,y:530}],
+  casino_bartender:[{x:288,y:444},{x:340,y:444},{x:395,y:444}],
   maestro_bartender:[{x:340,y:424},{x:395,y:424},{x:455,y:424},{x:522,y:424}],
   gyros_employee:[{x:294,y:310},{x:354,y:310},{x:411,y:310}],
   tobacco_cashier:[{x:513,y:416},{x:535,y:422}]
  },
  vendors:{casino_bartender:"casino",maestro_bartender:"pub",gyros_employee:"gyros",tobacco_cashier:"dohanybolt"},
- servicePoints:{casino_bartender:{x:845,y:535},maestro_bartender:{x:413,y:398},gyros_employee:{x:294,y:315},tobacco_cashier:{x:519,y:425}},
+ servicePoints:{casino_bartender:{x:340,y:445},maestro_bartender:{x:413,y:398},gyros_employee:{x:294,y:315},tobacco_cashier:{x:519,y:425}},
  // These coordinates derive from the authored Maestro interior collision rectangles.
  pubTables:[
   {id:"pub_left",label:"Window table",x:140,y:396,w:136,h:268},
@@ -393,13 +393,13 @@ const NPC_SCENES={casino_bartender:"casino",maestro_bartender:"pub",maestro_regu
  maestro_regular_3:"pub",spar_cashier:"spar",spar_shopper_1:"spar",spar_shopper_2:"spar",
  tobacco_cashier:"dohanybolt",gyros_employee:"gyros"};
 const NPC_INITIAL={
- casino_bartender:{x:845,y:460},maestro_bartender:{x:413,y:210},maestro_regular_1:{x:342,y:511},
+ casino_bartender:{x:340,y:300},maestro_bartender:{x:413,y:210},maestro_regular_1:{x:342,y:511},
  maestro_regular_2:{x:648,y:707},maestro_regular_3:{x:1043,y:774},
  spar_cashier:{x:478,y:224},spar_shopper_1:{x:233,y:249},
  spar_shopper_2:{x:636,y:243},tobacco_cashier:{x:519,y:416},gyros_employee:{x:294,y:291}
 };
 const NPC_CONTACT_OFFSETS={
- casino_bartender:{x:0,y:75},maestro_bartender:{x:0,y:188},spar_cashier:{x:-53,y:40},
+ casino_bartender:{x:0,y:145},maestro_bartender:{x:0,y:188},spar_cashier:{x:-53,y:40},
  tobacco_cashier:{x:0,y:9},gyros_employee:{x:0,y:24}
 };
 const npcInteractionRadius=s=>s.npcInteractionRadius??108;
@@ -430,7 +430,7 @@ function npcVendor(s,p,npc,d){
  // Accept that same client-side dialogue contact, but only within the proper
  // shop and a bounded interaction range. Other server actions remain unchanged.
  if(d?.localNpcSettings===true&&d.npcId===npc&&d.npcPoint){
-  const bounds={casino:{w:1696,h:960},dohanybolt:{w:608,h:832},gyros:{w:768,h:480},pub:{w:1448,h:1086}}[p.scene];
+  const bounds={casino:{w:1448,h:1086},dohanybolt:{w:608,h:832},gyros:{w:768,h:480},pub:{w:1448,h:1086}}[p.scene];
   const point={x:Number(d.npcPoint.x),y:Number(d.npcPoint.y)};
   const clientRadius=Number(d.dialogueRadius);
   if(bounds&&Number.isFinite(point.x)&&Number.isFinite(point.y)&&
