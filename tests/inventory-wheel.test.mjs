@@ -12,7 +12,7 @@ test("Q is hold-to-open and release-to-select with mouse hover or click",()=>{
  assert.match(INVENTORY_WHEEL_SCRIPT,/document\.addEventListener\("keydown"/);
  assert.match(INVENTORY_WHEEL_SCRIPT,/document\.addEventListener\("keyup"/);
  assert.match(INVENTORY_WHEEL_SCRIPT,/if\(choice>=0\)void choose\(choice\);else close\(\)/);
- assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.onpointerenter=\(\)=>highlight\(i\)/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.onpointerenter=\(\)=>\{if\(!dragging\)highlight\(i\)\}/);
  assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.onclick=event=>/);
 });
 test("mobile inventory button toggles open and closed above E",()=>{
@@ -47,4 +47,24 @@ test("five of each item type are allowed but the sixth is blocked",()=>{
  assert.match(INVENTORY_WHEEL_SCRIPT,/stack\.stackCount\+\+/);
  assert.match(INVENTORY_WHEEL_SCRIPT,/stack\.stackItems\[0\]/);
  assert.match(INVENTORY_WHEEL_SCRIPT,/item\.stackCount>1/);
+});
+
+test("dragging a stacked item outside the inventory circle drops exactly one item",()=>{
+ assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.setPointerCapture\(event\.pointerId\)/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.onpointermove=dragMove/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/btn\.onpointerup=event=>\{void finishDrag\(event\)\}/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/outsideWheel\(event\.clientX,event\.clientY\)/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/const item=stack\.stackItems\.find/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/const item=active\.item/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/ctl\(\)\?\.drop\?\.\(item\)/);
+ assert.match(CONSUMABLE_CLIENT_SCRIPT,/drop:async item=>/);
+ assert.ok(CONSUMABLE_CLIENT_SCRIPT.includes('this.itemCommand("drop",item)'));
+ assert.match(INVENTORY_WHEEL_CSS,/touch-action:none/);
+ assert.match(INVENTORY_WHEEL_CSS,/maestro-inventory-drag-ghost/);
+});
+test("dragging does not consume an item and a normal tap still uses it",()=>{
+ assert.match(INVENTORY_WHEEL_SCRIPT,/if\(!wasDrag\)return/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/suppressClickUntil=Date\.now\(\)\+650/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/if\(Date\.now\(\)<suppressClickUntil\)return/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/if\(choice>=0\)void choose\(choice\);else close\(\)/);
 });
