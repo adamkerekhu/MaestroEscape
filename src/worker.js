@@ -407,7 +407,7 @@ ${HIDE_EDITOR_SCRIPT}
 const HTML = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maestro Escape | Explore</title>
-<meta name="maestro-build" content="drunk-ghost-overlay-20261115">
+<meta name="maestro-build" content="casino-browser-geometry-20261115">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f6f3ea;font:15px system-ui,Arial}
 header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 20px;max-width:1360px;margin:auto}
@@ -461,7 +461,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script>
-window.__MAESTRO_BUILD__="casino-lazy-character-fix-20261115";
+window.__MAESTRO_BUILD__="casino-browser-geometry-20261115";
 window.addEventListener("error",function(event){
  const splash=document.getElementById("splash");
  const filename=event.filename?event.filename.split("/").pop().slice(0,90):"inline script";
@@ -729,6 +729,12 @@ const SPAWN={x:859,y:577};
 const PUB_DOOR={x:784,y:548};
 const INTERIOR_SPAWN={x:332,y:741},INTERIOR_EXIT={x:153,y:844};
 const INTERIOR_SIZE={w:1448,h:1086};
+// These imported server modules do not exist in browser scope. Serialize their data into the game script.
+const CASINO_SIZE=${JSON.stringify(CASINO_SIZE)};
+const CASINO_SPAWN=${JSON.stringify(CASINO_SPAWN)};
+const CASINO_EXIT=${JSON.stringify(CASINO_EXIT)};
+const CASINO_WALLS=${JSON.stringify(CASINO_WALLS)};
+const CASINO_HOTSPOTS=${JSON.stringify(CASINO_HOTSPOTS)};
 // Basement collision coordinates follow the uploaded gameplay_geometry.json (1792 x 896).
 // Source: maestro_basement_visual_map_files, tiled map 56×28 at 32px/tile.
 // FloorArt uses a single full-sized visual atlas. The WebP must be present in Assets/Maps.
