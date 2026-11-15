@@ -35,7 +35,7 @@ export const TRANSITION_EDITOR_SCRIPT = String.raw`
  // Independent scene arrival markers. These are spawn destinations, not interactable exit hitboxes.
  const transitionScenes={
   pub:{name:"Maestro Pub entry",w:1448,h:1086,asset:"/assets/interior.webp"},
-  basement:{name:"Basement entry",w:1792,h:896,asset:"/assets/maestro-basement.webp"},
+  basement:{name:"Basement entry",w:1792,h:896,asset:"/assets/basement.webp"},
   upstairs:{name:"Pub upstairs return",w:1448,h:1086,asset:"/assets/interior.webp"},
   spar:{name:"SPAR entry",w:736,h:384,asset:"/assets/shop-spar.webp"},
   dohanybolt:{name:"Dohánybolt entry",w:608,h:832,asset:"/assets/shop-dohanybolt.webp"},
