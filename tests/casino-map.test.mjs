@@ -39,7 +39,7 @@ test("casino arrival and return ladder use draggable settings",()=>{
 });
 test("casino asset is loaded, rendered, and served with WebP mime",()=>{
  assert.match(worker,/this\.load\.image\("casino","\/assets\/casino.webp"\)/);
- assert.match(worker,/casinoImage=this\.add\.image\(0,0,"casino"\)/);
+ assert.match(worker,/casinoImage=scene\.add\.image\(0,0,"casino"\)/);
  assert.match(worker,/url\.pathname==="\/assets\/casino.webp"/);
  assert.match(worker,/Assets\/Maps\/maestro_casino\.webp/);
  assert.match(worker,/CASINO_WALLS:insideBasement\?BASEMENT_WALLS/);
@@ -68,10 +68,10 @@ test("casino WebP is physically committed and has valid RIFF/WEBP header",()=>{
 
 test("casino artwork is isolated from street and drunk double-vision layers",()=>{
  assert.match(worker,/casinoImage=this\.add\.image\(0,0,"casino"\)/);
- assert.match(worker,/\.setVisible\(false\)\.setAlpha\(0\)\.setPosition\(-CASINO_SIZE\.w-100,-CASINO_SIZE\.h-100\)/);
+ assert.match(worker,/casinoImage\.destroy\(\);casinoImage=null/);
  assert.match(worker,/casinoImage\.setPosition\(0,0\)\.setAlpha\(1\)\.setVisible\(true\)/);
  assert.match(worker,/if\(!insideCasino\)\{casinoImage\.setVisible\(false\)\.setAlpha\(0\);\}/);
- assert.match(worker,/original!==casinoImage\|\|insideCasino/);
+ assert.match(worker,/drunkGhostLayers\.push\(\{original:casinoImage,ghost\}\)/);
 });
 test("selected single-player character becomes visible after map initialization and late state sync",()=>{
  assert.match(worker,/character\.setVisible\(!!gameplay\?\.hasCharacter\(\)&&!activeVehicle&&!gameplay\?\.isDead\(\)\)/);
