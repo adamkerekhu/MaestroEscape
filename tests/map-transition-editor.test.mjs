@@ -37,3 +37,9 @@ test("each map transition actually uses the new saved coordinate instead of hard
  assert.match(worker,/if\(safe\(x,y\)\)return \{x,y\}/);
  assert.match(worker,/if\(safe\(px,py\)\)return \{x:px,y:py\}/);
 });
+
+test("basement loader accepts converted WebP or uploaded original PNG",()=>{
+ assert.match(worker,/\["maestro_basement\.webp","image\/webp"\]/);
+ assert.match(worker,/\["basement_art\.png","image\/png"\]/);
+ assert.match(worker,/status:404,headers:\{"content-type":"text\/plain; charset=utf-8","cache-control":"no-store"\}/);
+});
