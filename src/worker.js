@@ -467,10 +467,11 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-const drunk=window.MaestroDrunkMode
+const drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
+const drunk=drunkControllerAvailable
  ?new window.MaestroDrunkMode(()=>overrides)
- :{level:0,phase:0,reset(){},update(){},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
-if(!window.MaestroDrunkMode)console.error("Drunk Mode failed to initialize; game running with sober fallback");
+ :{level:0,phase:0,reset(){},update(){},config(){return 0},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
+if(!drunkControllerAvailable)console.error("Drunk Mode failed to initialize; game running with sober fallback");
 let lastDrunkHud=-1;
 const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)return;
   if(!cfg("drunkMode.showStatus")){el.textContent="";return;}
@@ -478,22 +479,41 @@ const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)retu
   el.textContent=st.level?"🍺 "+names[st.level]+" "+st.level+"/"+st.maxLevel+" · "+st.seconds+"s":"🍺 Sober";
 };
 let drunkTestCounter=0;
-if(new URL(location.href).searchParams.get("mode")==="single"){
+const testMode=new URL(location.href).searchParams.get("mode")==="single";
+if(testMode){
  const hud=document.getElementById("hud"),status=document.getElementById("drunk-status");
  const test=document.createElement("button");
  test.type="button";test.id="drunk-test-next";test.textContent="🍺 Test drunk +1";
- test.title="Single Player test: simulate finishing one whole beer. Does not consume inventory.";
- test.style.cssText="padding:5px 9px;font-size:11px;border:1px solid #e2ba68;border-radius:7px;background:#493b25;color:#ffe2a2;cursor:pointer";
+ test.title="Simulate finishing one whole beer without using inventory.";
+ test.style.cssText="padding:7px 11px;font-size:12px;border:2px solid #e2ba68;border-radius:7px;background:#493b25;color:#ffe2a2;cursor:pointer";
+ const feedback=document.createElement("span");feedback.id="drunk-test-feedback";
+ feedback.style.cssText="font-size:12px;font-weight:bold;color:#ffd181;white-space:normal;max-width:300px";
+ feedback.setAttribute("role","status");
+ const report=message=>{feedback.textContent=message;const msg=document.getElementById("msg");if(msg)msg.textContent=message;};
  test.addEventListener("click",()=>{
-  if(!drunk.config("enabled")){const msg=document.getElementById("msg");if(msg)msg.textContent="Drunk Mode is disabled in Settings.";return;}
-  drunk.onBeerFinished("test-beer-"+(++drunkTestCounter));
-  drunkHud();
+  try{
+   if(!drunkControllerAvailable){report("⚠ Drunk Mode controller did not load. Refresh the latest version.");return;}
+   const enabled=drunk.config("enabled");
+   if(!enabled){report("⚠ Drunk Mode is OFF in Settings. Enable it to test.");return;}
+   const before=drunk.getState().level;
+   const accepted=drunk.onBeerFinished("test-beer-"+(++drunkTestCounter));
+   const state=drunk.getState();
+   drunkHud();
+   report(accepted?"🍺 "+(["Sober","Tipsy","Drunk","Wasted"][state.level])+" "+state.level+"/"+state.maxLevel+
+     " · "+state.seconds+"s to recovery"+(before===state.level?" (already at max)":""):
+     "⚠ Test beer was rejected. Check Drunk Mode settings.");
+  }catch(error){console.error("Drunk Mode test failed",error);report("⚠ Drunk test error: "+(error?.message||String(error)));}
  });
  const sober=document.createElement("button");sober.type="button";sober.id="drunk-test-sober";
  sober.textContent="↺ Sober";sober.title="Reset test intoxication";
- sober.style.cssText="padding:5px 9px;font-size:11px;border:1px solid #7799ae;border-radius:7px;background:#21384d;color:#fff;cursor:pointer";
- sober.addEventListener("click",()=>{drunk.reset();drunkHud();});
- if(hud){status?.after(test);test.after(sober);}
+ sober.style.cssText="padding:7px 11px;font-size:12px;border:1px solid #7799ae;border-radius:7px;background:#21384d;color:#fff;cursor:pointer";
+ sober.addEventListener("click",()=>{
+  try{drunk.reset();drunkHud();report("🍺 Sober · 0/3");}
+  catch(error){report("⚠ Reset error: "+error.message);}
+ });
+ if(hud){status?.after(test);test.after(sober);sober.after(feedback);}
+ if(!drunkControllerAvailable)report("⚠ Drunk Mode controller unavailable. Game remains playable.");
+ else feedback.textContent="Test controls ready";
 }
 drunkHud();
 // Mobile camera multiplier affects world rendering only; DOM controls/HUD retain their size.
