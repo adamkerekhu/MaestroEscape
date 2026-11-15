@@ -871,6 +871,9 @@ export class ConsumableRoom{
    // button honors adjustments made after this multiplayer room was created.
    const wantsVehicleRespawn=input.op==="respawnVehicles";
    let latestSpawnSettings=null;
+   if(wantsVehicleRespawn&&this.env?.LOCAL_VEHICLE_SETTINGS){
+    latestSpawnSettings=this.env.LOCAL_VEHICLE_SETTINGS;
+   }
    if(wantsVehicleRespawn&&this.env?.SETTINGS_STORE){
     try{
      const id=this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings");
@@ -890,8 +893,8 @@ export class ConsumableRoom{
    }
    const playerInteractionRange=await this.getPlayerInteractionRange();
    const npcSettings=await this.getNpcSettings();
-   let initialVehicleSettings={};
-   const priorRoom=await this.loadRoom();
+   let initialVehicleSettings={...this.env?.LOCAL_VEHICLE_SETTINGS||{}};
+   const priorRoom=await this.loadRoom(initialVehicleSettings);
    if(this.env?.SETTINGS_STORE&&(!this.roomWasStored||!priorRoom.vehicles)){
     try{
      const settingsStub=this.env.SETTINGS_STORE.get(this.env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
