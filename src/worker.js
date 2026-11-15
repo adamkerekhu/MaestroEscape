@@ -731,8 +731,16 @@ const BASEMENT_STAIRS={x:401,y:373,w:86,h:74};
 // Screenshot-confirmed player feet at 1087,459 must activate the downstairs interaction.
 const PUB_BASEMENT_STAIRS={x:1087,y:352};
 const PUB_BASEMENT_APPROACH={x:1087,y:459,radius:70};
+// Runtime interaction points are separate from spawn destinations.
+const interactionAt=(id,fallback,radius)=>({
+ x:cfg("interaction."+id+".x")??fallback.x,
+ y:cfg("interaction."+id+".y")??fallback.y,
+ radius:cfg("interaction."+id+".radius")??radius
+});
+const interactionNear=(id,fallback,radius)=>{const point=interactionAt(id,fallback,radius);return near(player,point.x,point.y,point.radius)};
+const shopInteractionId=(shop,suffix)=>{const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return name?name+"_"+suffix:null};
 const pubBasementStairsNear=()=>insidePub&&!insideBasement&&!activeShop&&
- near(player,PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y,PUB_BASEMENT_APPROACH.radius);
+ interactionNear("pub_downstairs",PUB_BASEMENT_APPROACH,PUB_BASEMENT_APPROACH.radius);
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
  [60,752,245,45],[422,755,1240,42],
@@ -742,8 +750,7 @@ const BASEMENT_WALLS=[
  [75,510,265,204],[175,402,163,114],[205,321,220,70]
 ];
 const basementStairNear=()=>insideBasement&&
- player.x>=BASEMENT_STAIRS.x-22&&player.x<=BASEMENT_STAIRS.x+BASEMENT_STAIRS.w+22&&
- player.y>=BASEMENT_STAIRS.y-20&&player.y<=BASEMENT_STAIRS.y+BASEMENT_STAIRS.h+20;
+ interactionNear("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65);
 let insideBasement=false,basementImage=null,basementStairsHint=null,pubStairsHint=null,pubStairReturn=null;
 let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
 const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
@@ -1174,7 +1181,9 @@ function npcNearestTarget(){
 }
 function npcExitDistance(){
  if(!insidePub)return Infinity;
- const point=insideBasement?{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2}:activeShop?activeShop.exit:INTERIOR_EXIT;
+ const point=insideBasement?interactionAt("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65):
+  activeShop?interactionAt(shopInteractionId(activeShop,"exit"),activeShop.exit,96):
+  interactionAt("pub_exit",INTERIOR_EXIT,96);
  return Math.hypot(player.x-point.x,player.y-point.y);
 }
 function npcDialogueOpen(){return !!npcDialogue;}
@@ -1652,8 +1661,9 @@ function interact(){
   const nearest=npcNearestTarget();
   if(nearest&&npcInteractionDistance(nearest)<npcExitDistance()
      &&npcExitDistance()>=70){npcOpenDialogue(nearest);return;}
+  const exitId=activeShop?shopInteractionId(activeShop,"exit"):"pub_exit";
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
-  if(near(player,exit.x,exit.y,96))leavePub();
+  if(interactionNear(exitId,exit,96))leavePub();
   else if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
   else if(gameplay?.tableInteract())return;
   else show("Return to the entrance and press E to exit.");
@@ -1661,8 +1671,8 @@ function interact(){
  }
  if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){void enterOrExitCar();return;}
  if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
- if(near(player,PUB_DOOR.x,PUB_DOOR.y,cfg("game.interactRadius"))){enterPub();return;}
- for(const shop of Object.values(SHOPS))if(near(player,shop.door.x,shop.door.y,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
+ if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
+ for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
 const collisionPolygons=[
@@ -1932,7 +1942,19 @@ class Explore extends Phaser.Scene{
    if(activeVehicle)return;
    // Walking only. Never change the joystick, E key, action buttons or vehicle steering.
    if(distance>0.01){const modifier=drunk.direction(dx/distance,dy/distance);dx=modifier.x*distance;dy=modifier.y*distance;}
-   if(exitHint)exitHint.setVisible(insidePub && !insideBasement && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
+   if(exitHint){
+    const exitPoint=interactionAt("pub_exit",INTERIOR_EXIT,96);
+    exitHint.setPosition(exitPoint.x+22,exitPoint.y-30);
+    exitHint.setVisible(insidePub&&!insideBasement&&!activeShop&&near(player,exitPoint.x,exitPoint.y,exitPoint.radius+39));
+   }
+   if(pubStairsHint){
+    const stairPoint=interactionAt("pub_downstairs",PUB_BASEMENT_APPROACH,PUB_BASEMENT_APPROACH.radius);
+    pubStairsHint.setPosition(stairPoint.x,stairPoint.y-44);
+   }
+   if(basementStairsHint){
+    const upPoint=interactionAt("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65);
+    basementStairsHint.setPosition(upPoint.x,upPoint.y-44);
+   }
    moving=distance>0.01;
    if(distance){
       const amount=(keys.SHIFT.isDown?cfg("character.sprintSpeed"):cfg("character.walkSpeed"))*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
