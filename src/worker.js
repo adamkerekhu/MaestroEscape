@@ -7,6 +7,7 @@ import { PUB_SHOP_SCRIPT } from "./pub-shop.js";
 import { PUB_SHOP_CSS } from "./pub-shop.css.js";
 import { PUB_HUD_SCRIPT, PUB_HUD_CSS } from "./pub-hud.js";
 import { INVENTORY_WHEEL_SCRIPT, INVENTORY_WHEEL_CSS } from "./inventory-wheel.js";
+import { MOBILE_LANDSCAPE_SCRIPT } from "./mobile-landscape.js";
 import { mutationOriginAllowed } from "./admin-auth.js";
 import { MaestroAccounts } from "./accounts.js";
 import { ACCOUNT_PAGE, ACCOUNT_HOME } from "./account-pages.js";
@@ -1110,7 +1111,12 @@ let joystickPointer=null;
 function joystickMove(event){
  const box=joystick.getBoundingClientRect();
  const midX=box.left+box.width/2,midY=box.top+box.height/2;
- const dx=event.clientX-midX,dy=event.clientY-midY,limit=box.width*.30;
+ // In portrait-forced landscape the entire screen is rotated 90 degrees.
+ // Convert pointer delta back into the joystick's local axes.
+ const turned=document.body.classList.contains("maestro-portrait-landscape");
+ const dx=turned?event.clientY-midY:event.clientX-midX;
+ const dy=turned?-(event.clientX-midX):event.clientY-midY;
+ const limit=(turned?joystick.offsetWidth:box.width)*.30;
  const distance=Math.hypot(dx,dy);
  const scale=distance>limit?limit/distance:1;
  touchInput.x=dx*scale/limit;touchInput.y=dy*scale/limit;
@@ -2078,6 +2084,7 @@ export default {
   }
 
   if(url.pathname==="/api/pub/orders" && request.method==="POST")return Response.json({ok:false,error:"Real orders are not enabled",code:"PUB_ORDERS_DISABLED"},{status:503,headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/assets/mobile-landscape.js")return new Response(MOBILE_LANDSCAPE_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/inventory-wheel.js")return new Response(INVENTORY_WHEEL_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/inventory-wheel.css")return new Response(INVENTORY_WHEEL_CSS,{headers:{"content-type":"text/css; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/pub-hud.js")return new Response(PUB_HUD_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
@@ -2174,7 +2181,7 @@ export default {
   }
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
-  return new Response(HTML.replace("</head>",'<link rel="stylesheet" href="/assets/pub-hud.css"><link rel="stylesheet" href="/assets/pub-shop.css"></head>').replace("</body>",'<script src="/assets/pub-hud.js"></script><script src="/assets/inventory-wheel.js"></script><script src="/assets/pub-orders.js"></script></body>').replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
+  return new Response(HTML.replace("</head>",'<link rel="stylesheet" href="/assets/pub-hud.css"><link rel="stylesheet" href="/assets/pub-shop.css"></head>').replace("</body>",'<script src="/assets/pub-hud.js"></script><script src="/assets/mobile-landscape.js"></script><script src="/assets/inventory-wheel.js"></script><script src="/assets/pub-orders.js"></script></body>').replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
     ,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
