@@ -3,6 +3,7 @@
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"";
 const SERVICE_ROLE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const STRIPE_KEY=Deno.env.get("STRIPE_SECRET_KEY")||"";
+const STRIPE_PUBLISHABLE_KEY=Deno.env.get("STRIPE_PUBLISHABLE_KEY")||"";
 const API=SUPABASE_URL+"/rest/v1/";
 const APP_ORIGIN="https://maestroescape.adam-kerek.workers.dev";
 const encoder=new TextEncoder();
@@ -42,6 +43,7 @@ function validateCart(payload){
 const orderIdRE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function createCheckout(body,account){
  if(!hasTestKey())return json({ok:false,code:"STRIPE_TEST_KEY_REQUIRED",error:"Only Stripe TEST mode is permitted; live payments are disabled."},503);
+ if(!/^pk_test_/.test(STRIPE_PUBLISHABLE_KEY))return json({ok:false,code:"STRIPE_TEST_PUBLISHABLE_KEY_REQUIRED",error:"Stripe TEST publishable key not configured."},503);
  if(!["pub_left","pub_middle","pub_right","pub_upper"].includes(body.table_id))return json({ok:false,error:"Choose a valid Maestro Pub table"},400);
  if(body.terms_accepted!==true)return json({ok:false,error:"Please accept the test checkout terms."},400);
  if(typeof body.idempotency_key!=="string"||!orderIdRE.test(body.idempotency_key))return json({ok:false,error:"Invalid checkout request ID"},400);
@@ -62,8 +64,10 @@ async function createCheckout(body,account){
  if(!created?.length)throw new Error("ORDER_NOT_CREATED");
  const form=new URLSearchParams();
  form.set("mode","payment");form.set("locale","hu");
- form.set("success_url",APP_ORIGIN+"/?mode=single&room=maestro-solo-test&pub_payment=return&pub_order="+orderId+"&session_id={CHECKOUT_SESSION_ID}");
- form.set("cancel_url",APP_ORIGIN+"/?mode=single&room=maestro-solo-test&pub_payment=cancelled");
+ // Embedded Checkout renders inside the MaestroEscape order overlay, not on Stripe's hosted page.
+ form.set("ui_mode","embedded_page");
+ form.set("redirect_on_completion","if_required");
+ form.set("return_url",APP_ORIGIN+"/?mode=single&room=maestro-solo-test&pub_payment=return&pub_order="+orderId+"&session_id={CHECKOUT_SESSION_ID}");
  form.set("client_reference_id",orderId);
  form.set("customer_email",account.email);
  form.set("payment_method_types[0]","card");
@@ -88,10 +92,10 @@ async function createCheckout(body,account){
  let session;
  try{
   session=await stripe("checkout/sessions","POST",form);
-  if(!/^https:\/\/checkout\.stripe\.com\//.test(session.url||"")||session.livemode!==false)throw new Error("NOT_STRIPE_TEST_CHECKOUT");
+  if(!session.client_secret||session.livemode!==false||session.ui_mode!=="embedded_page")throw new Error("NOT_STRIPE_EMBEDDED_TEST_CHECKOUT");
  }catch(e){await db("maestroescape_pub_orders?id=eq."+orderId,"PATCH",{payment_status:"failed"});throw e}
  await db("maestroescape_pub_orders?id=eq."+orderId,"PATCH",{stripe_checkout_session_id:session.id,payment_status:"checkout_created"});
- return json({ok:true,order_id:orderId,checkout_url:session.url,subtotal_huf:subtotal,service_fee_huf:fee,total_huf:total,test_mode:true});
+ return json({ok:true,order_id:orderId,client_secret:session.client_secret,publishable_key:STRIPE_PUBLISHABLE_KEY,subtotal_huf:subtotal,service_fee_huf:fee,total_huf:total,test_mode:true,checkout_mode:"embedded"});
 }
 async function getPaymentStatus(body,account){
  if(typeof body?.order_id!=="string"||!orderIdRE.test(body.order_id))return json({ok:false,error:"Invalid order"},400);
@@ -113,7 +117,7 @@ async function getPaymentStatus(body,account){
 Deno.serve(async request=>{
  try{
   if(!SERVICE_ROLE||!SUPABASE_URL)return json({ok:false,error:"Service not configured"},503);
-  if(request.method==="GET"&&new URL(request.url).pathname.endsWith("/health"))return json({ok:true,backend:"maestroescape-stripe",test_key_configured:hasTestKey(),payments_enabled:hasTestKey(),fulfillment_enabled:false});
+  if(request.method==="GET"&&new URL(request.url).pathname.endsWith("/health"))return json({ok:true,backend:"maestroescape-stripe",test_key_configured:hasTestKey(),publishable_key_configured:/^pk_test_/.test(STRIPE_PUBLISHABLE_KEY),payments_enabled:hasTestKey()&&/^pk_test_/.test(STRIPE_PUBLISHABLE_KEY),fulfillment_enabled:false});
   if(request.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
   const raw=await request.text();if(raw.length>12000)return json({ok:false,error:"Payload too large"},413);
   let data;try{data=JSON.parse(raw)}catch{return json({ok:false,error:"Invalid JSON"},400)}
