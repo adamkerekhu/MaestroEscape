@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT} from "../src/transition-editor.js";
+import {INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT} from "../src/interaction-editor.js";
+import {HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT} from "../src/hide-editor.js";
+import {HIDE_POINT_DEFS} from "../src/hide-peek.js";
 const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
 test("six map arrivals are separately configurable",()=>{
  for(const id of ["pub","basement","upstairs","spar","dohanybolt","gyros"]){
@@ -23,8 +26,8 @@ test("settings HTML renders a live editor without breaking its script",()=>{
  const start=worker.indexOf("const SETTINGS_HTML=String.raw`");
  const end=worker.indexOf(";"+String.fromCharCode(10)+"const HTML = String.raw`",start);
  assert.ok(start>=0&&end>start);
- const make=new Function("TRANSITION_EDITOR_CSS","TRANSITION_EDITOR_HTML","TRANSITION_EDITOR_SCRIPT",worker.slice(start,end+1)+"\nreturn SETTINGS_HTML;");
- const page=make(TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT);
+ const make=new Function("TRANSITION_EDITOR_CSS","TRANSITION_EDITOR_HTML","TRANSITION_EDITOR_SCRIPT","INTERACTION_EDITOR_CSS","INTERACTION_EDITOR_HTML","INTERACTION_EDITOR_SCRIPT","HIDE_EDITOR_CSS","HIDE_EDITOR_HTML","HIDE_EDITOR_SCRIPT","HIDE_POINT_DEFS",worker.slice(start,end+1)+"\nreturn SETTINGS_HTML;");
+ const page=make(TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT,INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT,HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT,HIDE_POINT_DEFS);
  assert.match(page,/id="transition-map"/);
  assert.match(page,/function transitionSet\(x,y\)/);
  new Function(page.split("<script>")[1].split("</script>")[0]);
