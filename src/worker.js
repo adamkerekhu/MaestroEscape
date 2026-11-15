@@ -612,7 +612,7 @@ function updateDrunkGhost(delta,paused=false){
  const scale=1+Math.sin(t*.61+2)*cfg("drunkMode.ghostScalePct")/100;
  for(const layer of drunkGhostLayers){
   const {original,ghost}=layer;
-  const show=!!(original.active&&original.visible&&drunkGhostAlpha>.002&&active);
+  const show=!!(original.active&&original.visible&&(original!==casinoImage||insideCasino)&&drunkGhostAlpha>.002&&active);
   ghost.setVisible(show);
   if(!show)continue;
   // Independent phase and frequency from drunk camera sway.
@@ -1381,7 +1381,7 @@ function enterCasino(){
  insideCasino=true;insidePub=true;insideBasement=false;activeShop=null;
  mapSize={...CASINO_SIZE};character.setScale(cfg("building.casino.scale"));
  streetImage.setVisible(false);setStreetfronts(false);interiorImage?.setVisible(false);
- basementImage?.setVisible(false);casinoImage.setVisible(true);showInteriorNPCs(null);
+ basementImage?.setVisible(false);casinoImage.setPosition(0,0).setAlpha(1).setVisible(true);showInteriorNPCs(null);
  carSprite?.setVisible(false);octaviaSprite?.setVisible(false);
  for(const sprite of bikeSprites)if(sprite)sprite.setVisible(false);
  tramSprite?.setVisible(false);
@@ -1396,7 +1396,7 @@ function exitCasino(){
  hideController?.reset();npcCloseDialogue();
  if(!insideCasino)return;
  insideCasino=false;insidePub=false;insideBasement=false;activeShop=null;
- casinoImage?.setVisible(false);casinoExitHint?.setVisible(false);
+ casinoImage?.setVisible(false).setAlpha(0).setPosition(-CASINO_SIZE.w-100,-CASINO_SIZE.h-100);casinoExitHint?.setVisible(false);
  mapSize={w:1600,h:992};character.setScale(cfg("character.streetScale"));
  streetImage?.setVisible(true);setStreetfronts(true);showInteriorNPCs(null);
  carSprite?.setVisible(true);octaviaSprite?.setVisible(true);
@@ -1833,7 +1833,7 @@ class Explore extends Phaser.Scene{
    }
    if(this.textures.exists("casino")){
     casinoImage=this.add.image(0,0,"casino").setOrigin(0,0)
-      .setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h).setDepth(1).setVisible(false);
+      .setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h).setDepth(1).setVisible(false).setAlpha(0).setPosition(-CASINO_SIZE.w-100,-CASINO_SIZE.h-100);
    }else console.error("Casino artwork missing at /assets/casino.webp");
    casinoExitHint=this.add.text(CASINO_EXIT.x,CASINO_EXIT.y-44,"LADDER ↑ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#ffe9a6",
@@ -1952,7 +1952,7 @@ class Explore extends Phaser.Scene{
     npcOpen:()=>!!npcDialogue
    });
    gameplay.bindScene(this);
-   loadOriginalCollision().then(()=>{this.respawn();if(!gameplay?.hasCharacter())character.setVisible(false)});
+   loadOriginalCollision().then(()=>{this.respawn();character.setVisible(!!gameplay?.hasCharacter()&&!activeVehicle&&!gameplay?.isDead());}).catch(error=>console.error("Map collision initialization failed",error));
  }
  respawn(){
    hideController?.reset();
@@ -1978,7 +1978,16 @@ class Explore extends Phaser.Scene{
    updateDrunkGhost(delta,!!(gameplay?.scratchOpen||npcDialogue||gameplay?.menuOpen()||document.hidden));
    if(Math.floor(drunk.phase)!==lastDrunkHud){lastDrunkHud=Math.floor(drunk.phase);drunkHud();}
    if(gameplay?.scratchOpen){this.cameras.main.setRotation(0);moving=false;return;}
-   if(gameplay&&!gameplay.hasCharacter())return;
+   if(gameplay&&!gameplay.hasCharacter()){character.setVisible(false);return;}
+   // Character selection can resolve after scene creation or respawn. Keep its display state in sync.
+   if(gameplay?.hasCharacter()&&!activeVehicle&&!gameplay?.occupied&&!gameplay?.isDead()&&!tramLocalDeath&&!character.visible){
+     character.setVisible(true);
+   }
+   // Casino is an interior, never a world-map overlay. Enforce the invariant every frame.
+   if(casinoImage){
+     if(!insideCasino){casinoImage.setVisible(false).setAlpha(0);}
+     else if(!casinoImage.visible||casinoImage.alpha===0){casinoImage.setPosition(0,0).setAlpha(1).setVisible(true);}
+   }
    syncVehicleFromRoom(delta);
    if(casinoManholeMarker){
     casinoManholeMarker.setPosition(cfg("interaction.street_casino.x"),cfg("interaction.street_casino.y"));
