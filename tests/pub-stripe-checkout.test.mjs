@@ -63,7 +63,7 @@ test("Takkershop-inspired Manrope light theme and deep-green checkout",()=>{
  assert.match(PUB_SHOP_CSS,/--maestro-green:#164832/);
  assert.match(PUB_SHOP_CSS,/\.shop-review\{background:#fff!important/);
  assert.match(PUB_SHOP_CSS,/\.shop-stripe-panel\{background:#fff!important/);
- assert.match(PUB_SHOP_CSS,/\.shop-review \.review-line strong\{color:var\(--maestro-ink\)!important/);
+ assert.match(PUB_SHOP_CSS,/#maestro-pub-shop \.review-line strong\{color:var\(--maestro-ink\)!important/);
 });
 test("Stripe per-session branding matches light design without changing shared Takkershop settings",()=>{
  assert.match(backend,/branding_settings\[background_color\].*#ffffff/);
