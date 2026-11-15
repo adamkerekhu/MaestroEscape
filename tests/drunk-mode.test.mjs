@@ -180,8 +180,8 @@ test("double-vision uses active-map duplicate only and respects levels, pauses, 
  // /settings/schema is admin-protected. Validate the authoritative defaults directly
  // without weakening production authentication just to satisfy a regression test.
  const source=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
- const dmatch=source.match(/const SETTINGS_DEFAULTS=(\\{[^\\n]+\\});/);
- const gmatch=source.match(/const SETTINGS_GROUPS=(\\[[^\\n]+\\]);/);
+ const dmatch=source.match(/const SETTINGS_DEFAULTS=(\{[^\n]+\});/);
+ const gmatch=source.match(/const SETTINGS_GROUPS=(\[[^\n]+\]);/);
  assert.ok(dmatch&&gmatch);
  const data={defaults:JSON.parse(dmatch[1]),groups:JSON.parse(gmatch[1])};
  const group=data.groups.find(group=>group.title==="Drunk Mode");
