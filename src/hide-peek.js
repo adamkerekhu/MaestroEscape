@@ -127,7 +127,7 @@ class MaestroHideController {
   return {...def,x:this.value(def,"x"),y:this.value(def,"y"),
    hideX:this.value(def,"hideX"),hideY:this.value(def,"hideY"),
    exitX:this.value(def,"exitX"),exitY:this.value(def,"exitY"),
-   interactionRadius:this.value(def,"radius"),
+   interactionRadius:this.value(def,"radius")>0?this.value(def,"radius"):this.cfg("hide.radius"),
    peekSide:["left","right","top","bottom"][Math.max(0,Math.min(3,this.value(def,"side")|0))],
    enabled:this.value(def,"enabled")>=0.5};
  }
