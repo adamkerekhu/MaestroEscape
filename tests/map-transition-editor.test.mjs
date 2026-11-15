@@ -21,8 +21,7 @@ test("settings editor uses correct dimensioned maps and pointer coordinate proje
 });
 test("settings HTML renders a live editor without breaking its script",()=>{
  const start=worker.indexOf("const SETTINGS_HTML=String.raw`");
- const end=worker.indexOf(";
-const HTML = String.raw`",start);
+ const end=worker.indexOf(";"+String.fromCharCode(10)+"const HTML = String.raw`",start);
  assert.ok(start>=0&&end>start);
  const make=new Function("TRANSITION_EDITOR_CSS","TRANSITION_EDITOR_HTML","TRANSITION_EDITOR_SCRIPT",worker.slice(start,end+1)+"
 return SETTINGS_HTML;");
