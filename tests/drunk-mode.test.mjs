@@ -104,7 +104,7 @@ test("rendered game defines native drunk class in same script, without loader de
  assert.ok(!html.includes('new Function("window",'));
  assert.ok(html.includes("class DrunkMode {"));
  assert.ok(html.includes("const drunk=new DrunkMode(()=>overrides)"));
- const scripts=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+ const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
  assert.ok(scripts.length>=2);
  const game=scripts.find(match=>match[1].includes("class DrunkMode {"))?.[1];
  assert.ok(game,"DrunkMode is part of main game script");
