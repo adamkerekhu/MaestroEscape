@@ -389,7 +389,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
-<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
+<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="drunk-status" role="status" aria-live="off" style="font-size:12px;color:#ffd181;white-space:nowrap"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div>
 <div id="npc-prompt" hidden>E · Talk</div>
 <div id="npc-dialogue" hidden role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-title">
@@ -416,6 +416,13 @@ const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const configDefaults=__MAESTRO_DEFAULT_SETTINGS__;
 let overrides={};
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
+const drunk=new window.MaestroDrunkMode(()=>overrides);
+let lastDrunkHud=-1;
+const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)return;
+  if(!cfg("drunkMode.showStatus")){el.textContent="";return;}
+  const st=drunk.getState(),names=["Sober","Tipsy","Drunk","Wasted"];
+  el.textContent=st.level?"🍺 "+names[st.level]+" "+st.level+"/"+st.maxLevel+" · "+st.seconds+"s":"🍺 Sober";
+};
 // Mobile camera multiplier affects world rendering only; DOM controls/HUD retain their size.
 const isMobileView=()=>window.matchMedia("(pointer: coarse)").matches||window.innerWidth<=768;
 const displayZoom=base=>base*(isMobileView()?cfg("camera.mobileZoom"):1);
@@ -1527,6 +1534,7 @@ class Explore extends Phaser.Scene{
    gameplay=new MaestroConsumables({
     onTramDeath:displayTramDeath,
     onTramRespawn:completeTramRespawn,
+     onBeerFinished:eventId=>{if(drunk.onBeerFinished(eventId))drunkHud();},
     player:()=>activeVehicle||player,place:()=>npcInteriorKey()||"street",
     localVehicle:id=>registeredVehicles().find(v=>v.id===id)?.model||null,
     face:()=>player.face,moving:()=>moving,
@@ -1571,6 +1579,8 @@ class Explore extends Phaser.Scene{
  }
  update(time,delta){
    if(!character||!keys)return;
+   drunk.update(delta,!!(gameplay?.scratchOpen||npcDialogue||gameplay?.menuOpen()||document.hidden));
+   if(Math.floor(drunk.phase)!==lastDrunkHud){lastDrunkHud=Math.floor(drunk.phase);drunkHud();}
    if(gameplay?.scratchOpen){moving=false;return;}
    if(gameplay&&!gameplay.hasCharacter())return;
    syncVehicleFromRoom(delta);
@@ -1638,8 +1648,12 @@ class Explore extends Phaser.Scene{
    if(pubStairsHint)pubStairsHint.setVisible(insidePub&&!activeShop&&!insideBasement);
    if(basementStairsHint)basementStairsHint.setVisible(insideBasement);
    const cameraZoom=displayZoom(insidePub?(insideBasement?cfg("building.basement.zoom"):activeShop?shopZoom(activeShop):cfg("building.pub.zoom")):activeVehicle?DRIVING_ZOOM():cfg("camera.streetZoom"));
-   this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,cameraZoom,Math.min(1,delta/1000*3.5)));
+   const drunkCamera=drunk.camera(cameraZoom);
+   this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,drunkCamera.zoom,Math.min(1,delta/1000*3.5)));
+   this.cameras.main.setRotation(drunkCamera.rotation);
    if(activeVehicle)return;
+   // Walking only. Never change the joystick, E key, action buttons or vehicle steering.
+   if(distance>0.01){const modifier=drunk.direction(dx/distance,dy/distance);dx=modifier.x*distance;dy=modifier.y*distance;}
    if(exitHint)exitHint.setVisible(insidePub && !insideBasement && !activeShop && near(player,INTERIOR_EXIT.x,INTERIOR_EXIT.y,135));
    moving=distance>0.01;
    if(distance){
