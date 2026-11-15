@@ -40,6 +40,13 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 </section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
+ const singleMode=new URL(location.href).searchParams.get("mode")==="single";
+ if(singleMode){
+  const back=document.querySelector(".toolbar a[href='/']");
+  if(back)back.href="/?mode=single";
+  const heading=document.querySelector("header p");
+  if(heading)heading.textContent="Offline settings saved in this browser. No Cloudflare requests.";
+ }
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
  const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
@@ -52,6 +59,12 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
  let values=normalize(defaults),lastPersisted=JSON.stringify(values),saveHandle=0,savePromise=Promise.resolve(),storageReady=false,revision=0;
  try {
+   if(singleMode){
+    values=normalize({...defaults,...saved});
+    lastPersisted=JSON.stringify(values);
+    storageReady=true;
+    notice.textContent="✓ Offline mode: settings are stored in this browser.";
+   }else{
    const remote=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store"}).then(r=>{if(!r.ok)throw Error("Cloud settings unavailable: HTTP "+r.status);return r.json()});
    values=normalize({...defaults,...remote.settings});
    lastPersisted=JSON.stringify(values);
@@ -68,6 +81,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
     }catch(error){console.warn("Could not load pending local settings",error)}
    }
    // Never overwrite shared settings with another device\u0027s local cache.
+   }
  }catch(error){
    // A failed Cloudflare read must never erase the settings saved on this device.
    let restored=false;
@@ -89,6 +103,10 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
    if(!force&&payload===lastPersisted)return savePromise;
    // Sequence writes so a previous delayed request cannot overwrite a newer vehicle position.
    const execute=async()=>{
+     if(singleMode){
+      try{localStorage.setItem(KEY,payload);lastPersisted=payload;notice.textContent="✓ Saved locally. Return to Single Player to see changes.";return true;}
+      catch(error){notice.textContent="Offline settings could not be saved: "+error.message;return false;}
+     }
      notice.textContent="Saving settings to Cloudflare…";
      try{
        const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json","X-Settings-Revision":String(revision)},body:payload,cache:"no-store"});
@@ -124,7 +142,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  }
  function store(){
   // Keep a local copy immediately. Cloud saves may be blocked by account quota.
-  try{localStorage.setItem(KEY,JSON.stringify(values));localStorage.setItem(PENDING_KEY,"1");}catch(error){console.warn("Local backup unavailable",error)}
+  try{localStorage.setItem(KEY,JSON.stringify(values));if(!singleMode)localStorage.setItem(PENDING_KEY,"1");}catch(error){console.warn("Local backup unavailable",error)}
   notice.textContent="Saving changes…";
   clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
  }
@@ -431,6 +449,10 @@ const BASE="https://cdn.jsdelivr.net/gh/adamkerekhu/MaestroEscape@main/";
 const configDefaults=__MAESTRO_DEFAULT_SETTINGS__;
 let overrides={};
 const cfg=key=>Number.isFinite(Number(overrides[key]))?Number(overrides[key]):configDefaults[key];
+if(new URL(location.href).searchParams.get("mode")==="single"){
+ const link=document.querySelector("a.settings-nav");
+ if(link)link.href="/settings?mode=single";
+}
 const drunk=new window.MaestroDrunkMode(()=>overrides);
 let lastDrunkHud=-1;
 const drunkHud=()=>{const el=document.getElementById("drunk-status");if(!el)return;
