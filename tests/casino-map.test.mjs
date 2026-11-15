@@ -67,7 +67,7 @@ test("casino WebP is physically committed and has valid RIFF/WEBP header",()=>{
 });
 
 test("casino artwork is isolated from street and drunk double-vision layers",()=>{
- assert.match(worker,/casinoImage=this\.add\.image\(0,0,"casino"\)/);
+ assert.match(worker,/casinoImage=scene\.add\.image\(0,0,"casino"\)/);
  assert.match(worker,/casinoImage\.destroy\(\);casinoImage=null/);
  assert.match(worker,/casinoImage\.setPosition\(0,0\)\.setAlpha\(1\)\.setVisible\(true\)/);
  assert.match(worker,/if\(!insideCasino\)\{casinoImage\.setVisible\(false\)\.setAlpha\(0\);\}/);
