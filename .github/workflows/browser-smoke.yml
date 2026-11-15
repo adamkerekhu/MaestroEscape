@@ -89,6 +89,29 @@ jobs:
             if(exited.casino||!exited.street)throw Error('E did not return to Mester utca');
             await testContext.close();
             console.log('PASS: Pressing E enters and exits configured casino manhole');
+            // Regression: the same browser tab must pick up later settings edits before E.
+            const staleContext=await browser.newContext({viewport:{width:1440,height:900}});
+            const stalePage=await staleContext.newPage();
+            await stalePage.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-casino-settings-smoke',{waitUntil:'domcontentloaded',timeout:30000});
+            await stalePage.waitForTimeout(4500);
+            await stalePage.evaluate(()=>{
+              const key='maestroescape.gameSettings.v1';
+              const old=JSON.parse(localStorage.getItem(key)||'{}');
+              localStorage.setItem(key,JSON.stringify({...old,
+                'casino.manhole.enabled':1,'interaction.street_casino.x':859,'interaction.street_casino.y':577,
+                'interaction.street_casino.radius':90,
+                'transition.casino.x':808,'transition.casino.y':301}));
+            });
+            await stalePage.keyboard.press('e');
+            await stalePage.waitForTimeout(750);
+            const refreshed=await stalePage.evaluate(()=>{
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              return {casino:scene?.children?.list.filter(o=>o.texture?.key==='casino'&&o.visible).length,
+                message:document.querySelector('#msg')?.textContent};
+            });
+            console.log('CASINO_AFTER_SAME_TAB_SETTINGS_EDIT',JSON.stringify(refreshed));
+            if(!refreshed.casino)throw Error('Casino entry did not use modified saved settings');
+            await staleContext.close();
           }finally{await browser.close()}
           JS
       - uses: actions/upload-artifact@v4
