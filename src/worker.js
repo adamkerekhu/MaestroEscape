@@ -1951,7 +1951,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
    settingsSynced=false;
    setSettingsBadge("🧪 Single Player · local","No Cloudflare Durable Objects requests.");
   }
-  if(new URL(location.href).searchParams.get("mode")==="multi")try{await syncSharedSettings();}
+  if(false)try{await syncSharedSettings();}
   catch(error){
    console.error("Shared settings unavailable",error);
    show(readLocalGameSettings()
@@ -2027,7 +2027,7 @@ export default {
   if(url.pathname==="/assets/local-room.js")
    return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/build")
-   return Response.json({build:"drunk-ghost-overlay-20261115",drunkControllerBundled:true},
+   return Response.json({build:"single-player-only-20261115",drunkControllerBundled:true,multiplayerEnabled:false},
     {headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
@@ -2037,29 +2037,7 @@ export default {
   if(url.pathname==="/assets/pub-orders.js")return new Response(PUB_ORDERS_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
-  if(url.pathname==="/api/consumables"){
-   const jsonHeaders={"cache-control":"no-store","x-maestro-api":"room-v2"};
-   if(!env?.ITEM_ROOMS)return Response.json({ok:false,error:"Item room binding unavailable",code:"ROOM_BINDING_MISSING"},{status:503,headers:jsonHeaders});
-   const room=url.searchParams.get("room")||"";
-   if(!/^[a-zA-Z0-9_-]{8,64}$/.test(room))return Response.json({ok:false,error:"Invalid room",code:"INVALID_ROOM"},{status:400,headers:jsonHeaders});
-   try{
-    const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape:"+room));
-    const response=await stub.fetch(new Request("https://room.internal/"+url.search,{method:request.method,
-     headers:request.headers,body:request.method==="POST"?request.body:undefined}));
-    const type=response.headers.get("content-type")||"";
-    if(!type.toLowerCase().includes("application/json")){
-     console.error("Room Durable Object returned non-JSON",response.status,type);
-     return Response.json({ok:false,error:"Multiplayer room returned an invalid response. Check the Cloudflare deployment and Durable Object logs.",code:"ROOM_NOT_JSON"},{status:502,headers:jsonHeaders});
-    }
-    const headers=new Headers(response.headers);
-    headers.set("cache-control","no-store");
-    headers.set("x-maestro-api","room-v2");
-    return new Response(response.body,{status:response.status,headers});
-   }catch(error){
-    console.error("Multiplayer room request failed",error);
-    return Response.json({ok:false,error:"Multiplayer room unavailable: "+String(error?.message||error),code:"ROOM_UNAVAILABLE"},{status:503,headers:jsonHeaders});
-   }
-  }
+  if(url.pathname==="/api/consumables")return Response.json({ok:false,error:"Multiplayer has been shut down. Use single-player test mode.",code:"MULTIPLAYER_DISABLED"},{status:410,headers:{"cache-control":"no-store"}});
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
     const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
@@ -2067,7 +2045,7 @@ export default {
   }
   if(url.pathname==="/settings")return new Response(SETTINGS_HTML,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/settings/schema")return Response.json({groups:SETTINGS_GROUPS,defaults:SETTINGS_DEFAULTS});
-  if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-with-skoda",vehicle:"Skoda Superb 2.0TDI"});
+  if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-test-only",multiplayerEnabled:false,vehicle:"Skoda Superb 2.0TDI"});
   if(/^\/assets\/shop-(dohanybolt|spar|gyros)\.webp$/.test(url.pathname)){
     const shopName=url.pathname.slice(13,-5);
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/shops/"+shopName+".webp");
