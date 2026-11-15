@@ -22,7 +22,7 @@ test("mobile inventory button toggles open and closed above E",()=>{
 });
 test("selection delegates to authoritative inventory equip action",()=>{
  assert.match(CONSUMABLE_CLIENT_SCRIPT,/MaestroInventoryController/);
- assert.match(CONSUMABLE_CLIENT_SCRIPT,/itemCommand\(\\"equip\\",item\)/);
+ assert.ok(CONSUMABLE_CLIENT_SCRIPT.includes('itemCommand("equip",item)'));
  assert.match(INVENTORY_WHEEL_SCRIPT,/ctl\(\)\?\.equip\?\.\(item\)/);
  assert.match(CONSUMABLE_CLIENT_SCRIPT,/if\(window\.MaestroInventoryWheel\)window\.MaestroInventoryWheel\.toggle\(\)/);
 });
