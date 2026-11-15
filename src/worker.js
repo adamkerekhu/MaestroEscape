@@ -460,7 +460,6 @@ window.addEventListener("unhandledrejection",function(event){
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script src="/assets/consumables.js"></script>
 <script>
-__DRUNK_MODE_SCRIPT__
 (function(){
 'use strict';
 if(!window.Phaser){document.getElementById('splash').textContent="Could not load Phaser. Check internet access.";return;}
@@ -472,9 +471,13 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-const drunkControllerAvailable=typeof DrunkMode==="function";
+let drunkControllerAvailable=false;
+try{
+ new Function("window",__DRUNK_MODE_SOURCE__) (window);
+ drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
+}catch(error){console.error("Drunk Mode controller could not initialize:",error);}
 const drunk=drunkControllerAvailable
- ?new DrunkMode(()=>overrides)
+ ?new window.MaestroDrunkMode(()=>overrides)
  :{level:0,phase:0,reset(){},update(){},config(){return 0},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
 if(!drunkControllerAvailable)console.error("Drunk Mode failed to initialize; game running with sober fallback");
 let lastDrunkHud=-1;
@@ -1986,6 +1989,6 @@ export default {
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
   return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
-    .replace("__DRUNK_MODE_SCRIPT__",DRUNK_MODE_CLIENT_SCRIPT),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
+    .replace("__DRUNK_MODE_SOURCE__",JSON.stringify(DRUNK_MODE_CLIENT_SCRIPT)),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
