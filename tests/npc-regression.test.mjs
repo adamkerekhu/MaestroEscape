@@ -4,6 +4,10 @@ import { readFileSync, existsSync } from "node:fs";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import {TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT} from "../src/transition-editor.js";
+import {INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT} from "../src/interaction-editor.js";
+import {HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT} from "../src/hide-editor.js";
+import {HIDE_POINT_DEFS,HIDE_RUNTIME_SCRIPT} from "../src/hide-peek.js";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const source=readFileSync(join(root,"src/worker.js"),"utf8");
@@ -31,21 +35,31 @@ const segment=(room,start,end)=>{
  }
  return true;
 };
-function inlineScript(marker,label){
- const pos=source.indexOf(marker);
- assert.ok(pos>=0,"Missing "+label);
- const found=source.slice(pos).match(/<script>\s*([\s\S]*?)<\/script>/);
- assert.ok(found,"Missing script in "+label);
- return found[1];
+const templateBindings={
+ TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT,
+ INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT,
+ HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT,HIDE_POINT_DEFS,HIDE_RUNTIME_SCRIPT
+};
+function renderTemplate(marker,name){
+ const start=source.indexOf(marker);
+ assert.ok(start>=0,"Missing "+name+" template");
+ const end=source.indexOf("`;",start+marker.length);
+ assert.ok(end>start,"Missing "+name+" ending");
+ return vm.runInNewContext(source.slice(start,end+2)+"\\n"+name,templateBindings);
 }
-const workerAsScript=source.replace(/^import .+;\n/gm,"").replace(/^export \{.+\};\n/gm,"")
+function inlineScripts(html){
+ return [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)].map(m=>m[1]);
+}
+const workerAsScript=source.replace(/^import .+;\\n/gm,"").replace(/^export \\{.+\\};\\n/gm,"")
  .replace("export class GameSettings","class GameSettings").replace("export default {","const _worker = {");
-const game=inlineScript("const HTML = String.raw","Phaser game");
-const settings=inlineScript("const SETTINGS_HTML=String.raw","settings page");
-
+const gameHTML=renderTemplate("const HTML = String.raw`","HTML");
+const settingsHTML=renderTemplate("const SETTINGS_HTML=String.raw`","SETTINGS_HTML");
+const gameScripts=inlineScripts(gameHTML);
+const game=gameScripts.at(-1);
+const settings=inlineScripts(settingsHTML)[0];
 test("Worker, game and settings syntax",()=>{
  new vm.Script(workerAsScript);
- new vm.Script(game.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(defaults)));
+ for(const snippet of gameScripts)new vm.Script(snippet.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(defaults)));
  new vm.Script(settings);
 });
 
@@ -133,7 +147,7 @@ const request=(method,body,revision)=>({
 test("shared storage readback, cross-device values, stale revision and invalid updates",async()=>{
  const executable=workerAsScript;
  const {GameSettings,SETTINGS_DEFAULTS}=vm.runInNewContext(
-  executable+"\n({ GameSettings, SETTINGS_DEFAULTS })",{Response:MockResponse});
+  executable+"\n({ GameSettings, SETTINGS_DEFAULTS })",{Response:MockResponse,...templateBindings});
  const storage=new Map(),ctx={storage:{
   get:async key=>storage.get(key),
   put:async record=>{for(const [key,value] of Object.entries(record))storage.set(key,value);}
