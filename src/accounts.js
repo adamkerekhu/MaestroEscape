@@ -13,6 +13,11 @@ export class MaestroAccounts{
  async fetch(request){
   const path=new URL(request.url).pathname;
   try{
+   if(path==="/health"&&request.method==="GET"){
+    // Exercise Durable Object storage rather than reporting only binding existence.
+    await this.ctx.storage.get("accounts:healthcheck");
+    return json({ok:true,service:"MaestroAccounts",storageReachable:true,version:"accounts-health-v2"});
+   }
    if(path==="/session")return this.session(request);
    if(request.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
    if(path==="/register")return this.register(request);
