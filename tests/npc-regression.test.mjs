@@ -45,12 +45,12 @@ function renderTemplate(marker,name){
  assert.ok(start>=0,"Missing "+name+" template");
  const end=source.indexOf("`;",start+marker.length);
  assert.ok(end>start,"Missing "+name+" ending");
- return vm.runInNewContext(source.slice(start,end+2)+"\\n"+name,templateBindings);
+ return vm.runInNewContext(source.slice(start,end+2)+"\n"+name,templateBindings);
 }
 function inlineScripts(html){
- return [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)].map(m=>m[1]);
+ return [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
 }
-const workerAsScript=source.replace(/^import .+;\\n/gm,"").replace(/^export \\{.+\\};\\n/gm,"")
+const workerAsScript=source.replace(/^import .+;\n/gm,"").replace(/^export \{.+\};\n/gm,"")
  .replace("export class GameSettings","class GameSettings").replace("export default {","const _worker = {");
 const gameHTML=renderTemplate("const HTML = String.raw`","HTML");
 const settingsHTML=renderTemplate("const SETTINGS_HTML=String.raw`","SETTINGS_HTML");
