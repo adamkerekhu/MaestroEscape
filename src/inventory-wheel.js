@@ -1,5 +1,5 @@
 // Fast inventory wheel: Q hold-to-view + release-to-equip, mobile tap-toggle.
-export const INVENTORY_WHEEL_CSS = String.raw\`
+export const INVENTORY_WHEEL_CSS = String.raw`
 #maestro-inventory-wheel{position:absolute;inset:0;z-index:35;display:none;align-items:center;justify-content:center;pointer-events:none;font:14px system-ui,Arial;color:#fff0cf}
 #maestro-inventory-wheel.open{display:flex}
 #maestro-inventory-wheel .wheel-backdrop{position:absolute;inset:0;background:radial-gradient(circle,#09150d29,#070e12a8);backdrop-filter:blur(2px);pointer-events:auto}
@@ -27,9 +27,9 @@ export const INVENTORY_WHEEL_CSS = String.raw\`
  #maestro-inventory-wheel .wheel-wrap{width:min(360px,93vw,75dvh);height:min(360px,93vw,75dvh)}
 }
 @media(prefers-reduced-motion:reduce){#maestro-inventory-wheel *,#maestro-inventory-wheel .wheel-wrap{animation:none!important;transition:none!important}}
-\`;
+`;
 
-export const INVENTORY_WHEEL_SCRIPT = String.raw\`(()=>{
+export const INVENTORY_WHEEL_SCRIPT = String.raw`(()=>{
 "use strict";
 const screen=document.getElementById("screen");
 if(!screen||document.getElementById("maestro-inventory-wheel"))return;
@@ -110,4 +110,4 @@ const hook=()=>{
 };
 hook();
 window.MaestroInventoryWheel={open,close,toggle,isOpen:()=>visible};
-})();\`;
+})();`;
