@@ -2176,7 +2176,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
    if(!document.hidden&&new URL(location.href).searchParams.get("mode")==="multi")
     void syncSharedSettings().catch(console.warn);
   });
- new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
+ window.__MAESTRO_GAME__=new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
  if(new URL(location.href).searchParams.get("mode")==="multi")setInterval(()=>{
    applyLocalSettingsIfNeeded();
