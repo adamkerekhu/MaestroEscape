@@ -1,4 +1,3 @@
-// Fast inventory wheel: Q hold-to-view + release-to-equip, mobile tap-toggle.
 export const INVENTORY_WHEEL_CSS = String.raw`
 #maestro-inventory-wheel{position:absolute;inset:0;z-index:35;display:none;align-items:center;justify-content:center;pointer-events:none;font:14px system-ui,Arial;color:#fff0cf}
 #maestro-inventory-wheel.open{display:flex}
@@ -28,14 +27,13 @@ export const INVENTORY_WHEEL_CSS = String.raw`
 }
 @media(prefers-reduced-motion:reduce){#maestro-inventory-wheel *,#maestro-inventory-wheel .wheel-wrap{animation:none!important;transition:none!important}}
 `;
-
 export const INVENTORY_WHEEL_SCRIPT = String.raw`(()=>{
 "use strict";
 const screen=document.getElementById("screen");
 if(!screen||document.getElementById("maestro-inventory-wheel"))return;
 const css=document.createElement("link");css.rel="stylesheet";css.href="/assets/inventory-wheel.css";document.head.append(css);
 const overlay=document.createElement("div");overlay.id="maestro-inventory-wheel";overlay.setAttribute("aria-label","Quick inventory");
-overlay.innerHTML='<div class="wheel-backdrop"></div><section class="wheel-wrap" role="group" aria-label="Choose inventory item"><div class="wheel-disk"></div><div class="wheel-center"><strong>🎒 INVENTORY</strong><span id="wheel-caption">Choose an item</span></div><div class="wheel-empty" hidden>Nothing in your bag</div><div class="wheel-hint">Hold Q • Hover to select • Release Q to equip</div></section>';
+overlay.innerHTML='<div class="wheel-backdrop"></div><section class="wheel-wrap" role="group" aria-label="Choose inventory item"><div class="wheel-disk"></div><div class="wheel-center"><strong>🎒 INVENTORY</strong><span id="wheel-caption">Choose an item</span></div><div class="wheel-empty" hidden>Nothing in your bag</div><div class="wheel-hint">Hold Q • Hover item • Release to use</div></section>';
 screen.append(overlay);
 const wrap=overlay.querySelector(".wheel-wrap"),caption=overlay.querySelector("#wheel-caption"),hint=overlay.querySelector(".wheel-hint"),empty=overlay.querySelector(".wheel-empty");
 const BUTTONS={beer:"🍺",empty_glass:"🥛",kebab:"🥙",cigarette:"🚬",cigarette_pack:"📦",scratch_ticket:"🎟️"};
@@ -60,7 +58,7 @@ function render(){
   const btn=document.createElement("button");btn.type="button";btn.className="wheel-slot";
   btn.style.left=(50+35*Math.cos(a)-11.5)+"%";btn.style.top=(50+35*Math.sin(a)-11.5)+"%";
   btn.title=(NAMES[item.type]||item.type)+" · "+(item.remainingUnits??"");
-  btn.setAttribute("aria-label","Equip "+(NAMES[item.type]||item.type));
+  btn.setAttribute("aria-label","Use "+(NAMES[item.type]||item.type));
   const icon=document.createElement("span");icon.className="wheel-icon";icon.textContent=BUTTONS[item.type]||"🎁";
   const name=document.createElement("span");name.className="wheel-name";name.textContent=NAMES[item.type]||item.type;
   btn.append(icon,name);
@@ -77,13 +75,13 @@ function open(source="mouse"){
  if(visible)return;
  if(!ctl()?.ready?.()){ctl()?.notify?.("Choose your character before using inventory");return}
  visible=true;lastPointerType=source;overlay.style.display="flex";overlay.classList.add("open");
- hint.textContent=source==="keyboard"?"Hold Q · Hover to choose · Release to equip":"Tap an item to equip · Tap bag again to close";
+ hint.textContent=source==="keyboard"?"Hold Q · Hover item · Release to use":"Tap item to use · Tap bag again to close";
  render();
 }
 async function choose(index){
  const item=items[index];if(!item||busy)return;
  busy=true;close();
- try{const ok=await ctl()?.equip?.(item);if(!ok)ctl()?.notify?.("Could not equip "+(NAMES[item.type]||item.type));}
+ try{const ok=await ctl()?.use?.(item);if(!ok)ctl()?.notify?.("Could not use "+(NAMES[item.type]||item.type));}
  catch(e){ctl()?.notify?.("Inventory failed: "+e.message)}
  finally{busy=false}
 }
