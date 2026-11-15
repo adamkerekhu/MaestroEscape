@@ -2212,9 +2212,18 @@ export default {
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
   }
   if(url.pathname==="/assets/basement.webp"){
-    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_basement.webp");
-    if(!upstream.ok)return new Response("Basement image unavailable",{status:404});
-    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
+    // Support the converted WebP and the original image filename from the uploaded basement ZIP.
+    const base="https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/";
+    const candidates=[["maestro_basement.webp","image/webp"],["basement_art.png","image/png"]];
+    for(const [name,mime] of candidates){
+      const upstream=await fetch(base+name);
+      if(upstream.ok&&upstream.body)return new Response(upstream.body,{
+        headers:{"content-type":mime,"cache-control":"public, max-age=300","x-content-type-options":"nosniff"}
+      });
+    }
+    return new Response("Basement image is missing. Upload maestro_basement.webp to Assets/Maps/ in GitHub.",{
+      status:404,headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}
+    });
   }
   if(url.pathname==="/assets/interior.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_interior.webp");
