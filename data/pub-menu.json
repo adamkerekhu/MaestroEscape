@@ -1,0 +1,1275 @@
+{
+  "source": "User-provided PIVO menu image, 2026-11-15",
+  "currency": "HUF",
+  "service_fee_percent": 12,
+  "fee_notice": "Árainkra 12% szervizdíjat számolunk fel. / We charge a 12% service fee on our prices.",
+  "categories": [
+    {
+      "id": "draft-beers",
+      "name": "Csapolt sörök / Draft beers",
+      "items": [
+        {
+          "id": "draft-beers-01",
+          "name": "Dreher Gold",
+          "sizes": [
+            {
+              "label": "0.3 L",
+              "price_huf": 1350
+            },
+            {
+              "label": "0.5 L",
+              "price_huf": 1950
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "draft-beers-02",
+          "name": "Dreher Meggy",
+          "sizes": [
+            {
+              "label": "0.3 L",
+              "price_huf": 1350
+            },
+            {
+              "label": "0.5 L",
+              "price_huf": 1950
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "draft-beers-03",
+          "name": "HB Búza",
+          "sizes": [
+            {
+              "label": "0.3 L",
+              "price_huf": 1450
+            },
+            {
+              "label": "0.5 L",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "draft-beers-04",
+          "name": "Pilsner Urquell",
+          "sizes": [
+            {
+              "label": "0.3 L",
+              "price_huf": 1450
+            },
+            {
+              "label": "0.5 L",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "draft-beers-05",
+          "name": "Peroni Nastro Azzurro",
+          "sizes": [
+            {
+              "label": "0.3 L",
+              "price_huf": 1450
+            },
+            {
+              "label": "0.5 L",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "bottled",
+      "name": "Üveges sörök és ciderek / Bottled beers & ciders",
+      "items": [
+        {
+          "id": "bottled-01",
+          "name": "Dreher Bak",
+          "sizes": [
+            {
+              "label": "0.5 L",
+              "price_huf": 1700
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-02",
+          "name": "Asahi Superdry",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 1600
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-03",
+          "name": "Dreher 24/24 Citrom",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-04",
+          "name": "Peroni Stile Capri",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 1700
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-05",
+          "name": "Delirium Tremens",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-06",
+          "name": "Kwak",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-07",
+          "name": "Delirium Red",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 2900
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-08",
+          "name": "Liefmans Fruitesse (4.2%)",
+          "sizes": [
+            {
+              "label": "0.25 L",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-09",
+          "name": "Kasteel Rouge",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-10",
+          "name": "Corona",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-11",
+          "name": "Somersby Apple Cider",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bottled-12",
+          "name": "Somersby Blueberry Cider",
+          "sizes": [
+            {
+              "label": "0.33 L",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "palinka",
+      "name": "Pálinkák",
+      "items": [
+        {
+          "id": "palinka-01",
+          "name": "Agárdi Szilva 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-02",
+          "name": "Agárdi Kajszibarack 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-03",
+          "name": "Agárdi Fekete Cseresznye 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-04",
+          "name": "Agárdi Birs 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1700
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3300
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-05",
+          "name": "Agárdi Bodza 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-06",
+          "name": "Agárdi Piros Vilmos 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-07",
+          "name": "Agárdi Cigánymeggy 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "palinka-08",
+          "name": "Agárdi Fekete Ribizli 40%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 2000
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3600
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "bitters",
+      "name": "Keserűk / Bitters",
+      "items": [
+        {
+          "id": "bitters-01",
+          "name": "Jägermeister",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bitters-02",
+          "name": "Jägermeister Orange",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1250
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2400
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bitters-03",
+          "name": "Unicum",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bitters-04",
+          "name": "Unicum Szilva",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bitters-05",
+          "name": "Unicum Barista",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "bitters-06",
+          "name": "Unicum Riserva",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1400
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2600
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "tequila",
+      "name": "Tequila",
+      "items": [
+        {
+          "id": "tequila-01",
+          "name": "Patron Reposado",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 2100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 4000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tequila-02",
+          "name": "Patron Silver",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 2100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 4000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tequila-03",
+          "name": "1800 Reposado",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tequila-04",
+          "name": "1800 Silver",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tequila-05",
+          "name": "Jose Cuervo Reposado",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tequila-06",
+          "name": "Jose Cuervo Silver",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "vodka",
+      "name": "Vodka",
+      "items": [
+        {
+          "id": "vodka-01",
+          "name": "Finlandia",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-02",
+          "name": "Finlandia Botanical",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-03",
+          "name": "Absolut Blue",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-04",
+          "name": "Absolut Vanília",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-05",
+          "name": "Russian Standard",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-06",
+          "name": "Ciroc",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1450
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2700
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-07",
+          "name": "Grey Goose",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1450
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2700
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-08",
+          "name": "Belvedere Pure",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "vodka-09",
+          "name": "Beluga Noble",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1500
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2800
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "whiskey",
+      "name": "Whisky / Whiskey",
+      "items": [
+        {
+          "id": "whiskey-01",
+          "name": "Jim Beam",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-02",
+          "name": "Ballentines",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-03",
+          "name": "Jack Daniels",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-04",
+          "name": "Jack Daniels Honey",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-05",
+          "name": "Jack Daniel’s Gentleman Jack",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1300
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-06",
+          "name": "Jack Daniel’s Single Barrel",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1550
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2900
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-07",
+          "name": "Jameson",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-08",
+          "name": "Chivas Regal",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1400
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2600
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-09",
+          "name": "Maker’s Mark",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-10",
+          "name": "Nikka From The Barrel",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1900
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3600
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-11",
+          "name": "Glenlivet 12 Éves",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1700
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "whiskey-12",
+          "name": "Monkey Shoulder",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1250
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2400
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "gin",
+      "name": "Gin",
+      "items": [
+        {
+          "id": "gin-01",
+          "name": "Siegfried Wonderleaf 0.0% (alcohol free)",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-02",
+          "name": "Monkey 47",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 2000
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3800
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-03",
+          "name": "Bombay Premier Cru",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1800
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-04",
+          "name": "Gin Mare Mediterran",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1600
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-05",
+          "name": "Hendrick’s",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1600
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-06",
+          "name": "Malfy Rosa",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1600
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-07",
+          "name": "Tanqueray No.10",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1600
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 3000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-08",
+          "name": "Larios12",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-09",
+          "name": "Roku",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1300
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-10",
+          "name": "Tanqueray",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1150
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2100
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-11",
+          "name": "Bombay Sapphire",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1150
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2100
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-12",
+          "name": "Beefeater Pink",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "gin-13",
+          "name": "Beefeater",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1100
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2000
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "aperitifs",
+      "name": "Aperitifek / Aperitifs",
+      "items": [
+        {
+          "id": "aperitifs-01",
+          "name": "Aperol",
+          "sizes": [
+            {
+              "label": "8 cl",
+              "price_huf": 1900
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "aperitifs-02",
+          "name": "Campari",
+          "sizes": [
+            {
+              "label": "8 cl",
+              "price_huf": 1900
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "aperitifs-03",
+          "name": "Martini Extra Dry",
+          "sizes": [
+            {
+              "label": "8 cl",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "aperitifs-04",
+          "name": "Martini Bianco",
+          "sizes": [
+            {
+              "label": "8 cl",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "aperitifs-05",
+          "name": "Martini Rosso",
+          "sizes": [
+            {
+              "label": "8 cl",
+              "price_huf": 1500
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    {
+      "id": "tatratea",
+      "name": "Tatratea",
+      "items": [
+        {
+          "id": "tatratea-01",
+          "name": "Tatratea Kókusz 22%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1150
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2100
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-02",
+          "name": "Tatratea Citrus 32%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1150
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2100
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-03",
+          "name": "Tatratea Hibiscus & Red 37%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-04",
+          "name": "Tatratea Őszibarack 42%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-05",
+          "name": "Tatratea Virágos 47%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-06",
+          "name": "Tatratea Az Eredeti 52%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1200
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2200
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-07",
+          "name": "Tatratea Áfonya-Erdő Gyümölcs 62%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1250
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2300
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-08",
+          "name": "Tatratea Alma-Körte 67%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1250
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2300
+            }
+          ],
+          "available": true
+        },
+        {
+          "id": "tatratea-09",
+          "name": "Tatratea Betyáros 72%",
+          "sizes": [
+            {
+              "label": "2 cl",
+              "price_huf": 1300
+            },
+            {
+              "label": "4 cl",
+              "price_huf": 2400
+            }
+          ],
+          "available": true
+        }
+      ]
+    }
+  ]
+}
