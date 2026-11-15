@@ -65,3 +65,15 @@ test("casino WebP is physically committed and has valid RIFF/WEBP header",()=>{
  const riffSize=asset.readUInt32LE(4);
  assert.equal(riffSize+8,asset.length,"WebP RIFF length must match file bytes");
 });
+
+test("casino artwork is isolated from street and drunk double-vision layers",()=>{
+ assert.match(worker,/casinoImage=this\.add\.image\(0,0,"casino"\)/);
+ assert.match(worker,/\.setVisible\(false\)\.setAlpha\(0\)\.setPosition\(-CASINO_SIZE\.w-100,-CASINO_SIZE\.h-100\)/);
+ assert.match(worker,/casinoImage\.setPosition\(0,0\)\.setAlpha\(1\)\.setVisible\(true\)/);
+ assert.match(worker,/if\(!insideCasino\)\{casinoImage\.setVisible\(false\)\.setAlpha\(0\);\}/);
+ assert.match(worker,/original!==casinoImage\|\|insideCasino/);
+});
+test("selected single-player character becomes visible after map initialization and late state sync",()=>{
+ assert.match(worker,/character\.setVisible\(!!gameplay\?\.hasCharacter\(\)&&!activeVehicle&&!gameplay\?\.isDead\(\)\)/);
+ assert.match(worker,/gameplay\?\.hasCharacter\(\)&&!activeVehicle&&!gameplay\?\.occupied&&!gameplay\?\.isDead\(\)/);
+});
