@@ -49,7 +49,17 @@ function highlight(index){
 }
 function render(){
  wrap.querySelectorAll(".wheel-slot").forEach(node=>node.remove());
- items=Array.isArray(ctl()?.items?.())?[...ctl().items()]:[];
+ // Group individual instances of the same item into one selectable wheel slot.
+ const source=Array.isArray(ctl()?.items?.())?[...ctl().items()]:[];
+ const stacks=new Map();
+ for(const item of source){
+  const key=item.type;
+  if(!stacks.has(key))stacks.set(key,{...item,stackCount:0,stackItems:[]});
+  const stack=stacks.get(key);
+  stack.stackCount++;
+  stack.stackItems.push(item);
+ }
+ items=[...stacks.values()];
  empty.hidden=!!items.length;
  if(!items.length){caption.textContent="No items";return}
  const equipped=ctl()?.equippedId?.();
@@ -57,13 +67,13 @@ function render(){
   const item=items[i],a=(-Math.PI/2)+i*2*Math.PI/items.length;
   const btn=document.createElement("button");btn.type="button";btn.className="wheel-slot";
   btn.style.left=(50+35*Math.cos(a)-11.5)+"%";btn.style.top=(50+35*Math.sin(a)-11.5)+"%";
-  btn.title=(NAMES[item.type]||item.type)+" · "+(item.remainingUnits??"");
+  btn.title=(NAMES[item.type]||item.type)+" ×"+item.stackCount;
   btn.setAttribute("aria-label","Use "+(NAMES[item.type]||item.type));
   const icon=document.createElement("span");icon.className="wheel-icon";icon.textContent=BUTTONS[item.type]||"🎁";
   const name=document.createElement("span");name.className="wheel-name";name.textContent=NAMES[item.type]||item.type;
   btn.append(icon,name);
-  if(item.remainingUnits>1){const count=document.createElement("span");count.className="wheel-count";count.textContent="×"+item.remainingUnits;btn.append(count)}
-  if(item.id===equipped)btn.classList.add("equipped");
+  if(item.stackCount>1){const count=document.createElement("span");count.className="wheel-count";count.textContent="×"+item.stackCount;btn.append(count)}
+  if(item.stackItems.some(x=>x.id===equipped))btn.classList.add("equipped");
   btn.onpointerenter=()=>highlight(i);
   btn.onpointerdown=event=>{event.stopPropagation();highlight(i)};
   btn.onclick=event=>{event.stopPropagation();void choose(i)};
@@ -79,7 +89,8 @@ function open(source="mouse"){
  render();
 }
 async function choose(index){
- const item=items[index];if(!item||busy)return;
+ const stack=items[index];if(!stack||busy)return;
+ const item=stack.stackItems.find(i=>i.id===ctl()?.equippedId?.())||stack.stackItems[0];
  busy=true;close();
  try{const ok=await ctl()?.use?.(item);if(!ok)ctl()?.notify?.("Could not use "+(NAMES[item.type]||item.type));}
  catch(e){ctl()?.notify?.("Inventory failed: "+e.message)}
