@@ -166,7 +166,7 @@ test("double-vision uses active-map duplicate only and respects levels, pauses, 
  assert.ok(html.includes('updateDrunkGhost(delta,'));
  assert.ok(html.includes('drunkGhostLayers=[]'));
  assert.ok(html.includes('for(const original of [streetImage,interiorImage,basementImage,casinoImage,...Object.values(SHOPS).map(shop=>shop.image)]'));
- assert.ok(html.includes('const show=!!(original.active&&original.visible&&drunkGhostAlpha>.002&&active)'));
+ assert.ok(html.includes('const show=!!(original.active&&original.visible&&(original!==casinoImage||insideCasino)&&drunkGhostAlpha>.002&&active)'));
  assert.ok(html.includes('ghost.setVisible(show)'));
  assert.ok(html.includes('ghost.setPosition(original.x+driftX,original.y+driftY)'));
  assert.ok(html.includes('ghost.setDepth')===false || html.includes('.setDepth(original.depth+.25)'));
