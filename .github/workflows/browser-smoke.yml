@@ -41,7 +41,7 @@ jobs:
             console.log('LIVE_BROWSER_STATE',JSON.stringify(status));
             console.log('BROWSER_ERRORS',JSON.stringify(errors));
             await page.screenshot({path:'maestro-live.png',fullPage:true});
-            if(status.build!=='casino-lazy-character-fix-20261115')throw Error('Not the repaired live build');
+            if(status.build!=='casino-browser-geometry-20261115')throw Error('Not the repaired live build');
             if(!status.scene)throw Error('Phaser Explore scene was not created');
             if(status.casino.length!==0)throw Error('Casino image objects exist outdoors: '+JSON.stringify(status.casino));
             if(!status.players.some(p=>p.visible))throw Error('No visible player sprite after startup: '+JSON.stringify(status.players));
