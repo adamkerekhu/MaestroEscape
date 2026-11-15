@@ -162,7 +162,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
   notice.textContent="Saving changes…";
   clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
  }
- function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){
+ function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs"||group.title==="Hide-point coordinates")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){
   if(field.key.startsWith("drunkMode.")&&field.min===0&&field.max===1){
    const wrap=document.createElement("div");wrap.className="field";
    const label=document.createElement("label");label.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600";
