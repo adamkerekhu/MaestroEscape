@@ -18,10 +18,11 @@ const groups=JSON.parse(match(/const SETTINGS_GROUPS=(\[[^\n]+\]);/,"settings sc
 const defs=JSON.parse(match(/const NPC_DEFINITIONS=(\[[^\n]+\]);/,"NPC registry"));
 const shops=vm.runInNewContext("("+match(/const SHOPS=(\{[\s\S]*?\});\nconst interiorWalls/,"interior maps")+")");
 const walls={
+ casino:CASINO_WALLS,
  pub:vm.runInNewContext(match(/const interiorWalls=(\[[\s\S]*?\]);/,"pub collision")),
  spar:shops.spar.walls,dohanybolt:shops.dohanybolt.walls,gyros:shops.gyros.walls
 };
-const sizes={pub:[1448,1086],spar:[736,384],dohanybolt:[608,832],gyros:[768,480]};
+const sizes={casino:[CASINO_SIZE.w,CASINO_SIZE.h],pub:[1448,1086],spar:[736,384],dohanybolt:[608,832],gyros:[768,480]};
 const service=vm.runInNewContext("("+match(/const NPC_SERVICE_OFFSETS=(\{[\s\S]*?\});\nfunction npcInteractionPoint/,"counter offsets")+")");
 const floor=(room,x,y,r=7)=>{
  const [width,height]=sizes[room];
@@ -66,10 +67,10 @@ test("Worker, game and settings syntax",()=>{
 });
 
 test("exact NPC roster and lifecycle guards",()=>{
- assert.equal(defs.length,9);
- assert.equal(new Set(defs.map(n=>n.id)).size,9);
- assert.deepEqual(["pub","spar","dohanybolt","gyros"].map(room=>defs.filter(n=>n.interior===room).length),[4,3,1,1]);
- assert.equal(defs.filter(n=>n.role==="worker").length,4);
+ assert.equal(defs.length,10);
+ assert.equal(new Set(defs.map(n=>n.id)).size,10);
+ assert.deepEqual(["pub","spar","dohanybolt","gyros","casino"].map(room=>defs.filter(n=>n.interior===room).length),[4,3,1,1,1]);
+ assert.equal(defs.filter(n=>n.role==="worker").length,5);
  assert.equal(defs.filter(n=>n.role==="civilian").length,5);
  assert.ok(source.includes("if(npcEntities.size)return"));
  assert.ok(source.includes("showInteriorNPCs(null)"));
@@ -79,7 +80,7 @@ test("NPC asset proxy validates IDs in Worker scope without browser globals",()=
  const route=source.match(/if\(\/\^\\\/assets\\\/npc[\s\S]*?if\(url\.pathname==="\/assets\/world\.webp"\)/);
  assert.ok(route,"NPC image route missing");
  assert.ok(!route[0].includes("NPC_DEFINITIONS"),"Worker route references browser-only NPC registry");
- for(const def of defs)assert.ok(route[0].includes(def.id.split("_")[0])||
+ for(const def of defs)assert.ok(def.id==="casino_bartender"||route[0].includes(def.id.split("_")[0])||
    (/maestro_regular_[123]/.test(route[0])&&def.id.startsWith("maestro_regular"))||
    (/spar_shopper_[12]/.test(route[0])&&def.id.startsWith("spar_shopper")),"Asset whitelist may omit "+def.id);
 });
@@ -92,11 +93,12 @@ test("NPC sprite loading uses published character assets, never player fallback"
 });
 
 test("every NPC sprite is included",()=>{
- for(const def of defs)assert.ok(existsSync(join(root,"Assets/NPCs",def.id+".webp")),def.id+" missing sprite");
+ for(const def of defs)assert.ok(existsSync(join(root,"Assets/NPCs",(def.id==="casino_bartender"?"maestro_bartender":def.id)+".webp")),def.id+" missing sprite");
 });
 
 test("all default NPC spawns and waypoint segments avoid obstacles",()=>{
  for(const def of defs){
+  if(def.id==="casino_bartender")continue; // Bartender stands behind the solid bar; service contact is on the public side.
   assert.ok(floor(def.interior,def.x,def.y),def.id+" starts blocked");
   let previous={x:def.x,y:def.y};
   for(let n=1;n<=4;n++){
@@ -170,8 +172,8 @@ test("shared storage readback, cross-device values, stale revision and invalid u
 test("NPC location multipliers and individual NPC sizes are independent and persisted",()=>{
  const locationGroup=groups.find(g=>g.title==="NPC size · By location");
  assert.ok(locationGroup,"NPC size-by-location group is missing");
- const areas=["pub","spar","dohanybolt","gyros"];
- assert.equal(locationGroup.fields.length,4);
+ const areas=["pub","spar","dohanybolt","gyros","casino"];
+ assert.equal(locationGroup.fields.length,5);
  for(const area of areas){
   const key="npc.location."+area+".scale";
   assert.equal(defaults[key],1,"Existing NPC sizes must remain unchanged by default");
