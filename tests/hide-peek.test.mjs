@@ -27,7 +27,8 @@ function fixture(block=()=>false){
 test("Hide controller uses existing pub table locations and leaves unverified spots disabled",()=>{
  const tables=HIDE_POINT_DEFS.filter(p=>p.roomId==="pub"&&p.type==="table"&&p.enabled);
  assert.equal(tables.length,4);
- for(const room of ["basement","street"])assert.ok(HIDE_POINT_DEFS.filter(p=>p.roomId===room).every(p=>!p.enabled));
+ assert.equal(HIDE_POINT_DEFS.filter(p=>p.roomId==="basement"&&p.type==="table"&&p.enabled).length,3);
+ assert.ok(HIDE_POINT_DEFS.filter(p=>p.roomId==="street").every(p=>!p.enabled));
  assert.match(HIDE_RUNTIME_SCRIPT,/createGeometryMask/);
  assert.match(HIDE_RUNTIME_SCRIPT,/fillRect\(left,ptop,pw,ph\)/);
  assert.doesNotMatch(HIDE_RUNTIME_SCRIPT,/character\.setAlpha\(0\.07\)/);
