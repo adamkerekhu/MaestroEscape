@@ -18,6 +18,7 @@ export const TRANSITION_EDITOR_HTML = String.raw`
 <div class="transition-controls"><label>Destination <select id="transition-choice">
 <option value="pub">Street → Maestro Pub</option>
 <option value="basement">Pub → Basement (downstairs)</option>
+<option value="casino">Street → Underground Casino</option>
 <option value="upstairs">Basement → Pub (upstairs)</option>
 <option value="spar">Street → SPAR</option>
 <option value="dohanybolt">Street → Dohánybolt</option>
@@ -36,6 +37,7 @@ export const TRANSITION_EDITOR_SCRIPT = String.raw`
  const transitionScenes={
   pub:{name:"Maestro Pub entry",w:1448,h:1086,asset:"/assets/interior.webp"},
   basement:{name:"Basement entry",w:1792,h:896,asset:"/assets/basement.webp"},
+  casino:{name:"Casino manhole arrival",w:1696,h:960,asset:"/assets/casino.webp"},
   upstairs:{name:"Pub upstairs return",w:1448,h:1086,asset:"/assets/interior.webp"},
   spar:{name:"SPAR entry",w:736,h:384,asset:"/assets/shop-spar.webp"},
   dohanybolt:{name:"Dohánybolt entry",w:608,h:832,asset:"/assets/shop-dohanybolt.webp"},
