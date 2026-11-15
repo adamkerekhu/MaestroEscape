@@ -120,48 +120,33 @@ test("single-player mode runs the shared room engine locally without Durable Obj
  assert.ok(client.includes('return room.fetch(req)'));
 });
 
-test("beer order waits three seconds, pickup and five timed sips produce exactly one empty glass",async()=>{
+test("beer takes one action and disappears after finishing without creating a glass",async()=>{
  const old=Date.now;let clock=100000;Date.now=()=>clock;
  try{
   const {send,get}=fixture();
   assert.ok((await send(0,"syncPosition",{scene:"pub",x:413,y:398})).ok);
-  const order=await send(0,"orderBeer");
-  assert.ok(order.ok);
-  assert.equal(order.snapshot.orders.length,1);
-  clock+=2999;
-  assert.equal((await get(0)).snapshot.items.length,0);
-  clock++;
+  assert.ok((await send(0,"orderBeer")).ok);
+  clock+=3000;
   const item=(await get(0)).snapshot.items.find(i=>i.type==="beer");
-  assert.equal(item.remainingUnits,5);assert.equal(item.location.kind,"vendor");
-  const pickup=await send(0,"collectItem",{itemId:item.id});
-  assert.ok(pickup.ok);assert.equal(pickup.snapshot.inventory.length,1);
-  for(let n=0;n<5;n++){
-   const start=await send(0,"startConsumeUnit",{itemId:item.id});assert.ok(start.ok);
-   if(n===0){
-    const early=await send(0,"completeConsumeUnit",{actionId:start.action.id});
-    assert.equal(early.ok,false);
-   }
-   clock+=1500;
-   const done=await send(0,"completeConsumeUnit",{actionId:start.action.id});
-   assert.ok(done.ok,"sip "+n+": "+done.error);
-  }
+  assert.ok(item);assert.equal(item.remainingUnits,1);
+  assert.ok((await send(0,"collectItem",{itemId:item.id})).ok);
+  const start=await send(0,"startConsumeUnit",{itemId:item.id});
+  assert.ok(start.ok);
+  assert.equal((await send(0,"completeConsumeUnit",{actionId:start.action.id})).ok,false);
+  clock+=1500;
+  const finished=await send(0,"completeConsumeUnit",{actionId:start.action.id});
+  assert.ok(finished.ok);
   const end=(await get(0)).snapshot;
-  assert.equal(end.inventory[0].type,"empty_glass");
-  assert.equal(end.inventory[0].id,item.id);
+  assert.equal(end.inventory.length,0);
+  assert.equal(end.items.some(i=>i.id===item.id),false);
+  assert.equal(end.items.some(i=>i.type==="empty_glass"),false);
   assert.equal(end.objectives.beer,1);
-  const refill=await send(0,"refillBeer");assert.ok(refill.ok);
-  assert.equal(refill.snapshot.inventory.length,0);
-  clock+=2000;
-  const full=(await get(0)).snapshot.items.find(i=>i.type==="beer");
-  assert.ok(full);assert.equal(full.remainingUnits,5);assert.equal(full.id,item.id);
-  assert.ok((await send(0,"collectItem",{itemId:full.id})).ok);
-  for(let n=0;n<5;n++){
-   const use=await send(0,"startConsumeUnit",{itemId:full.id});assert.ok(use.ok);
-   clock+=1500;assert.ok((await send(0,"completeConsumeUnit",{actionId:use.action.id})).ok);
-  }
-  const afterRefill=(await get(0)).snapshot;
-  assert.equal(afterRefill.objectives.beer,2,"Refilled beer is a separate finished drink");
-  assert.equal(afterRefill.inventory[0].type,"empty_glass");
+  assert.equal(end.completionEvents.filter(e=>e.type==="beer").length,1);
+  assert.ok((await send(0,"orderBeer")).ok);
+  clock+=3000;
+  const second=(await get(0)).snapshot.items.find(i=>i.type==="beer");
+  assert.ok(second);
+  assert.notEqual(second.id,item.id);
  }finally{Date.now=old}
 });
 test("multiple beers can occupy separate table slots, seventh item is rejected",async()=>{
