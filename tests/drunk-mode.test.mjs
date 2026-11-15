@@ -146,7 +146,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  assert.ok(html.includes('const drunk=drunkControllerAvailable'));
  assert.ok(!html.includes('__DRUNK_MODE_SCRIPT__'));
  assert.ok(!html.includes('__MAESTRO_DEFAULT_SETTINGS__'));
- const snippets=[...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/g)];
+ const snippets=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
  assert.ok(snippets.length>=2);
  for(const [index,match] of snippets.entries()){
   assert.doesNotThrow(()=>new Function(match[1]),"Inline script "+index+" is syntactically valid");
