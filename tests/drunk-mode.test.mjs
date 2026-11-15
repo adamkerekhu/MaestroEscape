@@ -141,7 +141,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  const html=await response.text();
  assert.equal(response.status,200);
- assert.ok(html.includes('drunk-ghost-overlay-20261115'));
+ assert.ok(html.includes('casino-browser-geometry-20261115'));
  assert.ok(html.includes('event.lineno'));
  assert.ok(html.includes('event.colno'));
  assert.ok(html.includes('const drunk=new DrunkMode(()=>overrides)'));
