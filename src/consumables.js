@@ -659,7 +659,7 @@ function operation(s,p,d){
   if(!conf.share)return bad("Sorry, I don't have one to spare");
   if(conf.stock<=0)return bad("Out of cigarettes");
   const slot=freeSlot(s,p,"cigarette");if(slot===undefined)return bad("Cigarette slots are full");
-  conf.stock--;create(s,"cigarette",4,{kind:"inventory",playerId:p.id,slot});
+  conf.stock--;create(s,"cigarette",1,{kind:"inventory",playerId:p.id,slot});
   return ok({message:"Received one cigarette"});
  }
  if(op==="collectItem"){
@@ -705,7 +705,7 @@ function operation(s,p,d){
   if(i.remainingUnits<=0)return bad("Pack is empty");
   const slot=freeSlot(s,p,"cigarette");if(slot===undefined)return bad("Cigarette slots are full");
   i.remainingUnits--;i.revision++;
-  const cig=create(s,"cigarette",4,{kind:"inventory",playerId:p.id,slot});p.equippedId=cig.id;
+  const cig=create(s,"cigarette",1,{kind:"inventory",playerId:p.id,slot});p.equippedId=cig.id;
   return ok({itemId:cig.id});
  }
  if(op==="light"){
