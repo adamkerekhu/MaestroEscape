@@ -1734,6 +1734,11 @@ function interact(){
  if(hideController&&hideController.state!=="NORMAL")return;
  if(gameplay?.isDead()||gameplay?.scratchOpen)return;
  if(gameplay&&!gameplay.hasCharacter())return;
+ // Door interactions outrank pickups, parked vehicles and hiding when on foot.
+ // Casino manholes are user-placed, so the E key must match the visible interaction prompt.
+ if(!insidePub&&!activeVehicle&&!gameplay?.occupied&&casinoManholeNearby()){
+  enterCasino();return;
+ }
  if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
  if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
@@ -1777,7 +1782,6 @@ function interact(){
   else show("Cannot hide here: approach from a walkable side or reposition this hide point in Settings.");
   return;
  }
- if(casinoManholeNearby()){enterCasino();return;}
  if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
