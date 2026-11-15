@@ -356,6 +356,12 @@ function settle(s){
  for(const p of Object.values(s.players))if(p.action&&time-p.action.startedAt>30000)p.action=null;
 }
 function snapshot(s,p){
+ // Remove legacy empty glasses left in any previous saved single-player room.
+ const oldCount=s.items.length;
+ s.items=s.items.filter(i=>i.type!=="empty_glass");
+ if(s.items.length!==oldCount)for(const player of Object.values(s.players)){
+  if(player.equippedId&&!s.items.some(i=>i.id===player.equippedId))player.equippedId=null;
+ }
  return {ok:true,revision:s.revision,playerId:p.id,roomCreatedAt:s.createdAt,
   inventory:playerInventory(s,p),items:s.items.filter(i=>i.location.kind!=="inventory"||i.location.playerId===p.id),
   scratchVariants:Object.fromEntries(playerInventory(s,p).filter(i=>i.type==="scratch_ticket")
@@ -640,15 +646,8 @@ function operation(s,p,d){
    s.scratchResults[item.id]={won,variant};
    return ok({itemId:item.id,message:"Kaparós sorsjegy ready at the counter. Pick it up, then use it from Inventory."});
   }
+  // No empty glass or reuse mechanic. Legacy refill requests buy a fresh beer.
   let reuseId=null,generation=0;
-  if(op==="refillBeer"){
-   const glass=playerInventory(s,p).find(i=>i.type==="empty_glass");
-   const returned=s.items.find(i=>i.type==="empty_glass"&&i.location.sceneId==="pub"&&
-     i.location.kind!=="inventory"&&inRange(i.location,C.servicePoints.maestro_bartender,90));
-   const item=glass||returned;if(!item)return bad("Need an empty glass");
-   reuseId=item.id;generation=(item.generation||0)+1;s.items.splice(s.items.indexOf(item),1);
-   if(p.equippedId===reuseId)p.equippedId=null;
-  }
   const type=op==="orderKebab"?"kebab":"beer";
   const duration=op==="orderKebab"?C.orderKebabMs:op==="refillBeer"?C.refillMs:C.orderBeerMs;
   s.orders.push({id:uid("order"),playerId:p.id,vendorId:vendor,type,reuseId,generation,
@@ -740,8 +739,8 @@ function operation(s,p,d){
   const remaining=0;
   if(remaining===0){
    const oldType=i.type;
-   if(oldType==="beer"){i.type="empty_glass";i.remainingUnits=0;i.maxUnits=0;i.lit=false;}
-   else{s.items.splice(s.items.indexOf(i),1);if(p.equippedId===i.id)p.equippedId=null;}
+   s.items.splice(s.items.indexOf(i),1);
+   if(p.equippedId===i.id)p.equippedId=null;
    const event={id:uid("event"),playerId:p.id,type:oldType,itemId:i.id,generation:i.generation||0,time:now(),scene:p.scene,x:p.x,y:p.y,duration:2000};
    if(!s.completions.some(q=>q.itemId===i.id&&q.generation===event.generation)){
     s.completions.push(event);p.objectives[oldType]=(p.objectives[oldType]||0)+1;
