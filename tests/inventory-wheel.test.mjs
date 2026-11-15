@@ -37,3 +37,14 @@ test("drinking, eating and smoking each complete the item in one go",()=>{
  assert.match(CONSUMABLE_CLIENT_SCRIPT,/Eat entire kebab/);
  assert.match(CONSUMABLE_CLIENT_SCRIPT,/Smoke entire cigarette/);
 });
+
+test("five of each item type are allowed but the sixth is blocked",()=>{
+ const source=readFileSync(new URL("../src/consumables.js",import.meta.url),"utf8");
+ assert.match(source,/maxPerItem:5/);
+ assert.match(source,/inventory\.filter\(i=>i\.type===type\)\.length>=C\.maxPerItem/);
+ assert.match(source,/Array\.from\(\{length:40\}/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/const stacks=new Map\(\)/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/stack\.stackCount\+\+/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/stack\.stackItems\[0\]/);
+ assert.match(INVENTORY_WHEEL_SCRIPT,/item\.stackCount>1/);
+});
