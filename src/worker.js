@@ -374,7 +374,7 @@ ${TRANSITION_EDITOR_CSS}</style></head><body><main><header><div><h1>⚙️ Maest
    if(!response.ok)throw Error("HTTP "+response.status);
    const data=await response.json();values=normalize({...defaults,...data.settings});
    lastPersisted=JSON.stringify(values);revision=Number(data.revision)||0;
-   draw();drawParking();npcSetScene();notice.textContent="Reloaded configuration from server.";npcStatus.textContent="Reloaded NPC positions from server.";
+   draw();drawParking();npcSetScene();transitionDraw();notice.textContent="Reloaded configuration from server.";npcStatus.textContent="Reloaded NPC positions from server.";
   }catch(error){npcStatus.textContent="Reload failed: "+error.message;}
  });
  document.getElementById("npc-reset").addEventListener("click",()=>{
@@ -390,10 +390,10 @@ ${TRANSITION_EDITOR_SCRIPT}
   for(const [key,value] of Object.entries(defaults))if(key.startsWith("drunkMode."))values[key]=value;
   store();draw();
  };
- document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking();npcSetScene()};
+ document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking();npcSetScene();transitionDraw()};
  document.getElementById("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(values,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="maestroescape-settings.json";a.click();URL.revokeObjectURL(url);};
- document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();drawParking();npcSetScene();};
- const file=document.getElementById("file");document.getElementById("import").onclick=()=>file.click();file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||typeof data!=="object"||Array.isArray(data))throw Error("Invalid file");values=normalize({...defaults,...data});store();draw();drawParking();npcSetScene();}catch{notice.textContent="Unable to import: invalid settings JSON."}file.value="";};
+ document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();drawParking();npcSetScene();transitionDraw();};
+ const file=document.getElementById("file");document.getElementById("import").onclick=()=>file.click();file.onchange=async()=>{const f=file.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data||typeof data!=="object"||Array.isArray(data))throw Error("Invalid file");values=normalize({...defaults,...data});store();draw();drawParking();npcSetScene();transitionDraw();}catch{notice.textContent="Unable to import: invalid settings JSON."}file.value="";};
  draw();drawParking();if(!notice.textContent.includes("unavailable")&&!notice.textContent.includes("Imported"))notice.textContent="Shared settings loaded. Changes save automatically.";
 })();
 </script></body></html>`;
