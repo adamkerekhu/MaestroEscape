@@ -316,17 +316,17 @@ test("single-player round reset clears world, orders and progress",async()=>{
  }finally{Date.now=old}
 });
 
-test("bartender refuses a refill without an empty glass, not a partially full beer",async()=>{
+test("legacy refill command orders a new beer without requiring an empty glass",async()=>{
  const old=Date.now;let clock=1200000;Date.now=()=>clock;
  try{
   const {send,get}=fixture();await send(0,"syncPosition",{scene:"pub",x:413,y:398});
-  const nothing=await send(0,"refillBeer");assert.equal(nothing.ok,false);
-  assert.match(nothing.error,/empty glass/i);
-  await send(0,"orderBeer");clock+=3000;
+  const first=await send(0,"refillBeer");assert.ok(first.ok);
+  assert.equal(first.snapshot.inventory.length,0);
+  clock+=2000;
   const id=(await get(0)).snapshot.items.find(i=>i.type==="beer").id;
-  await send(0,"collectItem",{itemId:id});
-  const partial=await send(0,"refillBeer");assert.equal(partial.ok,false);
-  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+  assert.ok((await send(0,"collectItem",{itemId:id})).ok);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,1);
+  assert.ok((await send(0,"refillBeer")).ok);
  }finally{Date.now=old}
 });
 test("pub NPC cigarette sharing obeys individual stock and share choices",async()=>{
