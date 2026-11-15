@@ -183,24 +183,22 @@ test("multiple beers can occupy separate table slots, seventh item is rejected",
   assert.equal(full.ok,false);assert.match(full.error,/full/i);
  }finally{Date.now=old}
 });
-test("gyros order creates real kebab and four bites complete it",async()=>{
+test("gyros order creates real kebab and one action consumes it",async()=>{
  const old=Date.now;let clock=500000;Date.now=()=>clock;
  try{
   const {send,get}=fixture();await send(0,"syncPosition",{scene:"gyros",x:360,y:330});
   assert.ok((await send(0,"orderKebab")).ok);clock+=5000;
   const item=(await get(0)).snapshot.items.find(i=>i.type==="kebab");
-  assert.ok(item);assert.equal(item.remainingUnits,4);
+  assert.ok(item);assert.equal(item.remainingUnits,1);
   assert.ok((await send(0,"collectItem",{itemId:item.id})).ok);
-  for(let n=0;n<4;n++){
-   const begin=await send(0,"startConsumeUnit",{itemId:item.id});assert.ok(begin.ok);
-   clock+=2000;assert.ok((await send(0,"completeConsumeUnit",{actionId:begin.action.id})).ok);
-  }
+  const begin=await send(0,"startConsumeUnit",{itemId:item.id});assert.ok(begin.ok);
+  clock+=2000;assert.ok((await send(0,"completeConsumeUnit",{actionId:begin.action.id})).ok);
   const state=(await get(0)).snapshot;
   assert.equal(state.objectives.kebab,1);
   assert.ok(!state.items.some(i=>i.id===item.id));
  }finally{Date.now=old}
 });
-test("cigarette pack yields exactly one cigarette per extraction, lit cigarette takes four puffs",async()=>{
+test("cigarette pack yields one cigarette per extraction, consumed in one action",async()=>{
  const old=Date.now;let clock=600000;Date.now=()=>clock;
  try{
   const {send,get}=fixture();await send(0,"syncPosition",{scene:"dohanybolt",x:519,y:425});
@@ -213,10 +211,8 @@ test("cigarette pack yields exactly one cigarette per extraction, lit cigarette 
   const cig=take.snapshot.inventory.find(i=>i.type==="cigarette");
   assert.equal((await send(0,"startConsumeUnit",{itemId:cig.id})).ok,false);
   assert.ok((await send(0,"light",{itemId:cig.id})).ok);
-  for(let n=0;n<4;n++){
-   const begin=await send(0,"startConsumeUnit",{itemId:cig.id});assert.ok(begin.ok);
-   clock+=1500;assert.ok((await send(0,"completeConsumeUnit",{actionId:begin.action.id})).ok);
-  }
+  const begin=await send(0,"startConsumeUnit",{itemId:cig.id});assert.ok(begin.ok);
+  clock+=1500;assert.ok((await send(0,"completeConsumeUnit",{actionId:begin.action.id})).ok);
   const state=(await get(0)).snapshot;assert.equal(state.objectives.cigarette,1);
   assert.ok(!state.items.some(i=>i.id===cig.id));
  }finally{Date.now=old}
@@ -560,12 +556,12 @@ test("vehicle occupancy is explicit on every multiplayer player snapshot",async(
  assert.equal(passengerView.seatIndex,1);
  assert.equal(snapshot.vehicles.find(v=>v.id==="skoda").seats[0],driverView.id);
 });
-test("same default lobby is used across browsers and remote occupants are not walking sprites",async()=>{
+test("single-player default room is stable and remote occupants are not walking sprites",async()=>{
  const {CONSUMABLE_CLIENT_SCRIPT}=await import("../src/consumables-client.js");
  const {readFileSync}=await import("node:fs");
  const browser=CONSUMABLE_CLIENT_SCRIPT;
  const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
- assert.ok(browser.includes('"maestro-main"'),"All bare game URLs must join the same default lobby");
+ assert.ok(browser.includes('"maestro-solo-test"'),"Bare game URLs use the single-player default room");
  assert.ok(!browser.includes('room=requested||localStorage.getItem("maestroescape.room.v1")'),
   "Local browser storage must not decide which default room a player joins");
  assert.ok(browser.includes('roomLabel.textContent="Room: "+room'),
@@ -675,7 +671,7 @@ test("borrowing from an NPC moved or patrolling near the player works",async()=>
   actorPosition:{scene:"pub",x:775,y:676}
  });
  assert.equal(borrowed.ok,true,borrowed.error);
- assert.equal(borrowed.snapshot.inventory.find(i=>i.type==="cigarette").remainingUnits,4);
+ assert.equal(borrowed.snapshot.inventory.find(i=>i.type==="cigarette").remainingUnits,1);
  const remote=await send(0,"npcBorrow",{
   npcId:"maestro_regular_1",npcPoint:{x:1050,y:665},
   actorPosition:{scene:"pub",x:1050,y:665}
@@ -1029,9 +1025,9 @@ test("finishing all three consumables emits a unique 2-second celebration visibl
   await send(0,"selectCharacter",{characterId:"maestro"});
   await send(1,"selectCharacter",{characterId:"casual"});
   const cases=[
-   {type:"beer",scene:"pub",x:413,y:398,order:"orderBeer",delay:3000,portions:5,portionMs:1500},
-   {type:"kebab",scene:"gyros",x:294,y:315,order:"orderKebab",delay:5000,portions:4,portionMs:2000},
-   {type:"cigarette",scene:"dohanybolt",x:519,y:425,order:"buyPack",delay:0,portions:4,portionMs:1500}
+   {type:"beer",scene:"pub",x:413,y:398,order:"orderBeer",delay:3000,portions:1,portionMs:1500},
+   {type:"kebab",scene:"gyros",x:294,y:315,order:"orderKebab",delay:5000,portions:1,portionMs:2000},
+   {type:"cigarette",scene:"dohanybolt",x:519,y:425,order:"buyPack",delay:0,portions:1,portionMs:1500}
   ];
   for(const cfg of cases){
    await send(0,"syncPosition",{scene:cfg.scene,x:cfg.x,y:cfg.y});
@@ -1040,6 +1036,10 @@ test("finishing all three consumables emits a unique 2-second celebration visibl
    const snap=(await get(0)).snapshot;
    const source=snap.items.find(i=>i.type===cfg.type||cfg.type==="cigarette"&&i.type==="cigarette_pack");
    assert.ok(source,"missing "+cfg.type);
+   // Item arrives at its service point. Simulate the player walking to pick it up.
+   const pos=source.location;
+   if(pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.y))
+    await send(0,"syncPosition",{scene:cfg.scene,x:pos.x,y:pos.y});
    assert.equal((await send(0,"collectItem",{itemId:source.id})).ok,true);
    let id=source.id;
    if(cfg.type==="cigarette"){
