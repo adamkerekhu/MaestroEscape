@@ -1146,7 +1146,7 @@ const status=document.getElementById("status"),coords=document.getElementById("c
 // Consumables are now backed by ConsumableRoom, not placeholder NPC toasts.
 const NPC_DIALOGUES={
  maestro_bartender:{intro:"Welcome to Maestro. What can I get you?",talk:["Welcome in. The evening is just getting started.","Take your time, there's plenty of room at the bar."],
- actions:[["beer","Order beer"],["refill","Request refill"]]},
+ actions:[["beer","Order beer"]]},
  maestro_regular_1:{intro:"He looks up from his drink.",talk:["Been here all evening. You know how it goes.","The tram's never on time when you need it."],
  actions:[["borrow","Ask for cigarette"]]},
  maestro_regular_2:{intro:"He seems ready for a chat.",talk:["Another round, another story.","Don't forget where you parked."],
@@ -1272,10 +1272,7 @@ async function npcChooseAction(entity,action){
    button.disabled=!!(requested&&gameplay?.actionReason(requested));
   }
  }
- // A new order, refill or pickup may change which actions are available.
- for(const button of npcActions.querySelectorAll("button"))if(button.textContent==="Request refill"){
-   const reason=gameplay.actionReason("refill");button.disabled=!!reason;button.title=reason||"";
- }
+ // A new order or pickup may change which actions are available.
 }
 function npcUpdatePrompt(){
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
