@@ -59,15 +59,15 @@ export async function accountFromRequest(req){
 export async function accountAction(request,operation){
  const origin=new URL(request.url).origin;
  if(request.headers.get("origin")!==origin)return Response.json({ok:false,error:"Invalid request origin"},{status:403,headers:common});
- if(operation==="logout")return Response.json({ok:true},{headers:{...common,"set-cookie":tokenCookie(ACCESS,"",0)+", "+tokenCookie(REFRESH,"",0)}});
+ if(operation==="logout"){const result=Response.json({ok:true},{headers:common});result.headers.append("set-cookie",tokenCookie(ACCESS,"",0));result.headers.append("set-cookie",tokenCookie(REFRESH,"",0));return result}
  const type=request.headers.get("content-type")||"";
  if(!type.includes("application/json"))return Response.json({ok:false,error:"JSON required"},{status:415,headers:common});
  let raw;try{raw=await request.text();if(raw.length>4096)return Response.json({ok:false,error:"Request too large"},{status:413,headers:common})}catch{return Response.json({ok:false,error:"Invalid request"},{status:400,headers:common})}
  let body;try{body=JSON.parse(raw)}catch{return Response.json({ok:false,error:"Invalid JSON"},{status:400,headers:common})}
  const email=typeof body?.email==="string"?body.email.trim().toLowerCase():"",password=body?.password;
- if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)||typeof password!=="string"||password.length<12||password.length>128)return Response.json({ok:false,error:"Enter a valid email and password (minimum 12 characters)."},{status:400,headers:common});
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||typeof password!=="string"||password.length<12||password.length>128)return Response.json({ok:false,error:"Enter a valid email and password (minimum 12 characters)."},{status:400,headers:common});
  try{
-  const path=operation==="register"?"/auth/v1/signup":"/auth/v1/token?grant_type=password";
+  const path=operation==="register"?"/auth/v1/signup?redirect_to="+encodeURIComponent(origin+"/account/login"):"/auth/v1/token?grant_type=password";
   const res=await upstream(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({email,password})});
   const data=await decode(res);
   if(!res.ok)return Response.json({ok:false,error:data.msg||data.message||data.error_description||data.error||"Supabase Auth rejected the request"},{status:res.status,headers:common});
