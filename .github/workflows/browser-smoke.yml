@@ -31,7 +31,7 @@ jobs:
             await page.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-solo-smoke',{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForTimeout(7500);
             const status=await page.evaluate(()=>{
-              const scene=window.Phaser?.GAMES?.[0]?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
               const objects=scene?.children?.list||[];
               const players=objects.filter(o=>o.texture?.key==='maestro'||o.texture?.key?.startsWith('player_')).map(o=>({texture:o.texture.key,visible:o.visible,active:o.active,x:o.x,y:o.y}));
               const casino=objects.filter(o=>o.texture?.key==='casino').map(o=>({visible:o.visible,alpha:o.alpha,x:o.x,y:o.y}));
