@@ -17,7 +17,7 @@ jobs:
         run: |
           set -euo pipefail
           URL="https://maestroescape.adam-kerek.workers.dev/?mode=single"
-          MARKER="casino-lazy-character-fix-20261115"
+          MARKER="casino-browser-geometry-20261115"
           for attempt in 1 2 3 4 5 6 7 8; do
             echo "Live build check attempt $attempt"
             if curl -fsSL --max-time 15 "$URL" -o /tmp/maestro-live.html; then
