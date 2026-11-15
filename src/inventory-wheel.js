@@ -26,6 +26,12 @@ export const INVENTORY_WHEEL_CSS = String.raw`
  #maestro-inventory-wheel .wheel-wrap{width:min(360px,93vw,75dvh);height:min(360px,93vw,75dvh)}
 }
 @media(prefers-reduced-motion:reduce){#maestro-inventory-wheel *,#maestro-inventory-wheel .wheel-wrap{animation:none!important;transition:none!important}}
+
+/* Dragging an inventory stack releases one actual item onto the ground. */
+#maestro-inventory-wheel .wheel-slot.dragging{opacity:.35;transform:scale(.94)!important}
+#maestro-inventory-wheel .wheel-wrap.drop-ready .wheel-disk{border-color:#98e6a5;box-shadow:0 0 0 5px #7bdc9a44,0 12px 70px #000d}
+#maestro-inventory-wheel .wheel-wrap.drop-ready .wheel-hint{color:#bcf1c4;border-color:#8cdb9f}
+.maestro-inventory-drag-ghost{position:fixed;left:0;top:0;z-index:100001;pointer-events:none;display:flex;align-items:center;justify-content:center;width:62px;height:62px;border-radius:50%;border:2px solid #edcf8e;background:#233b2eee;box-shadow:0 5px 20px #000b;font-size:29px;transform:translate(-50%,-50%);touch-action:none}
 `;
 export const INVENTORY_WHEEL_SCRIPT = String.raw`(()=>{
 "use strict";
@@ -33,15 +39,72 @@ const screen=document.getElementById("screen");
 if(!screen||document.getElementById("maestro-inventory-wheel"))return;
 const css=document.createElement("link");css.rel="stylesheet";css.href="/assets/inventory-wheel.css";document.head.append(css);
 const overlay=document.createElement("div");overlay.id="maestro-inventory-wheel";overlay.setAttribute("aria-label","Quick inventory");
-overlay.innerHTML='<div class="wheel-backdrop"></div><section class="wheel-wrap" role="group" aria-label="Choose inventory item"><div class="wheel-disk"></div><div class="wheel-center"><strong>🎒 INVENTORY</strong><span id="wheel-caption">Choose an item</span></div><div class="wheel-empty" hidden>Nothing in your bag</div><div class="wheel-hint">Hold Q • Hover item • Release to use</div></section>';
+overlay.innerHTML='<div class="wheel-backdrop"></div><section class="wheel-wrap" role="group" aria-label="Choose inventory item"><div class="wheel-disk"></div><div class="wheel-center"><strong>🎒 INVENTORY</strong><span id="wheel-caption">Choose an item</span></div><div class="wheel-empty" hidden>Nothing in your bag</div><div class="wheel-hint">Hold Q · Release to use · Drag outside to drop</div></section>';
 screen.append(overlay);
 const wrap=overlay.querySelector(".wheel-wrap"),caption=overlay.querySelector("#wheel-caption"),hint=overlay.querySelector(".wheel-hint"),empty=overlay.querySelector(".wheel-empty");
 const BUTTONS={beer:"🍺",empty_glass:"🥛",kebab:"🥙",cigarette:"🚬",cigarette_pack:"📦",scratch_ticket:"🎟️"};
 const NAMES={beer:"Beer",empty_glass:"Glass",kebab:"Kebab",cigarette:"Cigarette",cigarette_pack:"Pack",scratch_ticket:"Scratch"};
 let visible=false,holding=false,selected=-1,items=[],lastPointerType="mouse",busy=false;
+let dragging=null,dragGhost=null,suppressClickUntil=0,dropMessageTimer=0;
+function cleanupDrag(){
+ if(dragging?.button)dragging.button.classList.remove("dragging");
+ dragging=null;
+ if(dragGhost){dragGhost.remove();dragGhost=null}
+ wrap.classList.remove("drop-ready");
+}
+function outsideWheel(clientX,clientY){
+ const rect=wrap.getBoundingClientRect();
+ const centerX=rect.left+rect.width/2,centerY=rect.top+rect.height/2;
+ return Math.hypot(clientX-centerX,clientY-centerY)>Math.min(rect.width,rect.height)*.49;
+}
+function dragMove(event){
+ if(!dragging||event.pointerId!==dragging.pointerId)return;
+ const delta=Math.hypot(event.clientX-dragging.startX,event.clientY-dragging.startY);
+ if(!dragging.moved&&delta>12){
+  dragging.moved=true;
+  dragging.button.classList.add("dragging");
+  dragGhost=document.createElement("div");
+  dragGhost.className="maestro-inventory-drag-ghost";
+  dragGhost.textContent=BUTTONS[dragging.type]||"🎁";
+  document.body.append(dragGhost);
+ }
+ if(!dragging.moved)return;
+ event.preventDefault();
+ dragGhost.style.left=event.clientX+"px";
+ dragGhost.style.top=event.clientY+"px";
+ const outside=outsideWheel(event.clientX,event.clientY);
+ wrap.classList.toggle("drop-ready",outside);
+ hint.textContent=outside?"Release to DROP one on the ground":"Drag outside the circle to drop";
+}
+async function finishDrag(event){
+ if(!dragging||event.pointerId!==dragging.pointerId)return;
+ const active=dragging,wasDrag=active.moved;
+ const shouldDrop=wasDrag&&outsideWheel(event.clientX,event.clientY);
+ cleanupDrag();
+ if(!wasDrag)return; // A short tap is still the ordinary Use action.
+ suppressClickUntil=Date.now()+650;
+ event.preventDefault();
+ event.stopPropagation();
+ if(shouldDrop){
+  const item=active.item;
+  busy=true;
+  // Q-release must never consume the item after a successful drag.
+  holding=false;
+  close();
+  try{
+   const ok=await ctl()?.drop?.(item);
+   if(ok)ctl()?.notify?.("Dropped one "+(NAMES[item.type]||item.type).toLowerCase()+" on the ground");
+   else ctl()?.notify?.("Could not drop "+(NAMES[item.type]||item.type).toLowerCase());
+  }catch(error){ctl()?.notify?.("Drop failed: "+(error?.message||"unknown error"))}
+  finally{busy=false}
+ }else{
+  highlight(-1);
+  hint.textContent="Release outside the circle to drop · Tap item to use";
+ }
+}
 const ctl=()=>window.MaestroInventoryController;
 const isTyping=target=>!!target?.closest?.("input,textarea,select,[contenteditable=true]");
-function close(){visible=false;holding=false;selected=-1;overlay.classList.remove("open");overlay.style.display="none";items=[]}
+function close(){cleanupDrag();visible=false;holding=false;selected=-1;overlay.classList.remove("open");overlay.style.display="none";items=[]}
 function highlight(index){
  selected=index;const buttons=wrap.querySelectorAll(".wheel-slot");
  buttons.forEach((node,i)=>node.classList.toggle("selected",i===selected));
@@ -74,9 +137,22 @@ function render(){
   btn.append(icon,name);
   if(item.stackCount>1){const count=document.createElement("span");count.className="wheel-count";count.textContent="×"+item.stackCount;btn.append(count)}
   if(item.stackItems.some(x=>x.id===equipped))btn.classList.add("equipped");
-  btn.onpointerenter=()=>highlight(i);
-  btn.onpointerdown=event=>{event.stopPropagation();highlight(i)};
-  btn.onclick=event=>{event.stopPropagation();void choose(i)};
+  btn.onpointerenter=()=>{if(!dragging)highlight(i)};
+  btn.onpointerdown=event=>{
+   if(busy||event.button!==0&&event.pointerType==="mouse")return;
+   event.stopPropagation();highlight(i);
+   const one=item.stackItems.find(x=>x.id===ctl()?.equippedId?.())||item.stackItems[0];
+   dragging={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,moved:false,item:one,type:item.type,button:btn};
+   try{btn.setPointerCapture(event.pointerId)}catch(error){}
+  };
+  btn.onpointermove=dragMove;
+  btn.onpointerup=event=>{void finishDrag(event)};
+  btn.onpointercancel=()=>{cleanupDrag();highlight(-1)};
+  btn.onclick=event=>{
+   event.stopPropagation();
+   if(Date.now()<suppressClickUntil)return;
+   void choose(i);
+  };
   wrap.append(btn);
  }
  highlight(-1);
@@ -85,7 +161,7 @@ function open(source="mouse"){
  if(visible)return;
  if(!ctl()?.ready?.()){ctl()?.notify?.("Choose your character before using inventory");return}
  visible=true;lastPointerType=source;overlay.style.display="flex";overlay.classList.add("open");
- hint.textContent=source==="keyboard"?"Hold Q · Hover item · Release to use":"Tap item to use · Tap bag again to close";
+ hint.textContent=source==="keyboard"?"Release Q to use · Drag outside to DROP":"Tap item to use · Drag outside to DROP";
  render();
 }
 async function choose(index){
