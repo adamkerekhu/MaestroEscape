@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node --check src/worker.js && node --check src/consumables.js && node --check src/consumables-client.js && node --check src/supabase-account-auth.js && node --check src/account-pages.js && node --check src/pub-hud.js",
+    "build": "node --check src/worker.js && node --check src/consumables.js && node --check src/consumables-client.js && node --check src/supabase-account-auth.js && node --check src/account-pages.js && node --check src/pub-hud.js && node --check src/inventory-wheel.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "test": "node --test tests/*.test.mjs",
