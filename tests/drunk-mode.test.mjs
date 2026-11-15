@@ -93,27 +93,30 @@ test("browser bundle exposes working drunk controller and settings schema is int
  for(const key of Object.keys(DRUNK_DEFAULTS))assert.ok(worker.includes(key));
 });
 
-test("game HTML embeds the drunk module before Phaser startup",async()=>{
+test("rendered game compiles drunk controller safely from a quoted string",async()=>{
  const {default:worker}=await import("../src/worker.js");
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  assert.equal(response.status,200);
  const html=await response.text();
- assert.ok(html.includes("window.MaestroDrunkMode=DrunkMode"));
+ assert.ok(!html.includes("__DRUNK_MODE_SOURCE__"));
  assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
- assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=drunkControllerAvailable"));
+ assert.ok(html.includes('new Function("window",'));
+ assert.ok(html.includes('window.MaestroDrunkMode'));
  assert.ok(html.includes('game running with sober fallback'));
- const begin=html.indexOf("<script>"+String.fromCharCode(10)+"const DRUNK_DEFAULTS=");
- const start=begin>=0?begin+"<script>".length:-1;
- const finish=start>=0?html.indexOf("</script>",start):-1;
- const embedded=start>=0&&finish>start?html.slice(start,finish):null;
- assert.ok(embedded,"Drunk controller is embedded in the SAME script block as the game");
- assert.ok(embedded.includes("const drunk=drunkControllerAvailable"),"Game initializes from the locally declared class");
- assert.equal((embedded.match(/class DrunkMode/g)||[]).length,1);
- new Function(embedded);
- const controllerSource=embedded.slice(0,embedded.indexOf("(function(){"));
+ const start=html.indexOf("<script>"+String.fromCharCode(10)+"(function(){");
+ const end=start<0?-1:html.indexOf("</script>",start);
+ assert.ok(start>=0&&end>start,"Game script should be present and self-contained");
+ const gameScript=html.slice(start+8,end);
+ assert.doesNotThrow(()=>new Function(gameScript));
+ const match=gameScript.match(/new Function\\("window",([\\s\\S]*?)\\) \\(window\\)/);
+ assert.ok(match,"Quoted controller source should be safely evaluated");
+ const controllerSource=JSON.parse(match[1]);
  const window={};
- new Function("window",controllerSource)(window);
+ assert.doesNotThrow(()=>new Function("window",controllerSource)(window));
  assert.equal(typeof window.MaestroDrunkMode,"function");
+ const controller=new window.MaestroDrunkMode();
+ assert.equal(controller.onBeerFinished("test"),true);
+ assert.equal(controller.level,1);
 });
 
 test("single-player HUD has beer simulation controls and inventory explains five sips",async()=>{
