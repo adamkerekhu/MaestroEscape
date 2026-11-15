@@ -108,7 +108,7 @@ test("rendered game defines native drunk class in same script, without loader de
  assert.ok(scripts.length>=2);
  const game=scripts.find(match=>match[1].includes("class DrunkMode {"))?.[1];
  assert.ok(game,"DrunkMode is part of main game script");
- assert.equal((game.match(/class DrunkMode \\{/g)||[]).length,1);
+ assert.equal(game.split("class DrunkMode {").length-1,1);
  assert.ok(game.indexOf("class DrunkMode {")<game.indexOf("const drunk=new DrunkMode("));
  assert.doesNotThrow(()=>new Function(game),"native inline game script parses");
  const declaration=game.slice(0,game.indexOf("(function(){"));
