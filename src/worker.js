@@ -4,6 +4,7 @@ import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 import { DRUNK_MODE_CLIENT_SCRIPT } from "./drunk-mode.js";
 import { PUB_MENU, PUB_TABLES } from "./pub-menu-data.js";
 import { PUB_ORDERS_CLIENT_SCRIPT } from "./pub-orders-client.js";
+import { adminAuthorized, loginPage, loginRequest, logoutResponse, forbiddenResponse, mutationOriginAllowed } from "./admin-auth.js";
 export { ConsumableRoom };
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
@@ -2044,12 +2045,27 @@ export default {
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables")return Response.json({ok:false,error:"Multiplayer has been shut down. Use single-player test mode.",code:"MULTIPLAYER_DISABLED"},{status:410,headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/admin/login"){
+   if(request.method==="POST")return loginRequest(request,env);
+   if(request.method!=="GET")return new Response("Method not allowed",{status:405});
+   if(await adminAuthorized(request,env))return Response.redirect(url.origin+"/settings",303);
+   return new Response(loginPage(env?.ADMIN_PASSWORD&&env?.ADMIN_SESSION_SECRET?"":"missing"),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY","content-security-policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"}});
+  }
+  if(url.pathname==="/admin/logout"){
+   if(request.method!=="POST")return new Response("Method not allowed",{status:405});
+   if(!mutationOriginAllowed(request))return new Response("Invalid origin",{status:403});
+   return logoutResponse();
+  }
+  if(url.pathname==="/settings"||url.pathname==="/settings/schema"||url.pathname==="/api/settings"){
+   if(!await adminAuthorized(request,env))return forbiddenResponse(request);
+   if(url.pathname==="/api/settings"&&request.method!=="GET"&&!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid request origin"},{status:403,headers:{"cache-control":"no-store"}});
+  }
   if(url.pathname==="/api/settings"){
     if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503,headers:{"cache-control":"no-store"}});
     const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
     return stub.fetch(new Request("https://settings.internal/",{method:request.method,headers:request.headers,body:request.method==="PUT"?request.body:undefined}));
   }
-  if(url.pathname==="/settings")return new Response(SETTINGS_HTML,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store"}});
+  if(url.pathname==="/settings")return new Response(SETTINGS_HTML.replace("</header>",'<form action="/admin/logout" method="post" style="margin-left:auto"><button type="submit">🔒 Log out</button></form></header>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY","x-robots-tag":"noindex, nofollow"}});
   if(url.pathname==="/settings/schema")return Response.json({groups:SETTINGS_GROUPS,defaults:SETTINGS_DEFAULTS});
   if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-test-only",multiplayerEnabled:false,vehicle:"Skoda Superb 2.0TDI"});
   if(/^\/assets\/shop-(dohanybolt|spar|gyros)\.webp$/.test(url.pathname)){
