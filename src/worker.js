@@ -759,7 +759,7 @@ const BASEMENT_WALLS=[
 const basementStairNear=()=>insideBasement&&
  interactionNear("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65);
 let insideBasement=false,basementImage=null,basementStairsHint=null,pubStairsHint=null,pubStairReturn=null;
-let insidePub=false,insideCasino=false,streetPos={...SPAWN},casinoReturnPos=null,casinoImage=null,casinoExitHint=null,streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+let insidePub=false,insideCasino=false,streetPos={...SPAWN},casinoReturnPos=null,casinoImage=null,casinoExitHint=null,casinoManholeMarker=null,streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
 const casinoManholeNearby=()=>!insidePub&&!!cfg("casino.manhole.enabled")&&interactionNear("street_casino",{x:800,y:510},80);
 const casinoExitNearby=()=>insideCasino&&interactionNear("casino_exit",CASINO_EXIT,CASINO_EXIT.radius);
 const casinoNearestHotspot=()=>insideCasino?CASINO_HOTSPOTS.map(h=>({...h,d:Math.hypot(player.x-h.x,player.y-h.y)})).filter(h=>h.d<h.radius).sort((a,b)=>a.d-b.d)[0]||null:null;
@@ -1810,6 +1810,13 @@ class Explore extends Phaser.Scene{
    const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Map failed to load. Check the published map asset.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
    streetImage=image.setDepth(0).setDisplaySize(1600,992);
+   // User-positionable, visible manhole in Mester utca, separate from its E radius.
+   casinoManholeMarker=this.add.graphics().setDepth(3.5).setVisible(false);
+   casinoManholeMarker.fillStyle(0x06130f,.55).fillEllipse(0,5,56,38);
+   casinoManholeMarker.fillStyle(0x334741,1).fillEllipse(0,0,46,30);
+   casinoManholeMarker.lineStyle(3,0xd3b36b,1).strokeEllipse(0,0,46,30);
+   casinoManholeMarker.lineStyle(1,0x7d9589,.9);
+   for(let i=-13;i<=13;i+=8)casinoManholeMarker.lineBetween(i,-11,i,11);
    if(this.textures.exists("interior")){
      interiorImage=this.add.image(0,0,"interior").setOrigin(0,0)
        .setDisplaySize(INTERIOR_SIZE.w,INTERIOR_SIZE.h).setDepth(1).setVisible(false);
@@ -1973,6 +1980,10 @@ class Explore extends Phaser.Scene{
    if(gameplay?.scratchOpen){this.cameras.main.setRotation(0);moving=false;return;}
    if(gameplay&&!gameplay.hasCharacter())return;
    syncVehicleFromRoom(delta);
+   if(casinoManholeMarker){
+    casinoManholeMarker.setPosition(cfg("interaction.street_casino.x"),cfg("interaction.street_casino.y"));
+    casinoManholeMarker.setVisible(!!cfg("casino.manhole.enabled")&&!insidePub);
+   }
    gameplay?.tick(time,delta);
    npcUpdatePrompt();
    if(!npcDialogue&&!gameplay?.isDead())npcTick(delta);
