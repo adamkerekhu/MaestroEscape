@@ -454,8 +454,8 @@ window.addEventListener("unhandledrejection",function(event){
 </script>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script src="/assets/consumables.js"></script>
- <script>__DRUNK_MODE_SCRIPT__</script>
 <script>
+__DRUNK_MODE_SCRIPT__
 (function(){
 'use strict';
 if(!window.Phaser){document.getElementById('splash').textContent="Could not load Phaser. Check internet access.";return;}
@@ -467,9 +467,9 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-const drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
+const drunkControllerAvailable=typeof DrunkMode==="function";
 const drunk=drunkControllerAvailable
- ?new window.MaestroDrunkMode(()=>overrides)
+ ?new DrunkMode(()=>overrides)
  :{level:0,phase:0,reset(){},update(){},config(){return 0},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
 if(!drunkControllerAvailable)console.error("Drunk Mode failed to initialize; game running with sober fallback");
 let lastDrunkHud=-1;
