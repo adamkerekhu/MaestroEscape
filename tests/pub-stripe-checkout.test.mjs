@@ -56,3 +56,19 @@ test("shop initializes a window element before mounting embedded checkout",()=>{
  assert.ok(insert>windowInit,"Shop window must exist before inserting checkout view");
  assert.match(PUB_SHOP_SCRIPT,/window\.MaestroRealOrders=\{open,close/);
 });
+
+test("Takkershop-inspired Manrope light theme and deep-green checkout",()=>{
+ assert.match(PUB_SHOP_CSS,/@import url\('https:\/\/fonts\.googleapis\.com\/css2\?family=Manrope/);
+ assert.match(PUB_SHOP_CSS,/Takkershop-inspired light Maestro Pub webshop/);
+ assert.match(PUB_SHOP_CSS,/--maestro-green:#164832/);
+ assert.match(PUB_SHOP_CSS,/\.shop-review\{background:#fff!important/);
+ assert.match(PUB_SHOP_CSS,/\.shop-stripe-panel\{background:#fff!important/);
+ assert.match(PUB_SHOP_CSS,/\.shop-review \.review-line strong\{color:var\(--maestro-ink\)!important/);
+});
+test("Stripe per-session branding matches light design without changing shared Takkershop settings",()=>{
+ assert.match(backend,/branding_settings\[background_color\].*#ffffff/);
+ assert.match(backend,/branding_settings\[button_color\].*#164832/);
+ assert.match(backend,/branding_settings\[font_family\].*inter/);
+ assert.match(backend,/branding_settings\[display_name\].*Maestro Pub/);
+ assert.doesNotMatch(backend,/stripe\("accounts\//);
+});
