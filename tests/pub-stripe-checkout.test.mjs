@@ -11,7 +11,7 @@ test("webshop assets parse and use 75vw desktop screen",()=>{
  assert.match(PUB_SHOP_CSS,/@media\(max-width:780px\)/);
  assert.match(worker,/PUB_SHOP_SCRIPT/);assert.match(worker,/PUB_SHOP_CSS/);
 });
-test("storefront includes table, category and basket and redirects only to Stripe",()=>{
+test("storefront embeds Stripe next to order overview instead of redirecting",()=>{
  for(const t of ["shop-categories","shop-cards","shop-lines","shop-pay","shop-test-ok","shop-adult","shop-table"])assert.ok(PUB_SHOP_SCRIPT.includes(t),t);
  assert.match(PUB_SHOP_SCRIPT,/checkout\.stripe\.com/);
  assert.match(PUB_SHOP_SCRIPT,/api\/pub\/checkout/);
