@@ -141,7 +141,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  const html=await response.text();
  assert.equal(response.status,200);
- assert.ok(html.includes('drunk-inline-native-20261115'));
+ assert.ok(html.includes('drunk-ghost-overlay-20261115'));
  assert.ok(html.includes('event.lineno'));
  assert.ok(html.includes('event.colno'));
  assert.ok(html.includes('const drunk=new DrunkMode(()=>overrides)'));
@@ -155,6 +155,39 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const version=await worker.fetch(new Request("https://maestroescape.test/api/build"),{});
  assert.equal(version.status,200);
  const build=await version.json();
- assert.equal(build.build,"drunk-inline-native-20261115");
+ assert.equal(build.build,"drunk-ghost-overlay-20261115");
  assert.equal(build.drunkControllerBundled,true);
+});
+
+test("double-vision uses active-map duplicate only and respects levels, pauses, reduced motion",async()=>{
+ const {default:worker}=await import("../src/worker.js");
+ const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
+ const html=await response.text();
+ assert.ok(html.includes('updateDrunkGhost(delta,'));
+ assert.ok(html.includes('drunkGhostLayers=[]'));
+ assert.ok(html.includes('for(const original of [streetImage,interiorImage,basementImage,...Object.values(SHOPS).map(shop=>shop.image)]'));
+ assert.ok(html.includes('const show=!!(original.active&&original.visible&&drunkGhostAlpha>.002&&active)'));
+ assert.ok(html.includes('ghost.setVisible(show)'));
+ assert.ok(html.includes('ghost.setPosition(original.x+driftX,original.y+driftY)'));
+ assert.ok(html.includes('ghost.setDepth')===false || html.includes('.setDepth(original.depth+.25)'));
+ assert.ok(html.includes('Math.sin(t*cfg("drunkMode.ghostDriftX")+.9)'));
+ assert.ok(html.includes('Math.cos(t*cfg("drunkMode.ghostDriftY")+1.5)'));
+ const expected={
+  doubleVisionEnabled:1,level1GhostAlpha:.08,level2GhostAlpha:.16,level3GhostAlpha:.28,
+  level1GhostOffset:2,level2GhostOffset:5,level3GhostOffset:10,
+  ghostDriftX:.8,ghostDriftY:1.1,ghostScalePct:.3
+ };
+ const schema=await worker.fetch(new Request("https://maestroescape.test/settings/schema"),{});
+ assert.equal(schema.status,200);
+ const data=await schema.json();
+ const group=data.groups.find(group=>group.title==="Drunk Mode");
+ assert.ok(group);
+ for(const [key,value] of Object.entries(expected)){
+  const name="drunkMode."+key;
+  assert.equal(data.defaults[name],value,name+" default");
+  assert.equal(group.fields.find(field=>field.key===name)?.value,value,name+" controls");
+ }
+ assert.ok(html.includes('cfg("drunkMode.doubleVisionEnabled")'));
+ assert.ok(html.includes('cfg("drunkMode.transitionMs")'));
+ assert.ok(html.includes('!drunk.config("reduceMotion")'));
 });
