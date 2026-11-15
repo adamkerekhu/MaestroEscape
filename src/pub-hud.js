@@ -1,5 +1,5 @@
 // Pub-style game HUD. Presentation only: delegates to existing gameplay actions.
-export const PUB_HUD_CSS = String.raw\`
+export const PUB_HUD_CSS = String.raw`
 html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#10151f}
 body>header{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;padding:0!important;margin:0!important}
 #instructions{position:fixed!important;bottom:8px;left:50%;transform:translateX(-50%);width:min(840px,85vw);z-index:15;background:#101923bc!important;border:1px solid #b58a4866;border-radius:12px;padding:5px 12px!important;pointer-events:none;max-width:100%;box-sizing:border-box}
@@ -57,9 +57,9 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
  #item-modal>div{width:min(96vw,480px)!important;max-height:85dvh!important}
 }
 @media(prefers-reduced-motion:reduce){#pub-hud *,#item-modal{animation:none!important;transition:none!important}}
-\`;
+`;
 
-export const PUB_HUD_SCRIPT = String.raw\`(()=>{
+export const PUB_HUD_SCRIPT = String.raw`(()=>{
 "use strict";
 if(document.getElementById("pub-hud"))return;
 const screen=document.getElementById("screen"),legacy=document.getElementById("hud");
@@ -138,4 +138,4 @@ const observer=new MutationObserver(sync);
 for(const id of ["drunk-status","coords"]){const el=document.getElementById(id);if(el)observer.observe(el,{childList:true,characterData:true,subtree:true})}
 sync();
 window.MaestroPubHUD={close,openWheel,openTools,toast};
-})();\`;
+})();`;
