@@ -19,7 +19,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 #npc-editor input[type=checkbox]{width:18px;height:18px}
 #npc-editor p{color:#bfccdc;font-size:13px}
 #npc-editor #npc-map-status{color:#fad087}
-</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
+</style></head><body><main><header><div><h1>⚙️ MaestroEscape Settings</h1><p>Configure each part of the game. Settings are shared across every device.</p></div><div class="toolbar"><a href="/">Back to game</a><button id="defaults">Reset defaults</button><button id="reset-drunk">Reset drunk settings</button><button id="local-import">Use old device settings</button><button id="export">Export JSON</button><button id="import">Import JSON</button><input id="file" type="file" accept=".json,application/json" hidden></div></header><p id="notice">Loading settings…</p><section id="vehicle-editor"><h2>Park the cars on the map</h2><p class="parking-hint">Select a car, drag it to the starting place, and use the angle slider to rotate it. Saved placements are shared across all devices.</p>
 <canvas id="parking-map" width="1600" height="992" aria-label="Drag vehicle positions on the map"></canvas>
 <div class="parking-toolbar"><label>Vehicle <select id="parking-choice"><option value="skoda">Skoda Superb</option><option value="octavia">Octavia Checkengine</option><option value="bike1">Bubi Bike 1</option><option value="bike2">Bubi Bike 2</option><option value="bike3">Bubi Bike 3</option></select></label><label>Rotation <input id="parking-angle" type="range" min="0" max="359" step="1"></label><strong id="parking-angle-text"></strong><button id="parking-save" class="primary">Save positions to all devices</button></div><p id="parking-info"></p></section><section id="npc-editor"><h2>NPCs · shared placement editor</h2>
 <p>Drag the selected NPC on the correct interior map. Switch mode to drag its home point or one of four patrol waypoints. Scene assignment is fixed to prevent NPCs appearing in the wrong building.</p>
@@ -128,7 +128,17 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
   notice.textContent="Saving changes…";
   clearTimeout(saveHandle);saveHandle=setTimeout(()=>void push(),600);
  }
- function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
+ function draw(){root.innerHTML="";for(const group of groups){if(group.title==="NPCs")continue;const section=document.createElement("section"),title=document.createElement("h2"),desc=document.createElement("p");title.textContent=group.title;desc.textContent=group.description;desc.className="desc";section.append(title,desc);for(const field of group.fields){
+  if(field.key.startsWith("drunkMode.")&&field.min===0&&field.max===1){
+   const wrap=document.createElement("div");wrap.className="field";
+   const label=document.createElement("label");label.style.cssText="display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600";
+   label.textContent=field.label;
+   const toggle=document.createElement("input");toggle.type="checkbox";toggle.checked=!!values[field.key];
+   toggle.style.cssText="width:22px;height:22px;accent-color:#efb35f";
+   toggle.addEventListener("change",()=>{values[field.key]=toggle.checked?1:0;store();});
+   label.append(toggle);wrap.append(label);section.append(wrap);continue;
+  }
+  const wrap=document.createElement("div");wrap.className="field";const top=document.createElement("div");top.className="field-header";const lab=document.createElement("label");lab.textContent=field.label;const valBox=document.createElement("div");valBox.className="valuebox";const num=document.createElement("input");num.type="number";num.min=field.min;num.max=field.max;num.step=field.step;num.value=values[field.key];num.id="value-"+field.key;lab.htmlFor=num.id;const unit=document.createElement("span");unit.className="unit";unit.textContent=field.unit;valBox.append(num,unit);top.append(lab,valBox);const range=document.createElement("input");range.type="range";range.min=field.min;range.max=field.max;range.step=field.step;range.value=values[field.key];range.setAttribute("aria-label",field.label);const change=(value)=>{if(!Number.isFinite(Number(value)))return;const v=Math.min(field.max,Math.max(field.min,Number(value)));values[field.key]=v;range.value=v;num.value=v;store();};range.addEventListener("input",()=>change(range.value));num.addEventListener("change",()=>change(num.value));wrap.append(top,range);section.append(wrap);}root.append(section)}}
 
  const canvas=document.getElementById("parking-map"),context=canvas.getContext("2d");
  const carIds=["skoda","octavia","bike1","bike2","bike3"];
@@ -343,6 +353,11 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
  });
  npcSetScene();
 
+ document.getElementById("reset-drunk").onclick=()=>{
+  if(!confirm("Reset only Drunk Mode settings?"))return;
+  for(const [key,value] of Object.entries(defaults))if(key.startsWith("drunkMode."))values[key]=value;
+  store();draw();
+ };
  document.getElementById("defaults").onclick=()=>{if(!confirm("Restore all default game settings?"))return;values=normalize(defaults);store();draw();drawParking();npcSetScene()};
  document.getElementById("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(values,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="maestroescape-settings.json";a.click();URL.revokeObjectURL(url);};
  document.getElementById("local-import").onclick=()=>{if(!Object.keys(saved).length){notice.textContent="No older settings found on this device.";return;}if(!confirm("Replace shared settings using values saved on this device?"))return;values=normalize({...defaults,...saved});store();draw();drawParking();npcSetScene();};
@@ -1581,7 +1596,7 @@ class Explore extends Phaser.Scene{
    if(!character||!keys)return;
    drunk.update(delta,!!(gameplay?.scratchOpen||npcDialogue||gameplay?.menuOpen()||document.hidden));
    if(Math.floor(drunk.phase)!==lastDrunkHud){lastDrunkHud=Math.floor(drunk.phase);drunkHud();}
-   if(gameplay?.scratchOpen){moving=false;return;}
+   if(gameplay?.scratchOpen){this.cameras.main.setRotation(0);moving=false;return;}
    if(gameplay&&!gameplay.hasCharacter())return;
    syncVehicleFromRoom(delta);
    gameplay?.tick(time,delta);
@@ -1622,7 +1637,7 @@ class Explore extends Phaser.Scene{
     if((phase<leg1||phase>=departure&&phase<finish)&&tramOverlapsPlayer(tramSprite,player))
      void gameplay.reportTramCollision();
    }
-   if(npcDialogue||gameplay?.menuOpen()){moving=false;return;} // Freeze walking while menus are open.
+   if(npcDialogue||gameplay?.menuOpen()){this.cameras.main.setRotation(0);moving=false;return;} // Freeze walking and camera distortion while menus are open.
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
