@@ -1853,13 +1853,7 @@ class Explore extends Phaser.Scene{
    const splash=document.getElementById("splash");if(assetFailed||!this.textures.exists("world")){splash.textContent="Map failed to load. Check the published map asset.";return;}splash.remove();
    const image=this.add.image(0,0,"world").setOrigin(0,0);
    streetImage=image.setDepth(0).setDisplaySize(1600,992);
-   // User-positionable, visible manhole in Mester utca, separate from its E radius.
-   casinoManholeMarker=this.add.graphics().setDepth(3.5).setVisible(false);
-   casinoManholeMarker.fillStyle(0x06130f,.55).fillEllipse(0,5,56,38);
-   casinoManholeMarker.fillStyle(0x334741,1).fillEllipse(0,0,46,30);
-   casinoManholeMarker.lineStyle(3,0xd3b36b,1).strokeEllipse(0,0,46,30);
-   casinoManholeMarker.lineStyle(1,0x7d9589,.9);
-   for(let i=-13;i<=13;i+=8)casinoManholeMarker.lineBetween(i,-11,i,11);
+   // Invisible casino E-interaction is governed by saved Settings coordinates.
    if(this.textures.exists("interior")){
      interiorImage=this.add.image(0,0,"interior").setOrigin(0,0)
        .setDisplaySize(INTERIOR_SIZE.w,INTERIOR_SIZE.h).setDepth(1).setVisible(false);
@@ -2030,11 +2024,7 @@ class Explore extends Phaser.Scene{
      else if(!casinoImage.visible||casinoImage.alpha===0){casinoImage.setPosition(0,0).setAlpha(1).setVisible(true);}
    }
    syncVehicleFromRoom(delta);
-   if(casinoManholeMarker){
-    if(time%700<delta)refreshCasinoStreetSettings();
-    casinoManholeMarker.setPosition(cfg("interaction.street_casino.x"),cfg("interaction.street_casino.y"));
-    casinoManholeMarker.setVisible(!!cfg("casino.manhole.enabled")&&!insidePub);
-   }
+   if(time%700<delta)refreshCasinoStreetSettings();
    gameplay?.tick(time,delta);
    npcUpdatePrompt();
    if(!npcDialogue&&!gameplay?.isDead())npcTick(delta);
