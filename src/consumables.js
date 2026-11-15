@@ -1,8 +1,8 @@
 // MaestroEscape item authority. One Durable Object instance per game room.
 // Values here are gameplay rules, not presentation-only UI placeholders.
 export const CONSUMABLE_CONFIG={
- beer:{units:5,unitMs:1500},kebab:{units:4,unitMs:2000},
- cigarette:{units:4,unitMs:1500},cigarette_pack:{units:5,unitMs:0},
+ beer:{units:1,unitMs:1500},kebab:{units:1,unitMs:2000},
+ cigarette:{units:1,unitMs:1500},cigarette_pack:{units:5,unitMs:0},
  orderBeerMs:3000,refillMs:2000,orderKebabMs:5000,borrowExpiryMs:8000,
  interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:2,maxCarrySmall:4,
  vendorPoints:{
@@ -445,7 +445,7 @@ function transferCig(s,from,to){
  const pack=playerInventory(s,from).find(i=>i.type==="cigarette_pack"&&i.remainingUnits>0);
  if(!pack)return bad("No cigarette to share");
  pack.remainingUnits--;pack.revision++;
- create(s,"cigarette",4,{kind:"inventory",playerId:to.id,slot:freeSlot(s,to,"cigarette")});
+ create(s,"cigarette",1,{kind:"inventory",playerId:to.id,slot:freeSlot(s,to,"cigarette")});
  return ok();
 }
 function validateLocation(s,p,item){
@@ -731,8 +731,10 @@ function operation(s,p,d){
   if(p.scene!==a.origin.scene||dist(p,a.origin)>7||i.revision!==a.itemRevision||!validateLocation(s,p,i)){
    p.action=null;return bad("Consumption interrupted");
   }
-  i.remainingUnits--;i.revision++;p.action=null;
-  const remaining=i.remainingUnits;
+  // A single completed action finishes the entire beer, kebab or cigarette,
+  // including legacy inventory items created before the one-use update.
+  i.remainingUnits=0;i.revision++;p.action=null;
+  const remaining=0;
   if(remaining===0){
    const oldType=i.type;
    if(oldType==="beer"){i.type="empty_glass";i.remainingUnits=0;i.maxUnits=0;i.lit=false;}
