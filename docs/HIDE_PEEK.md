@@ -10,9 +10,11 @@
 Enabled, preconfigured from existing pub furniture/collision coordinates:
 - Window table (`pub_left`), central table (`pub_middle`), side table (`pub_right`), upper table (`pub_upper`).
 
-Created but **disabled until manually positioned** (no reliable furniture/tree coordinates in existing game geometry):
+Additional **enabled** points grounded from the supplied basement artwork and its matching collision rectangles:
+- Basement two upper tables and center sofa table (`basement_table_1..3`).
+
+Created but **disabled until manually positioned** (coordinates not reliably established):
 - Pub bar (`pub_bar`).
-- Three basement tables (`basement_table_1..3`).
 - Three outdoor trees (`street_tree_1..3`).
 
 The editor must be used to position those spots and check they're accessible. Do not claim these spots function out-of-the-box. Additional points can be defined in `HIDE_POINT_DEFS` in `src/hide-peek.js`, then registered with the settings schema.
@@ -45,7 +47,7 @@ General settings: enable hiding, default radius, percent revealed (3–15%; 7% d
 1. Choose a character, walk near an enabled pub table and press E; character slides in and only a small peek remains.
 2. Try WASD and the mobile joystick while hidden: no movement. Press E to emerge.
 3. Test a blocked route (an opposing table edge): hiding should be refused, never clip through the table.
-4. Enter pub basement, position and enable a basement table in Settings, return and test E there.
+4. Enter pub basement and try the three seeded table locations. Reposition them in Settings if the desired peek needs adjustment.
 5. Position and enable one outdoor tree and bar point; test their visibility and peek side.
 6. Verify inventory, beer celebration/drunk mode, NPC, vehicles, stairs, scratching, and Stripe UI remain usable outside hiding.
 7. Save Settings, reload, check persistence and mobile portrait-forced landscape E control.
