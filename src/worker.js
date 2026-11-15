@@ -71,6 +71,12 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
 
 
  let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{}
+ // Migrate only the legacy casino bartender default when editor opens.
+ if(saved["npc.casino_bartender.x"]===845&&saved["npc.casino_bartender.y"]===460){
+  saved["npc.casino_bartender.x"]=340;saved["npc.casino_bartender.y"]=300;
+  saved["npc.casino_bartender.homeX"]=340;saved["npc.casino_bartender.homeY"]=300;
+  try{localStorage.setItem(KEY,JSON.stringify(saved))}catch{}
+ }
  const root=document.getElementById("sections"),notice=document.getElementById("notice");
  const lookup=Object.fromEntries(groups.flatMap(group=>group.fields.map(field=>[field.key,field])));
  const normalize=data=>Object.fromEntries(Object.entries(lookup).map(([key,field])=>{const v=Number(data[key]);return [key,Number.isFinite(v)?Math.max(field.min,Math.min(field.max,v)):field.value]}));
@@ -689,6 +695,13 @@ const readLocalGameSettings=()=>{
    if(!Object.prototype.hasOwnProperty.call(configDefaults,key))continue;
    const n=Number(value);
    if(Number.isFinite(n))clean[key]=n;
+  }
+  // Upgrade only the original default casino bar position from the 1696x960 map.
+  if(clean["npc.casino_bartender.x"]===845&&clean["npc.casino_bartender.y"]===460){
+    clean["npc.casino_bartender.x"]=340;
+    clean["npc.casino_bartender.y"]=300;
+    clean["npc.casino_bartender.homeX"]=340;
+    clean["npc.casino_bartender.homeY"]=300;
   }
   return Object.keys(clean).length?clean:null;
  }catch(error){console.warn("Could not read local gameplay settings",error);return null;}
