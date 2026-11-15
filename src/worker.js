@@ -746,7 +746,7 @@ const interactionAt=(id,fallback,radius)=>({
 });
 const interactionNear=(id,fallback,radius)=>{const point=interactionAt(id,fallback,radius);return near(player,point.x,point.y,point.radius)};
 const shopInteractionId=(shop,suffix)=>{const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return name?name+"_"+suffix:null};
-const pubBasementStairsNear=()=>insidePub&&!insideBasement&&!activeShop&&
+const pubBasementStairsNear=()=>insidePub&&!insideBasement&&!insideCasino&&!activeShop&&
  interactionNear("pub_downstairs",PUB_BASEMENT_APPROACH,PUB_BASEMENT_APPROACH.radius);
 const BASEMENT_WALLS=[
  [55,55,1650,38],[15,85,35,630],[1670,85,38,640],
