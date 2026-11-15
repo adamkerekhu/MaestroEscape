@@ -766,7 +766,27 @@ const basementStairNear=()=>insideBasement&&
  interactionNear("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65);
 let insideBasement=false,basementImage=null,basementStairsHint=null,pubStairsHint=null,pubStairReturn=null;
 let insidePub=false,insideCasino=false,streetPos={...SPAWN},casinoReturnPos=null,casinoImage=null,casinoExitHint=null,casinoManholeMarker=null,streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+// A resumed game tab can keep stale settings after visiting the editor.
+// Read the four casino street fields directly from the same localStorage key used by Settings.
+function refreshCasinoStreetSettings(){
+ const saved=readLocalGameSettings();
+ if(!saved)return;
+ for(const key of ["casino.manhole.enabled","interaction.street_casino.x","interaction.street_casino.y","interaction.street_casino.radius"]){
+  if(Object.prototype.hasOwnProperty.call(saved,key))overrides[key]=saved[key];
+ }
+}
 const casinoManholeNearby=()=>!insidePub&&!!cfg("casino.manhole.enabled")&&interactionNear("street_casino",{x:800,y:510},80);
+function casinoEntranceFeedback(){
+ const point=interactionAt("street_casino",{x:800,y:510},80);
+ const distance=Math.round(Math.hypot(player.x-point.x,player.y-point.y));
+ if(distance<=point.radius&&!cfg("casino.manhole.enabled")){
+  show("Casino manhole is disabled. Enable 'street casino manhole' in Settings → Doors & stairs.");return true;
+ }
+ if(cfg("casino.manhole.enabled")&&distance>point.radius){
+  show("Casino manhole: "+distance+" px away (E radius "+point.radius+" px). Walk to the manhole marker at X "+point.x+", Y "+point.y+".");return true;
+ }
+ return false;
+}
 const casinoExitNearby=()=>insideCasino&&interactionNear("casino_exit",CASINO_EXIT,CASINO_EXIT.radius);
 const casinoNearestHotspot=()=>insideCasino?CASINO_HOTSPOTS.map(h=>({...h,d:Math.hypot(player.x-h.x,player.y-h.y)})).filter(h=>h.d<h.radius).sort((a,b)=>a.d-b.d)[0]||null:null;
 const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
@@ -1729,6 +1749,7 @@ class VehicleController {
  }
 }
 function interact(){
+ refreshCasinoStreetSettings();
  if(window.MaestroRealOrders?.isOpen?.())return;
  if(hideController?.state==="HIDDEN"){if(!hideController.exit())show("No safe place to emerge.");return;}
  if(hideController&&hideController.state!=="NORMAL")return;
@@ -1783,7 +1804,7 @@ function interact(){
   return;
  }
  if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
- for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
+ for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){if(casinoEntranceFeedback())return;show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
 }
 const collisionPolygons=[
@@ -2010,6 +2031,7 @@ class Explore extends Phaser.Scene{
    }
    syncVehicleFromRoom(delta);
    if(casinoManholeMarker){
+    if(time%700<delta)refreshCasinoStreetSettings();
     casinoManholeMarker.setPosition(cfg("interaction.street_casino.x"),cfg("interaction.street_casino.y"));
     casinoManholeMarker.setVisible(!!cfg("casino.manhole.enabled")&&!insidePub);
    }
