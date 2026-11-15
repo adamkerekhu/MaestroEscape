@@ -1709,7 +1709,7 @@ class Explore extends Phaser.Scene{
    coords.textContent=Math.round(player.x)+", "+Math.round(player.y);
  }
 }
-document.getElementById("reset").onclick=()=>scene?.respawn();
+document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.respawn();};
 (async()=>{
  function applyLocalSettingsIfNeeded(force=false){
    const local=readLocalGameSettings();
