@@ -428,7 +428,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 
 </style></head><body>
 <header><div><h1>🍻 MAESTRO ESCAPE</h1><p>Maestro Pub · Mester utca × Viola utca · Single-player</p></div>
-<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="drunk-status" role="status" aria-live="off" style="font-size:12px;color:#ffd181;white-space:nowrap"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
+<div id="hud"><span id="status">Loading original game assets…</span><span id="coords"></span><span id="drunk-status" role="status" aria-live="off" style="font-size:12px;color:#ffd181;white-space:nowrap"></span><span id="sync-status" role="status">☁ Connecting…</span><button id="reset">Respawn</button><a class="settings-nav" href="/account/register">👤 Register</a><a class="settings-nav" href="/account/login">Sign in</a><a class="settings-nav" href="/settings">⚙ Settings</a></div></header>
 <div id="screen"><div id="splash">Loading original game map and animated sprites…</div>
 <div id="npc-prompt" hidden>E · Talk</div>
 <div id="npc-dialogue" hidden role="dialog" aria-modal="true" aria-labelledby="npc-dialogue-title">
@@ -2078,8 +2078,10 @@ export default {
    const contentLength=Number(request.headers.get("content-length")||0);
    if(contentLength>4096)return Response.json({ok:false,error:"Request too large"},{status:413});
    const kind=url.pathname.split("/").pop();
+   const payload=kind==="logout"?"{}":await request.text();
+   if(payload.length>4096)return Response.json({ok:false,error:"Request too large"},{status:413});
    const stub=accountStore();
-   const upstream=await stub.fetch(new Request("https://accounts.internal/"+kind,{method:"POST",headers:{"content-type":"application/json","x-client-ip":request.headers.get("cf-connecting-ip")||"unknown"},body:kind==="logout"?JSON.stringify({}):request.body}));
+   const upstream=await stub.fetch(new Request("https://accounts.internal/"+kind,{method:"POST",headers:{"content-type":"application/json","x-client-ip":request.headers.get("cf-connecting-ip")||"unknown"},body:payload}));
    if(kind==="login"&&upstream.ok){
     const result=await upstream.json();
     const headers=new Headers({"cache-control":"no-store","content-type":"application/json","set-cookie":"maestro_account="+result.token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800"});
