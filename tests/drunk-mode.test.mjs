@@ -93,28 +93,25 @@ test("browser bundle exposes working drunk controller and settings schema is int
  for(const key of Object.keys(DRUNK_DEFAULTS))assert.ok(worker.includes(key));
 });
 
-test("rendered game compiles drunk controller safely from a quoted string",async()=>{
+test("game loads executable drunk controller via standard external script before game bootstrap",async()=>{
  const {default:worker}=await import("../src/worker.js");
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  assert.equal(response.status,200);
  const html=await response.text();
  assert.ok(!html.includes("__DRUNK_MODE_SOURCE__"));
  assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
- assert.ok(html.includes('new Function("window",'));
+ assert.ok(!html.includes('new Function("window",'));
+ assert.ok(html.includes('<script src="/assets/drunk-mode.js"'));
+ assert.ok(html.indexOf('<script src="/assets/drunk-mode.js"')<html.indexOf('const drunkControllerAvailable='));
  assert.ok(html.includes('window.MaestroDrunkMode'));
- assert.ok(html.includes('game running with sober fallback'));
- const start=html.indexOf("<script>"+String.fromCharCode(10)+"(function(){");
- const end=start<0?-1:html.indexOf("</script>",start);
- assert.ok(start>=0&&end>start,"Game script should be present and self-contained");
- const gameScript=html.slice(start+8,end);
- assert.doesNotThrow(()=>new Function(gameScript));
- const marker='new Function("window",';
- const controllerStart=gameScript.indexOf(marker);
- const controllerEnd=gameScript.indexOf(') (window);',controllerStart);
- assert.ok(controllerStart>=0&&controllerEnd>controllerStart,"Quoted controller source should be safely evaluated");
- const controllerSource=JSON.parse(gameScript.slice(controllerStart+marker.length,controllerEnd));
+ const js=await worker.fetch(new Request("https://maestroescape.test/assets/drunk-mode.js"),{});
+ assert.equal(js.status,200);
+ assert.match(js.headers.get("content-type"),/application\\/javascript/);
+ const source=await js.text();
+ assert.ok(source.includes('window.MaestroDrunkMode=DrunkMode'));
+ assert.doesNotThrow(()=>new Function("window",source));
  const window={};
- assert.doesNotThrow(()=>new Function("window",controllerSource)(window));
+ new Function("window",source)(window);
  assert.equal(typeof window.MaestroDrunkMode,"function");
  const controller=new window.MaestroDrunkMode();
  assert.equal(controller.onBeerFinished("test"),true);
@@ -145,7 +142,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  const html=await response.text();
  assert.equal(response.status,200);
- assert.ok(html.includes('drunk-safe-loader-20261115'));
+ assert.ok(html.includes('drunk-external-controller-20261115'));
  assert.ok(html.includes('event.lineno'));
  assert.ok(html.includes('event.colno'));
  assert.ok(html.includes('const drunk=drunkControllerAvailable'));
@@ -159,6 +156,6 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const version=await worker.fetch(new Request("https://maestroescape.test/api/build"),{});
  assert.equal(version.status,200);
  const build=await version.json();
- assert.equal(build.build,"drunk-safe-loader-20261115");
+ assert.equal(build.build,"drunk-external-controller-20261115");
  assert.equal(build.drunkControllerBundled,true);
 });
