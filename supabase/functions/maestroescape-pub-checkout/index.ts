@@ -66,6 +66,13 @@ async function createCheckout(body,account){
  form.set("mode","payment");form.set("locale","hu");
  // Embedded Checkout renders inside the MaestroEscape order overlay, not on Stripe's hosted page.
  form.set("ui_mode","embedded_page");
+ // Per-session branding: leave the shared Takkershop Stripe account untouched.
+ // Stripe Checkout does not offer Manrope; Inter is the closest supported sans-serif.
+ form.set("branding_settings[background_color]","#ffffff");
+ form.set("branding_settings[button_color]","#164832");
+ form.set("branding_settings[font_family]","inter");
+ form.set("branding_settings[border_style]","rounded");
+ form.set("branding_settings[display_name]","Maestro Pub");
  form.set("redirect_on_completion","if_required");
  form.set("return_url",APP_ORIGIN+"/?mode=single&room=maestro-solo-test&pub_payment=return&pub_order="+orderId+"&session_id={CHECKOUT_SESSION_ID}");
  form.set("client_reference_id",orderId);
