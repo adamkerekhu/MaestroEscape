@@ -18,11 +18,11 @@ export class MaestroAccounts{
     await this.ctx.storage.get("accounts:healthcheck");
     return json({ok:true,service:"MaestroAccounts",storageReachable:true,version:"accounts-health-v2"});
    }
-   if(path==="/session")return this.session(request);
+   if(path==="/session")return await this.session(request);
    if(request.method!=="POST")return json({ok:false,error:"Method not allowed"},405);
-   if(path==="/register")return this.register(request);
-   if(path==="/login")return this.login(request);
-   if(path==="/logout")return this.logout(request);
+   if(path==="/register")return await this.register(request);
+   if(path==="/login")return await this.login(request);
+   if(path==="/logout")return await this.logout(request);
    return json({ok:false,error:"Unknown operation"},404);
   }catch(e){console.error("Account storage operation failed",e);return json({ok:false,error:"Account service unavailable"},503)}
  }
