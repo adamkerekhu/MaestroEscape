@@ -1376,7 +1376,14 @@ function transitionArrival(id,fallback){
 function enterCasino(){
  hideController?.reset();npcCloseDialogue();
  if(insidePub||activeVehicle||gameplay?.occupied||gameplay?.state?.action||!cfg("casino.manhole.enabled"))return;
- if(!casinoImage){show("Casino map image unavailable. Check /assets/casino.webp.");return;}
+ if(!scene?.textures.exists("casino")){show("Casino map image unavailable. Check /assets/casino.webp.");return;}
+ // Lazily allocate the casino room; it must never exist on the street.
+ if(!casinoImage){
+  casinoImage=scene.add.image(0,0,"casino").setOrigin(0,0).setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h).setDepth(1);
+  const ghost=scene.add.image(0,0,"casino").setOrigin(0,0).setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h)
+   .setDepth(1.25).setVisible(false).setAlpha(0);
+  drunkGhostLayers.push({original:casinoImage,ghost});
+ }
  casinoReturnPos={x:player.x,y:player.y};streetPos={...casinoReturnPos};
  insideCasino=true;insidePub=true;insideBasement=false;activeShop=null;
  mapSize={...CASINO_SIZE};character.setScale(cfg("building.casino.scale"));
@@ -1396,7 +1403,12 @@ function exitCasino(){
  hideController?.reset();npcCloseDialogue();
  if(!insideCasino)return;
  insideCasino=false;insidePub=false;insideBasement=false;activeShop=null;
- casinoImage?.setVisible(false).setAlpha(0).setPosition(-CASINO_SIZE.w-100,-CASINO_SIZE.h-100);casinoExitHint?.setVisible(false);
+ if(casinoImage){
+  for(const layer of drunkGhostLayers.filter(layer=>layer.original===casinoImage))layer.ghost.destroy();
+  drunkGhostLayers=drunkGhostLayers.filter(layer=>layer.original!==casinoImage);
+  casinoImage.destroy();casinoImage=null;
+ }
+ casinoExitHint?.setVisible(false);
  mapSize={w:1600,h:992};character.setScale(cfg("character.streetScale"));
  streetImage?.setVisible(true);setStreetfronts(true);showInteriorNPCs(null);
  carSprite?.setVisible(true);octaviaSprite?.setVisible(true);
@@ -1831,10 +1843,8 @@ class Explore extends Phaser.Scene{
      // Never substitute a schematic for the uploaded detailed floor artwork.
      console.error("Maestro basement artwork is missing at /assets/basement.webp");
    }
-   if(this.textures.exists("casino")){
-    casinoImage=this.add.image(0,0,"casino").setOrigin(0,0)
-      .setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h).setDepth(1).setVisible(false).setAlpha(0).setPosition(-CASINO_SIZE.w-100,-CASINO_SIZE.h-100);
-   }else console.error("Casino artwork missing at /assets/casino.webp");
+   // Only preload casino texture here. Its visible objects are created in enterCasino().
+   if(!this.textures.exists("casino"))console.error("Casino artwork missing at /assets/casino.webp");
    casinoExitHint=this.add.text(CASINO_EXIT.x,CASINO_EXIT.y-44,"LADDER ↑ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#ffe9a6",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
@@ -1854,7 +1864,7 @@ class Explore extends Phaser.Scene{
    // Visual-only duplicate of each background. No physics bodies, input, NPCs or world state.
    // Every duplicate shares the existing map texture (no extra asset fetch).
    drunkGhostLayers=[];
-   for(const original of [streetImage,interiorImage,basementImage,casinoImage,...Object.values(SHOPS).map(shop=>shop.image)]){
+   for(const original of [streetImage,interiorImage,basementImage,...Object.values(SHOPS).map(shop=>shop.image)]){
     if(!original||!original.texture)continue;
     const ghost=this.add.image(original.x,original.y,original.texture.key)
      .setOrigin(original.originX,original.originY)
