@@ -92,3 +92,19 @@ test("browser bundle exposes working drunk controller and settings schema is int
  assert.ok(worker.includes('id="reset-drunk"'));
  for(const key of Object.keys(DRUNK_DEFAULTS))assert.ok(worker.includes(key));
 });
+
+test("game HTML embeds the drunk module before Phaser startup",async()=>{
+ const {default:worker}=await import("../src/worker.js");
+ const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
+ assert.equal(response.status,200);
+ const html=await response.text();
+ assert.ok(html.includes("window.MaestroDrunkMode=DrunkMode"));
+ assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
+ assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=window.MaestroDrunkMode"));
+ assert.ok(html.includes('game running with sober fallback'));
+ const embedded=html.match(/<script>(const DRUNK_DEFAULTS=[\\s\\S]*?window.MaestroDrunkMode=DrunkMode;)<\\/script>/);
+ assert.ok(embedded,"Drunk controller is embedded in an executable script tag");
+ const window={};
+ new Function("window",embedded[1])(window);
+ assert.equal(typeof window.MaestroDrunkMode,"function");
+});
