@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/browser-smoke.yml"
+      - "Assets/Maps/maestro_casino_v2.webp"
 permissions:
   contents: read
 jobs:
@@ -38,6 +39,13 @@ jobs:
               const lobby=document.querySelector('#maestro-character-lobby');
               return {build:window.__MAESTRO_BUILD__,scene:!!scene,players,casino,lobby:lobby?getComputedStyle(lobby).display:null,screen:document.querySelector('#screen')?.getBoundingClientRect()?.toJSON(),splash:document.querySelector('#splash')?.textContent??null};
             });
+            const casinoAsset=await page.evaluate(()=>{
+              const image=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore')?.textures?.get('casino')?.getSourceImage();
+              return image?{width:image.naturalWidth||image.width,height:image.naturalHeight||image.height}:null;
+            });
+            console.log('LIVE_CASINO_ART',JSON.stringify(casinoAsset));
+            if(!casinoAsset||casinoAsset.width!==537||casinoAsset.height!==430)
+              throw Error('Uploaded casino background is not the active game texture: '+JSON.stringify(casinoAsset));
             console.log('LIVE_BROWSER_STATE',JSON.stringify(status));
             console.log('BROWSER_ERRORS',JSON.stringify(errors));
             await page.screenshot({path:'maestro-live.png',fullPage:true});
