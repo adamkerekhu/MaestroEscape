@@ -2065,7 +2065,17 @@ export default {
    if(!user)return Response.redirect(url.origin+"/account/login",303);
    return new Response(ACCOUNT_HOME,{headers:accountHTML});
   }
-  if(url.pathname==="/api/account/status")return Response.json({ok:!!env?.ACCOUNTS_STORE,service:"MaestroEscape Accounts",version:"registration-json-guard-20261115",storageConfigured:!!env?.ACCOUNTS_STORE,registrationEnabled:!!env?.ACCOUNTS_STORE},{status:env?.ACCOUNTS_STORE?200:503,headers:{"cache-control":"no-store","x-maestro-api":"accounts-v1","x-content-type-options":"nosniff"}});
+  if(url.pathname==="/api/account/status"){
+   const h={"cache-control":"no-store","x-maestro-api":"accounts-v2","x-content-type-options":"nosniff"};
+   if(!env?.ACCOUNTS_STORE)return Response.json({ok:false,storageConfigured:false,storageReachable:false,code:"ACCOUNT_BINDING_MISSING",error:"ACCOUNTS_STORE is not configured in the deployed Worker"},{status:503,headers:h});
+   try{
+    const result=await accountStore().fetch("https://accounts.internal/health",{method:"GET"});
+    const type=result.headers.get("content-type")||"";
+    if(!type.includes("application/json"))return Response.json({ok:false,storageConfigured:true,storageReachable:false,code:"ACCOUNT_STORAGE_NON_JSON",upstreamStatus:result.status},{status:503,headers:h});
+    const data=await result.json();
+    return Response.json({ok:result.ok&&data.ok===true,storageConfigured:true,storageReachable:result.ok&&data.storageReachable===true,version:"registration-storage-health-v2",upstreamStatus:result.status,code:result.ok?null:"ACCOUNT_STORAGE_UNAVAILABLE"},{status:result.ok?200:503,headers:h});
+   }catch(error){console.error("Account Durable Object health failed",error);return Response.json({ok:false,storageConfigured:true,storageReachable:false,code:"ACCOUNT_STORAGE_EXCEPTION",error:"Account storage failed. See Cloudflare Worker logs."},{status:503,headers:h});}
+  }
   if(url.pathname==="/api/account/me"){
    const user=await accountAuth();
    if(!user)return Response.json({ok:false,error:"Not authenticated"},{status:401,headers:{"cache-control":"no-store"}});
@@ -2081,8 +2091,18 @@ export default {
    const kind=url.pathname.split("/").pop();
    const payload=kind==="logout"?"{}":await request.text();
    if(payload.length>4096)return Response.json({ok:false,error:"Request too large"},{status:413});
-   const stub=accountStore();
-   const upstream=await stub.fetch(new Request("https://accounts.internal/"+kind,{method:"POST",headers:{"content-type":"application/json","x-client-ip":request.headers.get("cf-connecting-ip")||"unknown"},body:payload}));
+   let stub,upstream;
+   try{
+    stub=accountStore();
+    upstream=await stub.fetch(new Request("https://accounts.internal/"+kind,{method:"POST",headers:{"content-type":"application/json","x-client-ip":request.headers.get("cf-connecting-ip")||"unknown"},body:payload}));
+   }catch(error){
+    console.error("Account Durable Object request failed",kind,error);
+    return Response.json({ok:false,error:"Account storage unavailable. Check /api/account/status and Cloudflare deployment logs.",code:"ACCOUNT_BACKEND_EXCEPTION"},{status:503,headers:{"cache-control":"no-store","x-maestro-api":"accounts-v2"}});
+   }
+   if(!(upstream.headers.get("content-type")||"").includes("application/json")){
+    console.error("Account Durable Object returned non-JSON",kind,upstream.status);
+    return Response.json({ok:false,error:"Account service returned an invalid response.",code:"ACCOUNT_BACKEND_NON_JSON",upstreamStatus:upstream.status},{status:502,headers:{"cache-control":"no-store","x-maestro-api":"accounts-v2"}});
+   }
    if(kind==="login"&&upstream.ok){
     const result=await upstream.json();
     const headers=new Headers({"cache-control":"no-store","content-type":"application/json","set-cookie":"maestro_account="+result.token+"; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800"});
