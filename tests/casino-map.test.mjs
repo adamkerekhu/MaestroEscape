@@ -20,8 +20,8 @@ test("casino dimensions, collision and hotspots are wired from uploaded geometry
 test("street entrance stays disabled until user places and enables it",()=>{
  assert.match(worker,/"casino.manhole.enabled":0/);
  assert.match(worker,/const casinoManholeNearby=.*cfg\("casino.manhole.enabled"\)/);
- assert.match(worker,/casinoManholeMarker\.setPosition\(cfg\("interaction.street_casino.x"\),cfg\("interaction.street_casino.y"\)\)/);
- assert.match(worker,/casinoManholeMarker\.setVisible\(!!cfg\("casino.manhole.enabled"\)&&!insidePub\)/);
+ assert.doesNotMatch(worker,/casinoManholeMarker=this\.add\.graphics\(/);
+ assert.match(worker,/if\(time%700<delta\)refreshCasinoStreetSettings\(\)/);
  assert.match(INTERACTION_EDITOR_HTML,/id="casino-manhole-enabled"/);
  assert.match(INTERACTION_EDITOR_SCRIPT,/id:"street_casino",scene:"street"/);
  assert.match(INTERACTION_EDITOR_SCRIPT,/id:"casino_exit",scene:"casino"/);
