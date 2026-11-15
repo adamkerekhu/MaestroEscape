@@ -25,3 +25,12 @@ new_sqlite_classes = ["GameSettings"]
 [[migrations]]
 tag = "maestro-consumables-v4"
 new_sqlite_classes = ["ConsumableRoom"]
+
+# Account registration and login are persisted separately from game rooms.
+[[durable_objects.bindings]]
+name = "ACCOUNTS_STORE"
+class_name = "MaestroAccounts"
+
+[[migrations]]
+tag = "maestro-accounts-v5"
+new_sqlite_classes = ["MaestroAccounts"]
