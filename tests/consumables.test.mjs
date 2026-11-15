@@ -1059,8 +1059,8 @@ test("finishing all three consumables emits a unique 2-second celebration visibl
    assert.ok(event,"No finish event for "+cfg.type);
    assert.equal(event.duration,2000);
    assert.equal(event.scene,cfg.scene);
-   assert.equal(event.x,cfg.x);
-   assert.equal(event.y,cfg.y);
+   assert.equal(event.x,Number.isFinite(pos?.x)?pos.x:cfg.x);
+   assert.equal(event.y,Number.isFinite(pos?.y)?pos.y:cfg.y);
    const remote=(await get(1)).snapshot;
    assert.ok(remote.completionEvents.some(e=>e.id===event.id),"Completion missing from room");
   }
