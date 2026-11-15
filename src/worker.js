@@ -759,7 +759,10 @@ const BASEMENT_WALLS=[
 const basementStairNear=()=>insideBasement&&
  interactionNear("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65);
 let insideBasement=false,basementImage=null,basementStairsHint=null,pubStairsHint=null,pubStairReturn=null;
-let insidePub=false,streetPos={...SPAWN},streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+let insidePub=false,insideCasino=false,streetPos={...SPAWN},casinoReturnPos=null,casinoImage=null,casinoExitHint=null,streetImage=null,interiorImage=null,exitHint=null,activeShop=null;
+const casinoManholeNearby=()=>!insidePub&&!!cfg("casino.manhole.enabled")&&interactionNear("street_casino",{x:800,y:510},80);
+const casinoExitNearby=()=>insideCasino&&interactionNear("casino_exit",CASINO_EXIT,CASINO_EXIT.radius);
+const casinoNearestHotspot=()=>insideCasino?CASINO_HOTSPOTS.map(h=>({...h,d:Math.hypot(player.x-h.x,player.y-h.y)})).filter(h=>h.d<h.radius).sort((a,b)=>a.d-b.d)[0]||null:null;
 const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
 function shopZoom(shop){const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return cfg("building."+name+".zoom");}
 function shopCharacterScale(shop){const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return cfg("building."+name+".scale");}
@@ -973,7 +976,7 @@ function npcInteractionDistance(entity){
  const p=npcInteractionPoint(entity);
  return Math.hypot(player.x-p.x,player.y-p.y);
 }
-function npcInteriorKey(){return !insidePub?null:(insideBasement?"basement":activeShop?Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop):"pub");}
+function npcInteriorKey(){return !insidePub?null:(insideCasino?"casino":insideBasement?"basement":activeShop?Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop):"pub");}
 function showInteriorNPCs(interior){
  for(const def of NPC_DEFINITIONS){
   const entity=npcEntities.get(def.id);
@@ -1189,7 +1192,7 @@ function npcNearestTarget(){
 }
 function npcExitDistance(){
  if(!insidePub)return Infinity;
- const point=insideBasement?interactionAt("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65):
+ const point=insideCasino?interactionAt("casino_exit",CASINO_EXIT,CASINO_EXIT.radius):insideBasement?interactionAt("basement_upstairs",{x:BASEMENT_STAIRS.x+BASEMENT_STAIRS.w/2,y:BASEMENT_STAIRS.y+BASEMENT_STAIRS.h/2},65):
   activeShop?interactionAt(shopInteractionId(activeShop,"exit"),activeShop.exit,96):
   interactionAt("pub_exit",INTERIOR_EXIT,96);
  return Math.hypot(player.x-point.x,player.y-point.y);
@@ -1289,6 +1292,16 @@ function npcUpdatePrompt(){
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
  const pickup=gameplay?.prompt();
  if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
+ if(insideCasino&&casinoExitNearby()){
+  npcPrompt.textContent="E · Climb to Mester utca";npcPrompt.hidden=false;return;
+ }
+ if(!insidePub&&casinoManholeNearby()&&!gameplay?.occupied){
+  npcPrompt.textContent="E · Enter underground casino";npcPrompt.hidden=false;return;
+ }
+ if(insideCasino){
+  const hotspot=casinoNearestHotspot();
+  if(hotspot){npcPrompt.textContent="E · "+hotspot.name;npcPrompt.hidden=false;return;}
+ }
  if(insideBasement&&basementStairNear()){
   npcPrompt.textContent="E · Go upstairs";npcPrompt.hidden=false;return;
  }
@@ -1331,7 +1344,7 @@ function intersects(x,y){
  const w=13,h=11;
  if(x<25||y<25||x>mapSize.w-25||y>mapSize.h-25)return true;
  if(insidePub){
-  if((insideBasement?BASEMENT_WALLS:activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh))return true;
+  if((insideCasino?CASINO_WALLS:insideBasement?BASEMENT_WALLS:activeShop?activeShop.walls:interiorWalls).some(([bx,by,bw,bh])=>x+w>bx&&x-w<bx+bw&&y+h>by&&y-h<by+bh))return true;
   const room=npcInteriorKey(),r=20;
   // Avoid trapping an already-overlapping player: allow steps that increase separation.
   return Array.from(npcEntities.values()).some(n=>
@@ -1359,6 +1372,44 @@ function transitionArrival(id,fallback){
   }
  }
  return safe(fallback.x,fallback.y)?fallback:{x,y};
+}
+function enterCasino(){
+ hideController?.reset();npcCloseDialogue();
+ if(insidePub||activeVehicle||gameplay?.occupied||gameplay?.state?.action||!cfg("casino.manhole.enabled"))return;
+ if(!casinoImage){show("Casino map image unavailable. Check /assets/casino.webp.");return;}
+ casinoReturnPos={x:player.x,y:player.y};streetPos={...casinoReturnPos};
+ insideCasino=true;insidePub=true;insideBasement=false;activeShop=null;
+ mapSize={...CASINO_SIZE};character.setScale(cfg("building.casino.scale"));
+ streetImage.setVisible(false);setStreetfronts(false);interiorImage?.setVisible(false);
+ basementImage?.setVisible(false);casinoImage.setVisible(true);showInteriorNPCs(null);
+ carSprite?.setVisible(false);octaviaSprite?.setVisible(false);
+ for(const sprite of bikeSprites)if(sprite)sprite.setVisible(false);
+ tramSprite?.setVisible(false);
+ const arrival=transitionArrival("casino",CASINO_SPAWN);
+ player.x=arrival.x;player.y=arrival.y;character.setPosition(player.x,player.y);
+ scene.cameras.main.setBounds(0,0,CASINO_SIZE.w,CASINO_SIZE.h);
+ scene.cameras.main.setZoom(displayZoom(cfg("building.casino.zoom")));
+ status.textContent="Underground Casino";
+ show("Underground Casino. Press E near the ladder to return to Mester utca.");
+}
+function exitCasino(){
+ hideController?.reset();npcCloseDialogue();
+ if(!insideCasino)return;
+ insideCasino=false;insidePub=false;insideBasement=false;activeShop=null;
+ casinoImage?.setVisible(false);casinoExitHint?.setVisible(false);
+ mapSize={w:1600,h:992};character.setScale(cfg("character.streetScale"));
+ streetImage?.setVisible(true);setStreetfronts(true);showInteriorNPCs(null);
+ carSprite?.setVisible(true);octaviaSprite?.setVisible(true);
+ for(const sprite of bikeSprites)if(sprite)sprite.setVisible(true);
+ tramSprite?.setVisible(true);
+ const back=casinoReturnPos||streetPos;
+ // Restore exactly where the player entered. No fixed random exit teleport.
+ const safe=!intersects(back.x,back.y)?back:{x:cfg("interaction.street_casino.x"),y:cfg("interaction.street_casino.y")};
+ player.x=safe.x;player.y=safe.y;character.setPosition(player.x,player.y);
+ casinoReturnPos=null;
+ scene.cameras.main.setBounds(0,0,1600,992);
+ scene.cameras.main.setZoom(displayZoom(cfg("camera.streetZoom")));
+ status.textContent="Outside · Mester utca";show("Back on Mester utca.");
 }
 function enterBasement(){
  hideController?.reset();
@@ -1670,6 +1721,12 @@ function interact(){
  if(npcDialogue){npcCloseDialogue();return;}
  if(!insidePub&&gameplay?.occupied){void enterOrExitCar();return;}
  if(gameplay?.nearestItem()){void gameplay.interact();return;}
+ if(insideCasino){
+  if(casinoExitNearby()){exitCasino();return;}
+  const hotspot=casinoNearestHotspot();
+  if(hotspot){show(hotspot.name+" interaction is ready for a future mini-game. No wagering is implemented.");return;}
+  show("Find the ladder to exit the casino.");return;
+ }
  if(insidePub){
   if(insideBasement){
    if(basementStairNear()){leaveBasement();return;}
@@ -1702,6 +1759,7 @@ function interact(){
   else show("Cannot hide here: approach from a walkable side or reposition this hide point in Settings.");
   return;
  }
+ if(casinoManholeNearby()){enterCasino();return;}
  if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
@@ -1729,6 +1787,7 @@ class Explore extends Phaser.Scene{
    this.load.image("world","/assets/world.webp");
    this.load.image("interior","/assets/interior.webp");
    this.load.image("basement","/assets/basement.webp");
+   this.load.image("casino","/assets/casino.webp");
    for(const name of Object.keys(SHOPS))this.load.image("shop_"+name,"/assets/shop-"+name+".webp");
    // The player sprite already loads successfully from jsDelivr. Load NPC sheets the same way,
    // pinned to the immutable commit that added all nine files (avoids Worker proxy 500/cache).
@@ -1744,7 +1803,7 @@ class Explore extends Phaser.Scene{
    this.load.image("bubi","/assets/bubi.webp");
    this.load.spritesheet("bubi-rider","/assets/bubi-rider.webp",{frameWidth:112,frameHeight:224});
    this.load.image("tram","/assets/tram.webp");
-   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="basement"){console.error("Basement artwork missing. Upload Assets/Maps/maestro_basement.webp");show("Basement artwork missing from GitHub: Assets/Maps/maestro_basement.webp");}if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
+   this.load.on("loaderror",file=>{if(file.key.startsWith("npc_"))console.error("NPC sprite failed to download:",file.key,file.src);if(file.key==="world")assetFailed=true;if(file.key==="interior")console.warn("Interior image failed");if(file.key==="casino"){console.error("Casino artwork missing at /assets/casino.webp");}if(file.key==="basement"){console.error("Basement artwork missing. Upload Assets/Maps/maestro_basement.webp");show("Basement artwork missing from GitHub: Assets/Maps/maestro_basement.webp");}if(file.key==="skoda")show("Skoda image failed to load. Displaying fallback car.");status.textContent="Asset failed: "+file.key;console.error("Missing asset",file.src)});
  }
  create(){
    scene=this;
@@ -1765,6 +1824,13 @@ class Explore extends Phaser.Scene{
      // Never substitute a schematic for the uploaded detailed floor artwork.
      console.error("Maestro basement artwork is missing at /assets/basement.webp");
    }
+   if(this.textures.exists("casino")){
+    casinoImage=this.add.image(0,0,"casino").setOrigin(0,0)
+      .setDisplaySize(CASINO_SIZE.w,CASINO_SIZE.h).setDepth(1).setVisible(false);
+   }else console.error("Casino artwork missing at /assets/casino.webp");
+   casinoExitHint=this.add.text(CASINO_EXIT.x,CASINO_EXIT.y-44,"LADDER ↑ [E]",
+     {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#ffe9a6",
+      stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
    pubStairsHint=this.add.text(PUB_BASEMENT_APPROACH.x,PUB_BASEMENT_APPROACH.y-44,"STAIRS ↓ [E]",
      {fontFamily:"Arial",fontSize:"19px",fontStyle:"bold",color:"#fff5cf",
       stroke:"#111720",strokeThickness:4}).setOrigin(.5).setDepth(8).setVisible(false);
@@ -1781,7 +1847,7 @@ class Explore extends Phaser.Scene{
    // Visual-only duplicate of each background. No physics bodies, input, NPCs or world state.
    // Every duplicate shares the existing map texture (no extra asset fetch).
    drunkGhostLayers=[];
-   for(const original of [streetImage,interiorImage,basementImage,...Object.values(SHOPS).map(shop=>shop.image)]){
+   for(const original of [streetImage,interiorImage,basementImage,casinoImage,...Object.values(SHOPS).map(shop=>shop.image)]){
     if(!original||!original.texture)continue;
     const ghost=this.add.image(original.x,original.y,original.texture.key)
      .setOrigin(original.originX,original.originY)
@@ -1973,9 +2039,14 @@ class Explore extends Phaser.Scene{
        coords.textContent=(activeVehicle.type==="bike"?"🚲 ":"🚗 ")+Math.round(activeVehicle.x)+", "+Math.round(activeVehicle.y)+" · "+Math.round(Math.abs(activeVehicle.speed))+" px/s";
      }
    }
-   if(pubStairsHint)pubStairsHint.setVisible(insidePub&&!activeShop&&!insideBasement);
+   if(pubStairsHint)pubStairsHint.setVisible(insidePub&&!activeShop&&!insideBasement&&!insideCasino);
    if(basementStairsHint)basementStairsHint.setVisible(insideBasement);
-   const cameraZoom=displayZoom(insidePub?(insideBasement?cfg("building.basement.zoom"):activeShop?shopZoom(activeShop):cfg("building.pub.zoom")):activeVehicle?DRIVING_ZOOM():cfg("camera.streetZoom"));
+   if(casinoExitHint){
+    const point=interactionAt("casino_exit",CASINO_EXIT,CASINO_EXIT.radius);
+    casinoExitHint.setPosition(point.x,point.y-44);
+    casinoExitHint.setVisible(insideCasino);
+   }
+   const cameraZoom=displayZoom(insidePub?(insideCasino?cfg("building.casino.zoom"):insideBasement?cfg("building.basement.zoom"):activeShop?shopZoom(activeShop):cfg("building.pub.zoom")):activeVehicle?DRIVING_ZOOM():cfg("camera.streetZoom"));
    const drunkCamera=drunk.camera(cameraZoom);
    this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom,drunkCamera.zoom,Math.min(1,delta/1000*3.5)));
    this.cameras.main.setRotation(drunkCamera.rotation);
@@ -1985,7 +2056,7 @@ class Explore extends Phaser.Scene{
    if(exitHint){
     const exitPoint=interactionAt("pub_exit",INTERIOR_EXIT,96);
     exitHint.setPosition(exitPoint.x+22,exitPoint.y-30);
-    exitHint.setVisible(insidePub&&!insideBasement&&!activeShop&&near(player,exitPoint.x,exitPoint.y,exitPoint.radius+39));
+    exitHint.setVisible(insidePub&&!insideBasement&&!insideCasino&&!activeShop&&near(player,exitPoint.x,exitPoint.y,exitPoint.radius+39));
    }
    if(pubStairsHint){
     const stairPoint=interactionAt("pub_downstairs",PUB_BASEMENT_APPROACH,PUB_BASEMENT_APPROACH.radius);
@@ -2249,6 +2320,11 @@ export default {
   if(url.pathname==="/assets/kaparos_buksza.webp"){
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/UI/kaparos_buksza.webp");
     if(!upstream.ok)return new Response("Buksza lottery artwork missing",{status:404,headers:{"cache-control":"no-store"}});
+    return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
+  }
+  if(url.pathname==="/assets/casino.webp"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/maestro_casino.webp");
+    if(!upstream.ok||!upstream.body)return new Response("Underground Casino image missing in Assets/Maps/maestro_casino.webp",{status:404,headers:{"cache-control":"no-store"}});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
   }
   if(url.pathname==="/assets/basement.webp"){
