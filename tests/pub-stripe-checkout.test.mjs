@@ -13,7 +13,13 @@ test("webshop assets parse and use 75vw desktop screen",()=>{
 });
 test("storefront embeds Stripe next to order overview instead of redirecting",()=>{
  for(const t of ["shop-categories","shop-cards","shop-lines","shop-pay","shop-test-ok","shop-adult","shop-table"])assert.ok(PUB_SHOP_SCRIPT.includes(t),t);
- assert.match(PUB_SHOP_SCRIPT,/checkout\.stripe\.com/);
+ assert.match(PUB_SHOP_SCRIPT,/initEmbeddedCheckout/);
+ assert.match(PUB_SHOP_SCRIPT,/stripeCheckout\.mount/);
+ assert.match(PUB_SHOP_SCRIPT,/shop-checkout-view/);
+ assert.match(PUB_SHOP_SCRIPT,/shop-review-lines/);
+ assert.match(PUB_SHOP_SCRIPT,/maestro-stripe-embed/);
+ assert.match(PUB_SHOP_CSS,/grid-template-columns:minmax\(0,56%\) minmax\(350px,44%\)/);
+ assert.doesNotMatch(PUB_SHOP_SCRIPT,/location\.assign\(d\.checkout_url\)/);
  assert.match(PUB_SHOP_SCRIPT,/api\/pub\/checkout/);
  assert.match(PUB_SHOP_SCRIPT,/api\/pub\/payment-status/);
  assert.match(PUB_SHOP_SCRIPT,/crypto\.randomUUID\(\)/);
@@ -30,6 +36,10 @@ test("Stripe test code refuses live key and uses database prices",()=>{
  assert.match(backend,/maestroescape_pub_orders/);
  assert.match(backend,/line\.unit_price_huf\*100/);
  assert.match(backend,/session\.livemode===false/);
+ assert.match(backend,/form\.set\("ui_mode","embedded_page"\)/);
+ assert.match(backend,/session\.client_secret/);
+ assert.match(backend,/STRIPE_PUBLISHABLE_KEY/);
+ assert.match(backend,/checkout_mode:"embedded"/);
  assert.match(backend,/session\.payment_status==="paid"/);
  assert.doesNotMatch(backend,/\.from\("orders"\)|\.from\("partners"\)/);
 });
