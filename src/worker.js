@@ -1659,6 +1659,7 @@ class VehicleController {
  }
 }
 function interact(){
+ if(window.MaestroRealOrders?.isOpen?.())return;
  if(hideController?.state==="HIDDEN"){if(!hideController.exit())show("No safe place to emerge.");return;}
  if(hideController&&hideController.state!=="NORMAL")return;
  if(gameplay?.isDead()||gameplay?.scratchOpen)return;
@@ -1683,7 +1684,11 @@ function interact(){
   const exitId=activeShop?shopInteractionId(activeShop,"exit"):"pub_exit";
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(interactionNear(exitId,exit,96))leavePub();
-  else if(!gameplay?.state?.action&&hideController?.enter()){show("Hidden. Press E to emerge.");return;}
+  else if(!gameplay?.state?.action&&hideController?.nearest()){
+   if(hideController.enter())show("Hidden. Press E to emerge.");
+   else show("Cannot hide here: approach from a walkable side or reposition this hide point in Settings.");
+   return;
+  }
   else if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
   else if(gameplay?.tableInteract())return;
   else show("Return to the entrance and press E to exit.");
@@ -1691,7 +1696,11 @@ function interact(){
  }
  if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){void enterOrExitCar();return;}
  if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
- if(!gameplay?.state?.action&&!activeVehicle&&hideController?.enter()){show("Hidden. Press E to emerge.");return;}
+ if(!gameplay?.state?.action&&!activeVehicle&&hideController?.nearest()){
+  if(hideController.enter())show("Hidden. Press E to emerge.");
+  else show("Cannot hide here: approach from a walkable side or reposition this hide point in Settings.");
+  return;
+ }
  if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
