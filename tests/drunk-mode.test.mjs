@@ -106,7 +106,7 @@ test("game loads executable drunk controller via standard external script before
  assert.ok(html.includes('window.MaestroDrunkMode'));
  const js=await worker.fetch(new Request("https://maestroescape.test/assets/drunk-mode.js"),{});
  assert.equal(js.status,200);
- assert.match(js.headers.get("content-type"),/application\\/javascript/);
+ assert.ok(js.headers.get("content-type").includes("application/javascript"));
  const source=await js.text();
  assert.ok(source.includes('window.MaestroDrunkMode=DrunkMode'));
  assert.doesNotThrow(()=>new Function("window",source));
