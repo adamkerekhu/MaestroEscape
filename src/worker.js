@@ -386,7 +386,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 const HTML = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maestro Escape | Explore</title>
-<meta name="maestro-build" content="drunk-safe-loader-20261115">
+<meta name="maestro-build" content="drunk-external-controller-20261115">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f6f3ea;font:15px system-ui,Arial}
 header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 20px;max-width:1360px;margin:auto}
@@ -440,7 +440,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script>
-window.__MAESTRO_BUILD__="drunk-safe-loader-20261115";
+window.__MAESTRO_BUILD__="drunk-external-controller-20261115";
 window.addEventListener("error",function(event){
  const splash=document.getElementById("splash");
  const filename=event.filename?event.filename.split("/").pop().slice(0,90):"inline script";
@@ -459,6 +459,7 @@ window.addEventListener("unhandledrejection",function(event){
 </script>
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
 <script src="/assets/consumables.js"></script>
+<script src="/assets/drunk-mode.js" onerror="window.__maestroDrunkLoadError='Could not download /assets/drunk-mode.js'"></script>
 <script>
 (function(){
 'use strict';
@@ -471,11 +472,10 @@ if(new URL(location.href).searchParams.get("mode")==="single"){
  const link=document.querySelector("a.settings-nav");
  if(link)link.href="/settings?mode=single";
 }
-let drunkControllerAvailable=false;
-try{
- new Function("window",__DRUNK_MODE_SOURCE__) (window);
- drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
-}catch(error){console.error("Drunk Mode controller could not initialize:",error);}
+const drunkControllerAvailable=typeof window.MaestroDrunkMode==="function";
+const drunkLoadError=drunkControllerAvailable?"":window.__maestroDrunkLoadError||
+ "Drunk controller script was not executed. Check /assets/drunk-mode.js and Content Security Policy.";
+if(!drunkControllerAvailable)console.error("Drunk Mode startup:",drunkLoadError);
 const drunk=drunkControllerAvailable
  ?new window.MaestroDrunkMode(()=>overrides)
  :{level:0,phase:0,reset(){},update(){},config(){return 0},onBeerFinished(){return false},getState(){return {level:0,maxLevel:3,seconds:0}},direction(x,y){return {x,y}},camera(zoom){return {rotation:0,zoom}}};
@@ -500,7 +500,7 @@ if(testMode){
  const report=message=>{feedback.textContent=message;const msg=document.getElementById("msg");if(msg)msg.textContent=message;};
  test.addEventListener("click",()=>{
   try{
-   if(!drunkControllerAvailable){report("⚠ Drunk Mode controller did not load. Refresh the latest version.");return;}
+   if(!drunkControllerAvailable){report("⚠ "+drunkLoadError);return;}
    // This button is a controlled demonstration. Temporarily enable intoxication
    // visuals and controls without overwriting saved settings.
    if(!drunk.config("enabled")||!drunk.config("visualsEnabled")||drunk.config("reduceMotion")){
@@ -523,7 +523,7 @@ if(testMode){
   catch(error){report("⚠ Reset error: "+error.message);}
  });
  if(hud){status?.after(test);test.after(sober);sober.after(feedback);}
- if(!drunkControllerAvailable)report("⚠ Drunk Mode controller unavailable. Game remains playable.");
+ if(!drunkControllerAvailable)report("⚠ "+drunkLoadError);
  else feedback.textContent="Test controls ready";
 }
 drunkHud();
@@ -1893,7 +1893,7 @@ export default {
   if(url.pathname==="/assets/local-room.js")
    return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/build")
-   return Response.json({build:"drunk-safe-loader-20261115",drunkControllerBundled:true},
+   return Response.json({build:"drunk-external-controller-20261115",drunkControllerBundled:true},
     {headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
@@ -1989,6 +1989,6 @@ export default {
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
   return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
-    .replace("__DRUNK_MODE_SOURCE__",JSON.stringify(DRUNK_MODE_CLIENT_SCRIPT)),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
+    ,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
