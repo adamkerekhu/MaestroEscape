@@ -1,0 +1,55 @@
+name: Browser smoke test (MaestroEscape live)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/browser-smoke.yml"
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install chromium --with-deps
+      - name: Inspect live Phaser scene and character
+        run: |
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright';
+          const browser=await chromium.launch({headless:true});
+          const page=await browser.newPage({viewport:{width:1440,height:900}});
+          const errors=[];
+          page.on('pageerror',error=>errors.push(error.message));
+          page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text())});
+          try{
+            await page.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-solo-smoke',{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(7500);
+            const status=await page.evaluate(()=>{
+              const scene=window.Phaser?.GAMES?.[0]?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const objects=scene?.children?.list||[];
+              const players=objects.filter(o=>o.texture?.key==='maestro'||o.texture?.key?.startsWith('player_')).map(o=>({texture:o.texture.key,visible:o.visible,active:o.active,x:o.x,y:o.y}));
+              const casino=objects.filter(o=>o.texture?.key==='casino').map(o=>({visible:o.visible,alpha:o.alpha,x:o.x,y:o.y}));
+              const lobby=document.querySelector('#maestro-character-lobby');
+              return {build:window.__MAESTRO_BUILD__,scene:!!scene,players,casino,lobby:lobby?getComputedStyle(lobby).display:null,screen:document.querySelector('#screen')?.getBoundingClientRect()?.toJSON(),splash:document.querySelector('#splash')?.textContent??null};
+            });
+            console.log('LIVE_BROWSER_STATE',JSON.stringify(status));
+            console.log('BROWSER_ERRORS',JSON.stringify(errors));
+            await page.screenshot({path:'maestro-live.png',fullPage:true});
+            if(status.build!=='casino-lazy-character-fix-20261115')throw Error('Not the repaired live build');
+            if(!status.scene)throw Error('Phaser Explore scene was not created');
+            if(status.casino.length!==0)throw Error('Casino image objects exist outdoors: '+JSON.stringify(status.casino));
+            if(!status.players.some(p=>p.visible))throw Error('No visible player sprite after startup: '+JSON.stringify(status.players));
+            console.log('PASS: No casino layer on street; visible player sprite');
+          }finally{await browser.close()}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maestro-live-browser-screenshot
+          path: maestro-live.png
