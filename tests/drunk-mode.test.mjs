@@ -100,7 +100,7 @@ test("game HTML embeds the drunk module before Phaser startup",async()=>{
  const html=await response.text();
  assert.ok(html.includes("window.MaestroDrunkMode=DrunkMode"));
  assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
- assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=window.MaestroDrunkMode"));
+ assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=drunkControllerAvailable"));
  assert.ok(html.includes('game running with sober fallback'));
  const begin=html.indexOf("<script>const DRUNK_DEFAULTS=");
  const finish=html.indexOf("</script>",begin);
@@ -114,9 +114,12 @@ test("game HTML embeds the drunk module before Phaser startup",async()=>{
 test("single-player HUD has beer simulation controls and inventory explains five sips",async()=>{
  const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
  const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
- assert.ok(worker.includes('get("mode")==="single"){\n const hud=document.getElementById("hud")'));
+ assert.ok(worker.includes('const testMode=new URL(location.href).searchParams.get("mode")==="single"'));
  assert.ok(worker.includes('test.id="drunk-test-next"'));
- assert.ok(worker.includes('drunk.onBeerFinished("test-beer-"+(++drunkTestCounter))'));
+ assert.ok(worker.includes('drunk.onBeerFinished("test-beer-"+(++drunkTestCounter))')); 
+ assert.ok(worker.includes('test.addEventListener("click",()=>{')); 
+ assert.ok(worker.includes('const state=drunk.getState()')); 
+ assert.ok(worker.includes('drunk-test-feedback'));
  assert.ok(worker.includes('sober.id="drunk-test-sober"'));
  assert.ok(worker.includes('drunk.reset();drunkHud();'));
  assert.ok(client.includes('Drink sip "+(i.maxUnits-i.remainingUnits+1)+"/"+i.maxUnits'));
