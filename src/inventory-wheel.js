@@ -2,7 +2,7 @@
 export const INVENTORY_WHEEL_CSS = String.raw`
 #maestro-inventory-wheel{position:absolute;inset:0;z-index:35;display:none;align-items:center;justify-content:center;pointer-events:none;font:14px system-ui,Arial;color:#fff0cf}
 #maestro-inventory-wheel.open{display:flex}
-#maestro-inventory-wheel .wheel-backdrop{position:absolute;inset:0;background:radial-gradient(circle,#09150d29,#070e12a8);backdrop-filter:blur(2px);pointer-events:auto}
+#maestro-inventory-wheel .wheel-backdrop{position:absolute;inset:0;background:radial-gradient(circle,#09150d29,#070e12a8);backdrop-filter:blur(2px);pointer-events:none}
 #maestro-inventory-wheel .wheel-wrap{position:relative;width:min(420px,88vw,65dvh);height:min(420px,88vw,65dvh);pointer-events:none;animation:wheel-pop .16s cubic-bezier(.2,.9,.25,1)}
 #maestro-inventory-wheel .wheel-disk{position:absolute;inset:9%;border-radius:50%;border:3px solid #d6a765;background:radial-gradient(circle,#1e3024 0 25%,#233d30ee 26% 49%,#15241feb 64%,#583b20ed 78%,#bb9149 82%,#17241c 84%);box-shadow:0 12px 70px #000d,inset 0 0 0 7px #152116,0 0 0 1px #f8d59f66;pointer-events:none}
 #maestro-inventory-wheel .wheel-center{position:absolute;inset:36%;display:flex;flex-direction:column;gap:2px;align-items:center;justify-content:center;text-align:center;border-radius:50%;background:#15271ef2;border:2px solid #dabb78;box-shadow:0 2px 18px #000a;pointer-events:none;z-index:2}
