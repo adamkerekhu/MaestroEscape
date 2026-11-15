@@ -2,6 +2,8 @@ import { ConsumableRoom } from "./consumables.js";
 import { CONSUMABLE_CLIENT_SCRIPT } from "./consumables-client.js";
 import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 import { DRUNK_MODE_CLIENT_SCRIPT } from "./drunk-mode.js";
+import { PUB_MENU, PUB_TABLES } from "./pub-menu-data.js";
+import { PUB_ORDERS_CLIENT_SCRIPT } from "./pub-orders-client.js";
 export { ConsumableRoom };
 // MaestroEscape: single-player browser exploration using the uploaded game's TMX,
 // map artwork, collision objects, and character animation frames.
@@ -2029,6 +2031,10 @@ export default {
     {headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
+  if(url.pathname==="/api/pub/menu" && request.method==="GET")return Response.json(PUB_MENU,{headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/api/pub/status")return Response.json({ok:true,real_orders_enabled:false,reason:"Production table sessions, staff access and approved terms not configured"},{headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/api/pub/orders" && request.method==="POST")return Response.json({ok:false,error:"Real orders are not enabled",code:"PUB_ORDERS_DISABLED"},{status:503,headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/assets/pub-orders.js")return new Response(PUB_ORDERS_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/consumables"){
@@ -2120,7 +2126,7 @@ export default {
   }
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
-  return new Response(HTML.replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
+  return new Response(HTML.replace("</body>",'<script src="/assets/pub-orders.js"></script></body>').replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
     ,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
