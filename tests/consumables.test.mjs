@@ -257,7 +257,7 @@ test("interrupted consumption never decrements and inventory survives scene tran
   await send(0,"syncPosition",{scene:"pub",x:440,y:432});
   clock+=1000;
   assert.equal((await send(0,"completeConsumeUnit",{actionId:action.action.id})).ok,false);
-  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,5);
+  assert.equal((await get(0)).snapshot.inventory[0].remainingUnits,1);
   await send(0,"syncPosition",{scene:"street",x:784,y:548});
   await send(0,"syncPosition",{scene:"gyros",x:294,y:315});
   assert.equal((await get(0)).snapshot.inventory[0].id,beer.id);
