@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {HIDE_POINT_DEFS,HIDE_RUNTIME_SCRIPT} from "../src/hide-peek.js";
+import {CASINO_SIZE,CASINO_SPAWN,CASINO_EXIT,CASINO_WALLS,CASINO_HOTSPOTS} from "../src/casino-map.js";
 import {HIDE_EDITOR_CSS,HIDE_EDITOR_HTML,HIDE_EDITOR_SCRIPT} from "../src/hide-editor.js";
 import {TRANSITION_EDITOR_CSS,TRANSITION_EDITOR_HTML,TRANSITION_EDITOR_SCRIPT} from "../src/transition-editor.js";
 import {INTERACTION_EDITOR_CSS,INTERACTION_EDITOR_HTML,INTERACTION_EDITOR_SCRIPT} from "../src/interaction-editor.js";
@@ -91,8 +92,8 @@ test("Real Settings and game templates generate syntactically valid inline scrip
  assert.match(settings,/id="hide-map"/);
  new Function(settings.split("<script>")[1].split("</script>")[0]);
  const h0=worker.indexOf("const HTML = String.raw\`"),h1=worker.indexOf("\`;",h0+30);
- const makeGame=new Function("HIDE_POINT_DEFS","HIDE_RUNTIME_SCRIPT",worker.slice(h0,h1+2)+"\nreturn HTML;");
- const html=makeGame(HIDE_POINT_DEFS,HIDE_RUNTIME_SCRIPT);
+ const makeGame=new Function("HIDE_POINT_DEFS","HIDE_RUNTIME_SCRIPT","CASINO_SIZE","CASINO_SPAWN","CASINO_EXIT","CASINO_WALLS","CASINO_HOTSPOTS",worker.slice(h0,h1+2)+"\nreturn HTML;");
+ const html=makeGame(HIDE_POINT_DEFS,HIDE_RUNTIME_SCRIPT,CASINO_SIZE,CASINO_SPAWN,CASINO_EXIT,CASINO_WALLS,CASINO_HOTSPOTS);
  const inlines=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
  assert.ok(inlines.length>=3);
  for(const code of inlines)new Function(code.replace("__MAESTRO_DEFAULT_SETTINGS__","{}"));
