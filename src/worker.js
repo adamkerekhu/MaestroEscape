@@ -2046,7 +2046,36 @@ export default {
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
   if(url.pathname==="/api/pub/menu" && request.method==="GET")return Response.json(PUB_MENU,{headers:{"cache-control":"no-store"}});
-  if(url.pathname==="/api/pub/status")return Response.json({ok:true,real_orders_enabled:false,reason:"Production table sessions, staff access and approved terms not configured"},{headers:{"cache-control":"no-store"}});
+  // Dedicated MaestroEscape Stripe TEST payments (Takkershop checkout stays untouched).
+  const maestroCheckoutUrl="https://djesmhxablodlzqfzqfa.supabase.co/functions/v1/maestroescape-pub-checkout";
+  const maestroKey="sb_publishable_xcBa6fYyuclsRxWCF_BJ6g_XeHUThv6";
+  if(url.pathname==="/api/pub/status"){
+   try{
+    const r=await fetch(maestroCheckoutUrl+"/health",{headers:{"apikey":maestroKey}});
+    const response=await r.json();
+    return Response.json({ok:r.ok&&response.ok===true,payment_mode:"test",stripe_test_enabled:response.test_key_configured===true,real_orders_enabled:false,fulfillment_enabled:false},{status:r.ok?200:503,headers:{"cache-control":"no-store"}});
+   }catch(error){console.error("Maestro pub payment health failed",String(error));return Response.json({ok:false,payment_mode:"test",stripe_test_enabled:false,real_orders_enabled:false},{status:503})}
+  }
+  if(url.pathname==="/api/pub/checkout"||url.pathname==="/api/pub/payment-status"){
+   if(request.method!=="POST")return Response.json({ok:false,error:"Method not allowed"},{status:405});
+   if(!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid request origin"},{status:403});
+   const account=await accountFromRequest(request);
+   if(!account.user)return Response.json({ok:false,error:"Sign in before paying",code:"LOGIN_REQUIRED"},{status:401,headers:{"cache-control":"no-store"}});
+   let raw;try{raw=await request.text();if(raw.length>12000)return Response.json({ok:false,error:"Request too large"},{status:413})}catch{return Response.json({ok:false,error:"Invalid request"},{status:400})}
+   let payload;try{payload=JSON.parse(raw)}catch{return Response.json({ok:false,error:"Invalid JSON"},{status:400})}
+   const cookie=(request.headers.get("cookie")||"").split(";").map(x=>x.trim()).find(x=>x.startsWith("maestro_account="));
+   const token=cookie?cookie.slice("maestro_account=".length):"";
+   if(!/^[A-Za-z0-9_-]{43}$/.test(token))return Response.json({ok:false,error:"Authentication required"},{status:401});
+   const op=url.pathname.endsWith("checkout")?"checkout":"status";
+   try{
+    const upstream=await fetch(maestroCheckoutUrl,{method:"POST",headers:{"apikey":maestroKey,"content-type":"application/json","x-forwarded-for":request.headers.get("cf-connecting-ip")||"unknown"},body:JSON.stringify({...payload,op,token})});
+    const type=upstream.headers.get("content-type")||"";
+    if(!type.includes("application/json"))throw Error("Non-JSON checkout response");
+    const data=await upstream.json();
+    return Response.json(data,{status:upstream.status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
+   }catch(error){console.error("Maestro pub Stripe proxy failed",String(error));return Response.json({ok:false,error:"Stripe test checkout unavailable",code:"PAYMENT_BACKEND_ERROR"},{status:503})}
+  }
+
   if(url.pathname==="/api/pub/orders" && request.method==="POST")return Response.json({ok:false,error:"Real orders are not enabled",code:"PUB_ORDERS_DISABLED"},{status:503,headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/inventory-wheel.js")return new Response(INVENTORY_WHEEL_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/inventory-wheel.css")return new Response(INVENTORY_WHEEL_CSS,{headers:{"content-type":"text/css; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
