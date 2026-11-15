@@ -4,6 +4,7 @@ import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 import { DRUNK_MODE_CLIENT_SCRIPT } from "./drunk-mode.js";
 import { PUB_MENU, PUB_TABLES } from "./pub-menu-data.js";
 import { PUB_ORDERS_CLIENT_SCRIPT } from "./pub-orders-client.js";
+import { PUB_HUD_SCRIPT, PUB_HUD_CSS } from "./pub-hud.js";
 import { mutationOriginAllowed } from "./admin-auth.js";
 import { MaestroAccounts } from "./accounts.js";
 import { ACCOUNT_PAGE, ACCOUNT_HOME } from "./account-pages.js";
@@ -2046,6 +2047,8 @@ export default {
   if(url.pathname==="/api/pub/menu" && request.method==="GET")return Response.json(PUB_MENU,{headers:{"cache-control":"no-store"}});
   if(url.pathname==="/api/pub/status")return Response.json({ok:true,real_orders_enabled:false,reason:"Production table sessions, staff access and approved terms not configured"},{headers:{"cache-control":"no-store"}});
   if(url.pathname==="/api/pub/orders" && request.method==="POST")return Response.json({ok:false,error:"Real orders are not enabled",code:"PUB_ORDERS_DISABLED"},{status:503,headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/assets/pub-hud.js")return new Response(PUB_HUD_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
+  if(url.pathname==="/assets/pub-hud.css")return new Response(PUB_HUD_CSS,{headers:{"content-type":"text/css; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/pub-orders.js")return new Response(PUB_ORDERS_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
@@ -2137,7 +2140,7 @@ export default {
   }
   if(url.pathname.startsWith("/api/"))
    return Response.json({ok:false,error:"Unknown MaestroEscape API endpoint: "+url.pathname,code:"API_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store","x-maestro-api":"room-v2"}});
-  return new Response(HTML.replace("</body>",'<script src="/assets/pub-orders.js"></script></body>').replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
+  return new Response(HTML.replace("</head>",'<link rel="stylesheet" href="/assets/pub-hud.css"></head>').replace("</body>",'<script src="/assets/pub-hud.js"></script><script src="/assets/pub-orders.js"></script></body>').replace("__MAESTRO_DEFAULT_SETTINGS__",JSON.stringify(SETTINGS_DEFAULTS))
     ,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
  }
 };
