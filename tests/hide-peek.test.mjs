@@ -73,7 +73,7 @@ test("Settings editor supports canvas, exit point, tuck point, radius, enable an
 test("Game's normal E handler, UI prompt, movement and room transitions use Hide controller",()=>{
  assert.match(worker,/hideController\?\.state==="HIDDEN"/);
  assert.match(worker,/hideController\?\.prompt\(\)/);
- assert.match(worker,/hideController\?\.enter\(\)/);
+ assert.match(worker,/hideController\.enter\(\)/);
  assert.match(worker,/hideController&&hideController\.state!=="NORMAL"/);
  assert.match(worker,/hideController\?\.reset\(\)/);
  assert.match(worker,/new MaestroHideController\(this,character,player,cfg,intersects/);
