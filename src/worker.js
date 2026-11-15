@@ -386,7 +386,7 @@ const SETTINGS_HTML=String.raw`<!doctype html><html lang="en"><head><meta charse
 const HTML = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Maestro Escape | Explore</title>
-<meta name="maestro-build" content="drunk-startup-diagnostics-20261115">
+<meta name="maestro-build" content="drunk-safe-loader-20261115">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#10151f;color:#f6f3ea;font:15px system-ui,Arial}
 header{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 20px;max-width:1360px;margin:auto}
@@ -440,7 +440,7 @@ a.settings-nav{border:1px solid #59677c;background:#273448;color:white;padding:7
 </div></div>
 <div id="instructions"><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk / W accelerate, S brake/reverse, A/D steer &nbsp; <kbd>E</kbd> enter/exit cars and bikes &nbsp; <kbd>SHIFT</kbd> sprint on foot &nbsp; <kbd>R</kbd> respawn</div><span id="msg">Walk to Maestro Pub and press E to enter. E at the interior exit returns outside.</span></div>
 <script>
-window.__MAESTRO_BUILD__="drunk-startup-diagnostics-20261115";
+window.__MAESTRO_BUILD__="drunk-safe-loader-20261115";
 window.addEventListener("error",function(event){
  const splash=document.getElementById("splash");
  const filename=event.filename?event.filename.split("/").pop().slice(0,90):"inline script";
@@ -1893,7 +1893,7 @@ export default {
   if(url.pathname==="/assets/local-room.js")
    return new Response(LOCAL_ROOM_SOURCE,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/build")
-   return Response.json({build:"drunk-startup-diagnostics-20261115",drunkControllerBundled:true},
+   return Response.json({build:"drunk-safe-loader-20261115",drunkControllerBundled:true},
     {headers:{"cache-control":"no-store"}});
   if(url.pathname==="/assets/drunk-mode.js")
    return new Response(DRUNK_MODE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
