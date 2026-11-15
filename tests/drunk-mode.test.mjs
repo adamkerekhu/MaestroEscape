@@ -102,12 +102,17 @@ test("game HTML embeds the drunk module before Phaser startup",async()=>{
  assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
  assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=drunkControllerAvailable"));
  assert.ok(html.includes('game running with sober fallback'));
- const begin=html.indexOf("<script>const DRUNK_DEFAULTS=");
- const finish=html.indexOf("</script>",begin);
- const embedded=begin>=0&&finish>begin?html.slice(begin+"<script>".length,finish):null;
- assert.ok(embedded,"Drunk controller is embedded in an executable script tag");
+ const begin=html.indexOf("<script>\\nconst DRUNK_DEFAULTS=".replace("\\\\n","\\n"));
+ const start=begin>=0?begin+"<script>".length:-1;
+ const finish=start>=0?html.indexOf("</script>",start):-1;
+ const embedded=start>=0&&finish>start?html.slice(start,finish):null;
+ assert.ok(embedded,"Drunk controller is embedded in the SAME script block as the game");
+ assert.ok(embedded.includes("const drunk=drunkControllerAvailable"),"Game initializes from the locally declared class");
+ assert.equal((embedded.match(/class DrunkMode/g)||[]).length,1);
+ new Function(embedded);
+ const controllerSource=embedded.slice(0,embedded.indexOf("(function(){"));
  const window={};
- new Function("window",embedded)(window);
+ new Function("window",controllerSource)(window);
  assert.equal(typeof window.MaestroDrunkMode,"function");
 });
 
