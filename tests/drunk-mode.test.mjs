@@ -117,7 +117,7 @@ test("rendered game defines native drunk class in same script, without loader de
  assert.equal(controller.level,1);
 });
 
-test("single-player HUD has beer simulation controls and inventory explains five sips",async()=>{
+test("single-player HUD has beer simulation controls and inventory uses one whole beer",async()=>{
  const worker=readFileSync(new URL("../src/worker.js",import.meta.url),"utf8");
  const {CONSUMABLE_CLIENT_SCRIPT:client}=await import("../src/consumables-client.js");
  assert.ok(worker.includes('const testMode=new URL(location.href).searchParams.get("mode")==="single"'));
@@ -128,7 +128,7 @@ test("single-player HUD has beer simulation controls and inventory explains five
  assert.ok(worker.includes('drunk-test-feedback'));
  assert.ok(worker.includes('sober.id="drunk-test-sober"'));
  assert.ok(worker.includes('drunk.reset();drunkHud();'));
- assert.ok(client.includes('Drink sip "+(i.maxUnits-i.remainingUnits+1)+"/"+i.maxUnits'));
+ assert.ok(client.includes("Drink entire beer"));
  assert.ok(client.includes('this.ctx.onBeerFinished(event.id)'));
  const d=new DrunkMode();
  for(let i=0;i<3;i++)d.onBeerFinished("test-beer-"+i);
@@ -155,7 +155,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const version=await worker.fetch(new Request("https://maestroescape.test/api/build"),{});
  assert.equal(version.status,200);
  const build=await version.json();
- assert.equal(build.build,"drunk-ghost-overlay-20261115");
+ assert.equal(build.build,"single-player-only-20261115");
  assert.equal(build.drunkControllerBundled,true);
 });
 
@@ -165,7 +165,7 @@ test("double-vision uses active-map duplicate only and respects levels, pauses, 
  const html=await response.text();
  assert.ok(html.includes('updateDrunkGhost(delta,'));
  assert.ok(html.includes('drunkGhostLayers=[]'));
- assert.ok(html.includes('for(const original of [streetImage,interiorImage,basementImage,...Object.values(SHOPS).map(shop=>shop.image)]'));
+ assert.ok(html.includes('for(const original of [streetImage,interiorImage,basementImage,casinoImage,...Object.values(SHOPS).map(shop=>shop.image)]'));
  assert.ok(html.includes('const show=!!(original.active&&original.visible&&drunkGhostAlpha>.002&&active)'));
  assert.ok(html.includes('ghost.setVisible(show)'));
  assert.ok(html.includes('ghost.setPosition(original.x+driftX,original.y+driftY)'));
