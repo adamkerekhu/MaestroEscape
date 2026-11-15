@@ -102,7 +102,7 @@ test("game HTML embeds the drunk module before Phaser startup",async()=>{
  assert.ok(!html.includes("__DRUNK_MODE_SCRIPT__"));
  assert.ok(html.indexOf("window.MaestroDrunkMode=DrunkMode")<html.indexOf("const drunk=drunkControllerAvailable"));
  assert.ok(html.includes('game running with sober fallback'));
- const begin=html.indexOf("<script>\\nconst DRUNK_DEFAULTS=".replace("\\\\n","\\n"));
+ const begin=html.indexOf("<script>"+String.fromCharCode(10)+"const DRUNK_DEFAULTS=");
  const start=begin>=0?begin+"<script>".length:-1;
  const finish=start>=0?html.indexOf("</script>",start):-1;
  const embedded=start>=0&&finish>start?html.slice(start,finish):null;
