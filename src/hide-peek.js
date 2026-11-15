@@ -36,7 +36,7 @@ export const HIDE_POINT_DEFS=[
     "roomId": "pub",
     "type": "table",
     "label": "Upper table",
-    "x": 870,
+    "x": 900,
     "y": 280,
     "enabled": 1,
     "peekSide": "left"
@@ -148,7 +148,8 @@ class MaestroHideController {
  setFlags(hidden){this.player.isHidden=hidden;this.player.visibilityFactor=hidden?Math.max(.03,Math.min(.15,this.cfg("hide.visiblePercent")/100)):1}
  clearTimer(){if(this.timer){this.timer.remove(false);this.timer=null}}
  reset(){
-  this.clearTimer();this.state="NORMAL";this.current=null;this.cachedPoint=null;
+  this.clearTimer();this.scene.tweens.killTweensOf(this.character);
+  this.state="NORMAL";this.current=null;this.cachedPoint=null;this.savedPosition=null;
   if(this.character?.active){this.character.clearMask();this.character.setAlpha(1)}
   this.graphics?.clear();this.setFlags(false);
  }
@@ -156,23 +157,39 @@ class MaestroHideController {
   if(this.state!=="NORMAL"||!this.cfg("hide.enabled"))return false;
   const point=this.nearest();if(!point)return false;
   if(!this.character?.active||!this.character.visible)return false;
-  // No movement or teleporting across furniture; the current walkable position is retained.
   if(this.collides(this.player.x,this.player.y))return false;
+  const start={x:this.player.x,y:this.player.y};
+  const target={x:point.hideX,y:point.hideY};
+  const distance=Math.hypot(start.x-target.x,start.y-target.y);
+  // Slide only along a fully walkable line, at most the configured interaction radius.
+  // Never leap through furniture, walls, counters or other players.
+  if(distance>Math.max(12,point.interactionRadius||this.cfg("hide.radius")))return false;
+  const steps=Math.max(1,Math.ceil(distance/5));
+  for(let n=1;n<=steps;n++){
+   const x=start.x+(target.x-start.x)*n/steps,y=start.y+(target.y-start.y)*n/steps;
+   if(this.collides(x,y))return false;
+  }
+  this.savedPosition=start;
   this.current=point;this.lastRoom=this.getRoom();this.state="ENTERING_HIDE";
   this.character.anims?.stop();this.setFlags(true);
   this.refreshMask();
   const duration=Math.max(100,Math.min(500,this.cfg("hide.animationMs")));
-  this.scene.tweens.add({targets:this.character,alpha:0.82,duration:Math.round(duration*.65),yoyo:true});
+  this.scene.tweens.add({targets:this.character,x:target.x,y:target.y,duration,ease:"Sine.easeInOut",
+   onUpdate:()=>this.refreshMask()});
   this.timer=this.scene.time.delayedCall(duration,()=>{
-   this.timer=null;if(this.state==="ENTERING_HIDE"){this.state="HIDDEN";this.character.setAlpha(1);this.refreshMask()}
+   this.timer=null;if(this.state==="ENTERING_HIDE"){
+    this.player.x=target.x;this.player.y=target.y;
+    this.character.setPosition(target.x,target.y);
+    this.state="HIDDEN";this.character.setAlpha(1);this.refreshMask();
+   }
   });
   return true;
  }
  safeExit(){
   const p=this.current;if(!p)return null;
   const desired={x:p.exitX,y:p.exitY};
-  const original={x:this.player.x,y:this.player.y};
-  // Original position is always preferred because hiding never moves the player.
+  const original=this.savedPosition||{x:this.player.x,y:this.player.y};
+  // Return to the original walkable approach after the crouching animation.
   if(!this.collides(original.x,original.y))return original;
   if(!this.collides(desired.x,desired.y)&&Math.hypot(desired.x-original.x,desired.y-original.y)<65)return desired;
   for(let radius=8;radius<=65;radius+=8)for(let a=0;a<Math.PI*2;a+=Math.PI/8){
@@ -186,9 +203,10 @@ class MaestroHideController {
   const safe=this.safeExit();if(!safe)return false;
   this.state="EXITING_HIDE";
   const duration=Math.max(100,Math.min(500,this.cfg("hide.animationMs")));
+  this.scene.tweens.add({targets:this.character,x:safe.x,y:safe.y,duration,ease:"Sine.easeInOut",
+   onUpdate:()=>this.refreshMask()});
   this.timer=this.scene.time.delayedCall(duration,()=>{
-   this.timer=null;
-   if(this.state!=="EXITING_HIDE")return;
+   this.timer=null;if(this.state!=="EXITING_HIDE")return;
    this.player.x=safe.x;this.player.y=safe.y;
    this.character.setPosition(safe.x,safe.y);this.reset();
   });
