@@ -1121,6 +1121,7 @@ const tramRunMs=()=>Math.max(1000,Math.min(cfg("tram.travelTime")*1000,tramPerio
 const tramFirstLegRatio=Math.hypot(TRAM_STOP.x-TRAM_START.x,TRAM_STOP.y-TRAM_START.y)/Math.hypot(TRAM_END.x-TRAM_START.x,TRAM_END.y-TRAM_START.y);
 const TRAM_ANGLE=Math.atan2(TRAM_END.x-TRAM_START.x,-(TRAM_END.y-TRAM_START.y));
 let riderSprite=null;
+let hideController=null;
 let player={x:SPAWN.x,y:SPAWN.y,face:"down"},mapSize={w:1600,h:992},obstacles=[],scene,character,keys,labels=[],toastUntil=0,moving=false,assetFailed=false;
 const touchInput={x:0,y:0};
 const joystick=document.getElementById("joystick"),knob=document.getElementById("joystick-knob");
@@ -1281,6 +1282,9 @@ async function npcChooseAction(entity,action){
  // A new order or pickup may change which actions are available.
 }
 function npcUpdatePrompt(){
+ if(hideController?.isHidden){
+  npcPrompt.textContent="E · Exit hiding";npcPrompt.hidden=false;return;
+ }
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
  const pickup=gameplay?.prompt();
  if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
@@ -1289,6 +1293,11 @@ function npcUpdatePrompt(){
  }
  if(pubBasementStairsNear()){
   npcPrompt.textContent="E · Go downstairs";npcPrompt.hidden=false;return;
+ }
+ // Pickup and staircase interactions remain higher priority than hiding.
+ if(!activeVehicle&&!gameplay?.occupied&&!gameplay?.state?.action&&!gameplay?.scratchOpen){
+  const hideText=hideController?.prompt();
+  if(hideText){npcPrompt.textContent=hideText;npcPrompt.hidden=false;return;}
  }
  if(!insidePub&&gameplay?.occupied){
   npcPrompt.textContent="E · Exit vehicle";npcPrompt.hidden=false;return;
@@ -1351,6 +1360,7 @@ function transitionArrival(id,fallback){
  return safe(fallback.x,fallback.y)?fallback:{x,y};
 }
 function enterBasement(){
+ hideController?.reset();
  npcCloseDialogue();
  if(!insidePub||activeShop||insideBasement)return;
  if(!basementImage){show("Cannot enter basement: map image is missing from GitHub (Assets/Maps/maestro_basement.webp).");return;}
@@ -1369,6 +1379,7 @@ function enterBasement(){
  show("Basement: walk to the staircase and press E to go upstairs.");
 }
 function leaveBasement(){
+ hideController?.reset();
  npcCloseDialogue();
  if(!insideBasement)return;
  insideBasement=false;mapSize={...INTERIOR_SIZE};
@@ -1383,6 +1394,7 @@ function leaveBasement(){
  show("Back on the ground floor.");
 }
 function enterShop(shop){
+ hideController?.reset();
  npcCloseDialogue();
  if(!shop.image){show(shop.label+" map is loading. Please try again.");return;}
  if(activeVehicle){show("Exit the vehicle first.");return;}
@@ -1402,6 +1414,7 @@ function enterShop(shop){
  show("Inside "+shop.label+". Press E near the entrance to exit.");
 }
 function enterPub(){
+ hideController?.reset();
  npcCloseDialogue();
  if(!interiorImage){show("Interior map could not be loaded.");return;}
  if(activeVehicle){show("Exit the vehicle first.");return;}
@@ -1422,6 +1435,7 @@ function enterPub(){
  show("You're inside! Walk around. Press E near the bottom-left exit to leave.");
 }
 function leavePub(){
+ hideController?.reset();
  npcCloseDialogue();
  insidePub=false;insideBasement=false;activeShop=null;basementImage?.setVisible(false);character.setScale(cfg("character.streetScale"));mapSize={w:1600,h:992};
  for(const shop of Object.values(SHOPS))if(shop.image)shop.image.setVisible(false);
@@ -1645,6 +1659,8 @@ class VehicleController {
  }
 }
 function interact(){
+ if(hideController?.state==="HIDDEN"){if(!hideController.exit())show("No safe place to emerge.");return;}
+ if(hideController&&hideController.state!=="NORMAL")return;
  if(gameplay?.isDead()||gameplay?.scratchOpen)return;
  if(gameplay&&!gameplay.hasCharacter())return;
  if(vehicleSeatPanel){vehicleSeatPanel.remove();vehicleSeatPanel=null;return;}
@@ -1667,6 +1683,7 @@ function interact(){
   const exitId=activeShop?shopInteractionId(activeShop,"exit"):"pub_exit";
   const exit=activeShop?activeShop.exit:INTERIOR_EXIT;
   if(interactionNear(exitId,exit,96))leavePub();
+  else if(!gameplay?.state?.action&&hideController?.enter()){show("Hidden. Press E to emerge.");return;}
   else if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
   else if(gameplay?.tableInteract())return;
   else show("Return to the entrance and press E to exit.");
@@ -1674,6 +1691,7 @@ function interact(){
  }
  if(activeVehicle || registeredVehicles().some(v=>v.sprite&&near(player,v.model.x,v.model.y,cfg("game.vehicleRadius")))){void enterOrExitCar();return;}
  if(gameplay?.nearbyPlayers().length){gameplay.openMenu("inventory");return;}
+ if(!gameplay?.state?.action&&!activeVehicle&&hideController?.enter()){show("Hidden. Press E to emerge.");return;}
  if(interactionNear("street_pub",PUB_DOOR,cfg("game.interactRadius"))){enterPub();return;}
  for(const shop of Object.values(SHOPS))if(interactionNear("street_"+Object.keys(SHOPS).find(key=>SHOPS[key]===shop),shop.door,cfg("game.interactRadius"))){enterShop(shop);return;}const nearest=locs.reduce((best,v)=>Math.hypot(player.x-v.x,player.y-v.y)<Math.hypot(player.x-best.x,player.y-best.y)?v:best,locs[0]);if(!near(player,nearest.x,nearest.y)){show("Get closer to an interaction marker.");return;}
  nearest.done=true;show(nearest.info);status.textContent="Interacted with "+nearest.name;
@@ -1780,6 +1798,9 @@ class Explore extends Phaser.Scene{
    character=this.add.sprite(player.x,player.y,"maestro",0).setDepth(5);
    character.setScale(cfg("character.streetScale"));character.setOrigin(0.5,1.0);
    character.setVisible(false); // Lobby requires a character selection before joining.
+   hideController?.shutdown();
+   hideController=new MaestroHideController(this,character,player,cfg,intersects,()=>npcInteriorKey()||"street");
+   this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{hideController?.shutdown();hideController=null});
    riderSprite=this.textures.exists("bubi-rider")?this.add.sprite(0,0,"bubi-rider",0).setDepth(8).setOrigin(.5).setVisible(false):null;
    if(!this.textures.exists("skoda")){
      // Render an obvious, interactable placeholder if the remote image fails.
@@ -1851,6 +1872,7 @@ class Explore extends Phaser.Scene{
    loadOriginalCollision().then(()=>{this.respawn();if(!gameplay?.hasCharacter())character.setVisible(false)});
  }
  respawn(){
+   hideController?.reset();
    if(gameplay?.isDead())return;
    // Respawning a character is local. Never reset the multiplayer room or destroy lottery prizes.
    this.hasSpawned=true;
@@ -1902,6 +1924,7 @@ class Explore extends Phaser.Scene{
    }
    renderTramGraves();
    if(gameplay?.isDead()){
+    hideController?.reset();
     const remaining=Math.max(0,gameplay.state.deadUntil-Date.now());
     if(tramDeathOverlay)tramDeathOverlay.textContent="🪦 RIP · Respawning in "+Math.ceil(remaining/1000)+"s";
     moving=false;return;
@@ -1913,7 +1936,11 @@ class Explore extends Phaser.Scene{
     if((phase<leg1||phase>=departure&&phase<finish)&&tramOverlapsPlayer(tramSprite,player))
      void gameplay.reportTramCollision();
    }
+   hideController?.update();
    if(npcDialogue||gameplay?.menuOpen()){this.cameras.main.setRotation(0);moving=false;return;} // Freeze walking and camera distortion while menus are open.
+   if(hideController&&hideController.state!=="NORMAL"){
+    moving=false;character.anims.stop();return;
+   }
    let dx=Number(keys.D.isDown||keys.RIGHT.isDown)-Number(keys.A.isDown||keys.LEFT.isDown)+touchInput.x;
    let dy=Number(keys.S.isDown||keys.DOWN.isDown)-Number(keys.W.isDown||keys.UP.isDown)+touchInput.y;
    const distance=Math.hypot(dx,dy);
