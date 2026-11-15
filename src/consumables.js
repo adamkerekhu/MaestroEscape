@@ -4,7 +4,7 @@ export const CONSUMABLE_CONFIG={
  beer:{units:1,unitMs:1500},kebab:{units:1,unitMs:2000},
  cigarette:{units:1,unitMs:1500},cigarette_pack:{units:5,unitMs:0},
  orderBeerMs:3000,refillMs:2000,orderKebabMs:5000,borrowExpiryMs:8000,
- interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:2,maxCarrySmall:4,
+ interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:5,maxCarrySmall:5,maxPerItem:5,
  vendorPoints:{
   maestro_bartender:[{x:340,y:424},{x:395,y:424},{x:455,y:424},{x:522,y:424}],
   gyros_employee:[{x:294,y:310},{x:354,y:310},{x:411,y:310}],
@@ -212,7 +212,8 @@ const bad=(message,status=400)=>({ok:false,error:message,status});
 const ok=(data={})=>({ok:true,...data});
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const copy=x=>JSON.parse(JSON.stringify(x));
-const slots=item=>["beer","empty_glass","kebab"].includes(item.type)?[0,1]:[2,3,4,5];
+// Each item type can have five separate full items; slot numbers remain unique across the bag.
+const slots=item=>Array.from({length:40},(_,i)=>i);
 const locPos=location=>{
  if(location.kind==="table"){
   const t=C.pubTables.find(q=>q.id===location.tableId);
@@ -229,7 +230,9 @@ function fresh(settings={}){return {revision:0,players:{},items:[],scratchResult
 function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===token)}
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
- const item={type},candidate=slots(item),used=new Set(playerInventory(s,p).map(i=>i.location.slot));
+ const inventory=playerInventory(s,p);
+ if(inventory.filter(i=>i.type===type).length>=C.maxPerItem)return undefined;
+ const candidate=slots({type}),used=new Set(inventory.map(i=>i.location.slot));
  return candidate.find(n=>!used.has(n));
 }
 function vendorSpot(s,vendor,player){
@@ -440,7 +443,7 @@ function itemAccessible(p,item){
 }
 function transferCig(s,from,to){
  if(freeSlot(s,to,"cigarette")===undefined)return bad("Recipient's cigarette slots are full");
- const loose=playerInventory(s,from).find(i=>i.type==="cigarette"&&!i.lit&&i.remainingUnits===4);
+ const loose=playerInventory(s,from).find(i=>i.type==="cigarette"&&!i.lit&&i.remainingUnits>0);
  if(loose){loose.location={kind:"inventory",playerId:to.id,slot:freeSlot(s,to,"cigarette")};loose.revision++;return ok({itemId:loose.id})}
  const pack=playerInventory(s,from).find(i=>i.type==="cigarette_pack"&&i.remainingUnits>0);
  if(!pack)return bad("No cigarette to share");
