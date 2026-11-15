@@ -18,11 +18,11 @@ export const INTERACTION_EDITOR_HTML = String.raw`
 <h2>🚪 Doors and stairs · E interaction points</h2>
 <p>Drag a marker on the map to move where E opens a door or staircase. These are separate from player arrival positions. The ring shows how close a player must stand to interact.</p>
 <div class="interaction-controls">
-<label>Map <select id="interaction-scene"><option value="street">Mester utca</option><option value="pub">Maestro Pub</option><option value="basement">Basement</option><option value="spar">SPAR</option><option value="dohanybolt">Dohánybolt</option><option value="gyros">Mester Gyros</option></select></label>
+<label>Map <select id="interaction-scene"><option value="street">Mester utca</option><option value="pub">Maestro Pub</option><option value="basement">Basement</option><option value="casino">Underground Casino</option><option value="spar">SPAR</option><option value="dohanybolt">Dohánybolt</option><option value="gyros">Mester Gyros</option></select></label>
 <label>Point <select id="interaction-choice"></select></label>
 <label>X <input id="interaction-x" type="number" step="1"></label>
 <label>Y <input id="interaction-y" type="number" step="1"></label>
-<label>E radius <input id="interaction-radius" type="number" min="20" max="200" step="1"></label>
+<label>E radius <input id="interaction-radius" type="number" min="20" max="200" step="1"></label><label id="casino-manhole-toggle" style="display:none"><input id="casino-manhole-enabled" type="checkbox"> Enable street manhole</label>
 </div>
 <canvas id="interaction-map" width="1600" height="992" aria-label="Drag door and staircase interaction markers"></canvas>
 <div class="interaction-controls"><button id="interaction-reset" type="button">Reset selected point</button><button id="interaction-save" type="button" class="primary">Save interaction points</button></div>
@@ -36,18 +36,21 @@ export const INTERACTION_EDITOR_SCRIPT = String.raw`
   street:{w:1600,h:992,asset:"/assets/world.webp"},
   pub:{w:1448,h:1086,asset:"/assets/interior.webp"},
   basement:{w:1792,h:896,asset:"/assets/basement.webp"},
+  casino:{w:1696,h:960,asset:"/assets/casino.webp"},
   spar:{w:736,h:384,asset:"/assets/shop-spar.webp"},
   dohanybolt:{w:608,h:832,asset:"/assets/shop-dohanybolt.webp"},
   gyros:{w:768,h:480,asset:"/assets/shop-gyros.webp"}
  };
  const interactionDefs=[
   {id:"street_pub",scene:"street",label:"Enter Maestro Pub"},
+  {id:"street_casino",scene:"street",label:"Enter Casino · Manhole"},
   {id:"street_spar",scene:"street",label:"Enter SPAR"},
   {id:"street_dohanybolt",scene:"street",label:"Enter Dohánybolt"},
   {id:"street_gyros",scene:"street",label:"Enter Mester Gyros"},
   {id:"pub_exit",scene:"pub",label:"Exit Maestro Pub"},
   {id:"pub_downstairs",scene:"pub",label:"Go downstairs"},
   {id:"basement_upstairs",scene:"basement",label:"Go upstairs"},
+  {id:"casino_exit",scene:"casino",label:"Casino ladder · Return to Street"},
   {id:"spar_exit",scene:"spar",label:"Exit SPAR"},
   {id:"dohanybolt_exit",scene:"dohanybolt",label:"Exit Dohánybolt"},
   {id:"gyros_exit",scene:"gyros",label:"Exit Mester Gyros"}
@@ -56,6 +59,7 @@ export const INTERACTION_EDITOR_SCRIPT = String.raw`
  const interactionCanvas=document.getElementById("interaction-map"),interactionCtx=interactionCanvas.getContext("2d");
  const interactionX=document.getElementById("interaction-x"),interactionY=document.getElementById("interaction-y"),interactionRadius=document.getElementById("interaction-radius");
  const interactionStatus=document.getElementById("interaction-status"),interactionImages={};
+ const casinoEnabled=document.getElementById("casino-manhole-enabled"),casinoToggle=document.getElementById("casino-manhole-toggle");
  let interactionPointer=null;
  const interactionKey=(id,axis)=>"interaction."+id+"."+axis;
  const interactionSelected=()=>interactionDefs.find(p=>p.id===interactionChoice.value);
@@ -78,6 +82,8 @@ export const INTERACTION_EDITOR_SCRIPT = String.raw`
   const chosen=interactionSelected();if(!chosen)return;
   const pt=interactionPoint(chosen);interactionX.value=pt.x;interactionY.value=pt.y;interactionRadius.value=pt.r;
   interactionX.min=25;interactionX.max=map.w-25;interactionY.min=25;interactionY.max=map.h-25;
+  casinoToggle.style.display=chosen.id==="street_casino"?"flex":"none";
+  casinoEnabled.checked=!!values["casino.manhole.enabled"];
   interactionStatus.textContent=chosen.label+" · X "+pt.x+" · Y "+pt.y+" · E radius "+pt.r+" px. Drag or edit numbers, then save.";
  }
  function interactionLoadMap(){
@@ -115,6 +121,7 @@ export const INTERACTION_EDITOR_SCRIPT = String.raw`
  const interactionStop=()=>{if(interactionPointer===null)return;interactionPointer=null;store()};
  interactionCanvas.addEventListener("pointerup",interactionStop);interactionCanvas.addEventListener("pointercancel",interactionStop);interactionCanvas.addEventListener("lostpointercapture",interactionStop);
  interactionScene.addEventListener("change",interactionLoadMap);interactionChoice.addEventListener("change",interactionDraw);
+ casinoEnabled.addEventListener("change",()=>{values["casino.manhole.enabled"]=casinoEnabled.checked?1:0;interactionDraw();store()});
  for(const [control,axis] of [[interactionX,"x"],[interactionY,"y"],[interactionRadius,"radius"]])control.addEventListener("change",()=>{interactionSet(axis,control.value);interactionDraw();store()});
  document.getElementById("interaction-reset").onclick=()=>{
   const def=interactionSelected();for(const axis of ["x","y","radius"]){const key=interactionKey(def.id,axis);values[key]=defaults[key]}
