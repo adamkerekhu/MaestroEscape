@@ -2065,6 +2065,7 @@ export default {
    if(!user)return Response.redirect(url.origin+"/account/login",303);
    return new Response(ACCOUNT_HOME,{headers:accountHTML});
   }
+  if(url.pathname==="/api/account/status")return Response.json({ok:!!env?.ACCOUNTS_STORE,service:"MaestroEscape Accounts",version:"registration-json-guard-20261115",storageConfigured:!!env?.ACCOUNTS_STORE,registrationEnabled:!!env?.ACCOUNTS_STORE},{status:env?.ACCOUNTS_STORE?200:503,headers:{"cache-control":"no-store","x-maestro-api":"accounts-v1","x-content-type-options":"nosniff"}});
   if(url.pathname==="/api/account/me"){
    const user=await accountAuth();
    if(!user)return Response.json({ok:false,error:"Not authenticated"},{status:401,headers:{"cache-control":"no-store"}});
