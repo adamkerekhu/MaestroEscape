@@ -112,6 +112,53 @@ jobs:
             console.log('CASINO_AFTER_SAME_TAB_SETTINGS_EDIT',JSON.stringify(refreshed));
             if(!refreshed.casino)throw Error('Casino entry did not use modified saved settings');
             await staleContext.close();
+            // End-to-end casino bar interaction: existing pub ordering engine must work in casino.
+            const beerContext=await browser.newContext({viewport:{width:1440,height:900}});
+            await beerContext.addInitScript(()=>{
+              localStorage.setItem('maestroescape.gameSettings.v1',JSON.stringify({
+                'casino.manhole.enabled':1,'interaction.street_casino.x':859,'interaction.street_casino.y':577,
+                'interaction.street_casino.radius':100,'transition.casino.x':715,'transition.casino.y':301,
+                'interaction.casino_exit.x':711,'interaction.casino_exit.y':265,'interaction.casino_exit.radius':75
+              }));
+            });
+            const beerPage=await beerContext.newPage();
+            const beerErrors=[];
+            beerPage.on('pageerror',e=>beerErrors.push(e.message));
+            await beerPage.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-casino-beer-smoke',{waitUntil:'domcontentloaded',timeout:30000});
+            await beerPage.waitForTimeout(5000);
+            await beerPage.keyboard.press('e');
+            await beerPage.waitForTimeout(500);
+            await beerPage.keyboard.down('s');
+            await beerPage.waitForTimeout(750);
+            await beerPage.keyboard.up('s');
+            await beerPage.keyboard.down('a');
+            await beerPage.waitForTimeout(1680);
+            await beerPage.keyboard.up('a');
+            await beerPage.waitForTimeout(200);
+            const bar=await beerPage.evaluate(()=>{
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const objects=scene?.children?.list||[];
+              const player=objects.filter(o=>o.texture?.key==='maestro'&&o.visible)[0];
+              const npc=objects.filter(o=>o.getData?.('npcId')==='casino_bartender')[0];
+              return {player:player&&{x:player.x,y:player.y},npc:npc&&{x:npc.x,y:npc.y,visible:npc.visible},
+                prompt:document.querySelector('#npc-prompt')?.textContent};
+            });
+            console.log('CASINO_BAR_APPROACH',JSON.stringify(bar));
+            if(!bar.npc?.visible)throw Error('Casino bartender is not visible');
+            if(!bar.prompt?.includes('Casino Bartender'))throw Error('Casino bartender interaction prompt missing: '+JSON.stringify(bar));
+            await beerPage.keyboard.press('e');
+            await beerPage.waitForTimeout(400);
+            const dialog=beerPage.locator('#npc-dialogue');
+            if(await dialog.isHidden())throw Error('E failed to open casino bartender dialogue');
+            await dialog.getByRole('button',{name:'Order beer'}).click();
+            await beerPage.waitForTimeout(450);
+            const message=await beerPage.locator('#npc-dialogue-message').textContent();
+            console.log('CASINO_BEER_ORDER',message,'ERRORS',JSON.stringify(beerErrors));
+            if(!/preparing|order|beer/i.test(message||'')||/cannot|unavailable|wrong|move closer|error/i.test(message||''))
+              throw Error('Casino beer order did not succeed: '+message);
+            await beerContext.close();
+            console.log('PASS: Casino bartender sells beer through existing room engine');
+
           }finally{await browser.close()}
           JS
       - uses: actions/upload-artifact@v4
