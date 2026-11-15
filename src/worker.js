@@ -66,8 +66,8 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
  }
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
- const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
- const npcAreas={"pub":{"w":1448,"h":1086,"asset":"/assets/interior.webp"},"spar":{"w":736,"h":384,"asset":"/assets/shop-spar.webp"},"dohanybolt":{"w":608,"h":832,"asset":"/assets/shop-dohanybolt.webp"},"gyros":{"w":768,"h":480,"asset":"/assets/shop-gyros.webp"}};
+ const npcMetadata=[{"id":"maestro_bartender","name":"Bartender","interior":"pub","role":"worker"},{"id":"casino_bartender","name":"Casino Bartender","interior":"casino","role":"worker"},{"id":"maestro_regular_1","name":"Pub Regular 1","interior":"pub","role":"civilian"},{"id":"maestro_regular_2","name":"Pub Regular 2","interior":"pub","role":"civilian"},{"id":"maestro_regular_3","name":"Pub Regular 3","interior":"pub","role":"civilian"},{"id":"spar_cashier","name":"SPAR Cashier","interior":"spar","role":"worker"},{"id":"spar_shopper_1","name":"Shopper 1","interior":"spar","role":"civilian"},{"id":"spar_shopper_2","name":"Shopper 2","interior":"spar","role":"civilian"},{"id":"tobacco_cashier","name":"Tobacco Cashier","interior":"dohanybolt","role":"worker"},{"id":"gyros_employee","name":"Gyros Employee","interior":"gyros","role":"worker"}];
+ const npcAreas={"casino":{"w":1696,"h":960,"asset":"/assets/casino.webp"},"pub":{"w":1448,"h":1086,"asset":"/assets/interior.webp"},"spar":{"w":736,"h":384,"asset":"/assets/shop-spar.webp"},"dohanybolt":{"w":608,"h":832,"asset":"/assets/shop-dohanybolt.webp"},"gyros":{"w":768,"h":480,"asset":"/assets/shop-gyros.webp"}};
 
 
  let saved={};try{saved=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch{}
@@ -277,7 +277,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
   for(const n of npcMetadata.filter(n=>n.interior===current.interior)){
    if(!npcImages[n.id]){
     const image=new Image();image.onload=npcRender;image.onerror=npcRender;
-    image.src="/assets/npc/"+n.id+".webp";npcImages[n.id]=image;
+    image.src="/assets/npc/"+(n.id==="casino_bartender"?"maestro_bartender":n.id)+".webp";npcImages[n.id]=image;
    }
   }
   npcUpdateControls();npcRender();
