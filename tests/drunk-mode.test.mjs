@@ -145,7 +145,7 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const response=await worker.fetch(new Request("https://maestroescape.test/?mode=single"),{});
  const html=await response.text();
  assert.equal(response.status,200);
- assert.ok(html.includes('drunk-startup-diagnostics-20261115'));
+ assert.ok(html.includes('drunk-safe-loader-20261115'));
  assert.ok(html.includes('event.lineno'));
  assert.ok(html.includes('event.colno'));
  assert.ok(html.includes('const drunk=drunkControllerAvailable'));
@@ -159,6 +159,6 @@ test("actual Worker response contains parseable scripts, build ID and diagnostic
  const version=await worker.fetch(new Request("https://maestroescape.test/api/build"),{});
  assert.equal(version.status,200);
  const build=await version.json();
- assert.equal(build.build,"drunk-startup-diagnostics-20261115");
+ assert.equal(build.build,"drunk-safe-loader-20261115");
  assert.equal(build.drunkControllerBundled,true);
 });
