@@ -22,20 +22,18 @@ const buy=async send=>{
  assert.equal(collect.ok,true,collect.error);
  return item.id;
 };
-test("roulette table has a single clean felt layer, not duplicated casino artwork",()=>{
- assert.match(ROULETTE_CLIENT_SCRIPT,/#roulette-board\{display:grid/);
- assert.match(ROULETTE_CLIENT_SCRIPT,/radial-gradient\(ellipse at 48% 38%/);
- assert.doesNotMatch(ROULETTE_CLIENT_SCRIPT,/background-image:[^"\\n]*casino\.webp/);
- assert.doesNotMatch(ROULETTE_CLIENT_SCRIPT,/backgroundSize=.*CROP/);
+test("exact roulette photo defines a single unpainted hitbox layer and movable ball",()=>{
+ new Function(ROULETTE_CLIENT_SCRIPT);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/roulette-table-exact\.avif/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/ROULETTE_IMAGE_W=767,ROULETTE_IMAGE_H=332/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/ROULETTE_BET_RECTS/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/Array\.from\(\{length:36\}/);
+ for(const id of ["n0","dozen1","dozen2","dozen3","low","high","red","black"])
+  assert.ok(ROULETTE_CLIENT_SCRIPT.includes('id:"'+id+'"'));
+ assert.match(ROULETTE_CLIENT_SCRIPT,/--hitbox-opacity/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/--table-opacity/);
  assert.match(ROULETTE_CLIENT_SCRIPT,/roulette-ball/);
  assert.match(ROULETTE_CLIENT_SCRIPT,/rouletteItemImage\(item\)/);
-});
-test("roulette UI offers only straight, dozen and even-money bets, with input scripts valid",()=>{
- new Function(ROULETTE_CLIENT_SCRIPT);
- assert.match(ROULETTE_CLIENT_SCRIPT,/add\("n0","0"/);
- assert.match(ROULETTE_CLIENT_SCRIPT,/add\("dozen1"/);
- assert.match(ROULETTE_CLIENT_SCRIPT,/add\("low"/);
- assert.match(ROULETTE_CLIENT_SCRIPT,/add\("red"/);
  assert.match(ROULETTE_CLIENT_SCRIPT,/dataTransfer/);
  assert.match(ROULETTE_CLIENT_SCRIPT,/pointerup/);
  assert.doesNotMatch(ROULETTE_CLIENT_SCRIPT,/split|corner/i);
