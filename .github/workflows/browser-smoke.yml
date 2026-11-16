@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/browser-smoke.yml"
+      - "src/roulette-client.js"
+      - "src/consumables.js"
       - "Assets/Maps/maestro_casino_v2.webp"
 permissions:
   contents: read
@@ -166,6 +168,39 @@ jobs:
               throw Error('Casino beer order did not succeed: '+message);
             await beerContext.close();
             console.log('PASS: Casino bartender sells beer through existing room engine');
+            const rouletteContext=await browser.newContext({viewport:{width:1360,height:860}});
+            await rouletteContext.addInitScript(()=>{
+              localStorage.setItem('maestroescape.gameSettings.v1',JSON.stringify({
+                'casino.manhole.enabled':1,'interaction.street_casino.x':859,'interaction.street_casino.y':577,
+                'interaction.street_casino.radius':100,'transition.casino.x':988,'transition.casino.y':718
+              }));
+            });
+            const roulettePage=await rouletteContext.newPage();
+            const rouletteErrors=[];
+            roulettePage.on('pageerror',e=>rouletteErrors.push(e.message));
+            await roulettePage.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-roulette-smoke',{waitUntil:'domcontentloaded',timeout:30000});
+            await roulettePage.waitForTimeout(4700);
+            await roulettePage.keyboard.press('e');
+            await roulettePage.waitForTimeout(450);
+            const before=await roulettePage.evaluate(()=>{
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const player=scene?.children?.list.find(o=>o.texture?.key==='maestro'&&o.visible);
+              return {player:player&&{x:player.x,y:player.y},prompt:document.querySelector('#npc-prompt')?.textContent};
+            });
+            console.log('ROULETTE_BEFORE_E',JSON.stringify(before));
+            if(!before.prompt?.includes('Play roulette'))throw Error('Roulette hotspot not reachable: '+JSON.stringify(before));
+            await roulettePage.keyboard.press('e');
+            await roulettePage.waitForTimeout(300);
+            const overlay=roulettePage.locator('#maestro-roulette');
+            if(!(await overlay.isVisible()))throw Error('E failed to open roulette UI');
+            if((await roulettePage.locator('#roulette-board [data-bet]').count())!==44)throw Error('Unexpected roulette betting cell count');
+            if(await roulettePage.locator('#roulette-spin').isEnabled())throw Error('Spin without inventory stakes should be disabled');
+            await roulettePage.locator('#roulette-exit').click();
+            if(await overlay.isVisible())throw Error('Roulette close failed');
+            if(rouletteErrors.length)throw Error('Roulette page errors: '+JSON.stringify(rouletteErrors));
+            console.log('PASS: roulette opens on E with 37 numbers + 7 outside bets and closes correctly');
+            await rouletteContext.close();
+
 
           }finally{await browser.close()}
           JS
