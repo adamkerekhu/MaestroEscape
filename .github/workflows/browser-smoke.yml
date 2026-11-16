@@ -46,7 +46,7 @@ jobs:
               return image?{width:image.naturalWidth||image.width,height:image.naturalHeight||image.height}:null;
             });
             console.log('LIVE_CASINO_ART',JSON.stringify(casinoAsset));
-            if(!casinoAsset||casinoAsset.width!==537||casinoAsset.height!==430)
+            if(!casinoAsset||casinoAsset.width!==1448||casinoAsset.height!==1086)
               throw Error('Uploaded casino background is not the active game texture: '+JSON.stringify(casinoAsset));
             console.log('LIVE_BROWSER_STATE',JSON.stringify(status));
             console.log('BROWSER_ERRORS',JSON.stringify(errors));
