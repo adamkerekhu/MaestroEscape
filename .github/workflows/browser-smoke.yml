@@ -263,8 +263,25 @@ jobs:
             if(!(await card.isVisible()))throw Error('Seeded inventory item not visible below roulette board');
             await card.dragTo(roulettePage.locator('#roulette-board [data-bet="red"]'));
             if(!(await roulettePage.locator('#roulette-spin').isEnabled()))throw Error('Dragging an item to red did not register the stake');
+            const placedBeer=roulettePage.locator('#roulette-board [data-bet="red"] .r-token img');
+            if(!(await placedBeer.isVisible()))throw Error('A visible beer is not shown on the felt');
+            const art=await placedBeer.getAttribute('src');
+            if(!art?.startsWith('data:image/svg+xml'))throw Error('The staked beer must render as an actual image');
+            // Undo by dragging the visible beer back to the inventory area.
+            await roulettePage.locator('#roulette-board [data-bet="red"] .r-token').dragTo(roulettePage.locator('#roulette-inventory'));
+            if(await roulettePage.locator('#roulette-spin').isEnabled())throw Error('Drag-back did not cancel the bet');
+            if(!(await card.isVisible()))throw Error('Cancelled beer did not reappear in the bag');
+            console.log('PASS: beer image placed on the table and dragged back into inventory');
+            await card.dragTo(roulettePage.locator('#roulette-board [data-bet="red"]'));
+            if(!(await roulettePage.locator('#roulette-spin').isEnabled()))throw Error('Re-bet after undo failed');
+            const stationaryBefore=await roulettePage.locator('#roulette-wheel').evaluate(el=>getComputedStyle(el).transform);
             await roulettePage.locator('#roulette-spin').click();
-            await roulettePage.waitForTimeout(3700);
+            await roulettePage.waitForTimeout(350);
+            const ballDuring=await roulettePage.locator('#roulette-ball').evaluate(el=>({x:el.style.left,y:el.style.top}));
+            const stationaryDuring=await roulettePage.locator('#roulette-wheel').evaluate(el=>getComputedStyle(el).transform);
+            if(stationaryBefore!==stationaryDuring)throw Error('The wheel disk rotated instead of staying fixed');
+            if(ballDuring.x==='50%'&&ballDuring.y==='7%')throw Error('Roulette ball is not moving');
+            await roulettePage.waitForTimeout(3400);
             const outcome=await roulettePage.locator('#roulette-result').textContent();
             const note=await roulettePage.locator('#roulette-message').textContent();
             const remaining=await roulettePage.locator('#roulette-inventory [data-item-id]').count();
