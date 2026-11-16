@@ -8,6 +8,7 @@ on:
       - "src/roulette-client.js"
       - "src/consumables.js"
       - "Assets/Maps/maestro_casino_v2.webp"
+      - "Assets/Maps/roulette_table_exact.avif"
 permissions:
   contents: read
 jobs:
@@ -198,6 +199,21 @@ jobs:
             const overlay=roulettePage.locator('#maestro-roulette');
             if(!(await overlay.isVisible()))throw Error('E failed to open roulette UI');
             if((await roulettePage.locator('#roulette-board [data-bet]').count())!==44)throw Error('Unexpected roulette betting cell count');
+            const rouletteImage=await roulettePage.request.get('https://maestroescape.adam-kerek.workers.dev/assets/roulette-table-exact.avif');
+            if(!rouletteImage.ok()||!(rouletteImage.headers()['content-type']||'').includes('image/avif'))
+              throw Error('Exact roulette photo was not served by Cloudflare: '+rouletteImage.status());
+            const background=await roulettePage.locator('#roulette-board').evaluate(el=>{
+              const before=getComputedStyle(el,'::before');
+              const n1=el.querySelector('[data-bet="n1"]').getBoundingClientRect();
+              const frame=el.getBoundingClientRect();
+              return {image:before.backgroundImage,opacity:before.opacity,
+                n1:{x:(n1.x-frame.x)/frame.width,y:(n1.y-frame.y)/frame.height}};
+            });
+            console.log('ROULETTE_EXACT_IMAGE',JSON.stringify(background));
+            if(!background.image.includes('roulette-table-exact.avif'))
+              throw Error('Roulette board does not show exact photo');
+            if(Math.abs(background.n1.x-366/767)>0.015||Math.abs(background.n1.y-104/332)>0.015)
+              throw Error('Number 1 hitbox is not aligned with supplied artwork');
             if(await roulettePage.locator('#roulette-spin').isEnabled())throw Error('Spin without inventory stakes should be disabled');
             await roulettePage.locator('#roulette-exit').click();
             if(await overlay.isVisible())throw Error('Roulette close failed');
