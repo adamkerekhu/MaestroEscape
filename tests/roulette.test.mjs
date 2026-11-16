@@ -22,6 +22,14 @@ const buy=async send=>{
  assert.equal(collect.ok,true,collect.error);
  return item.id;
 };
+test("roulette table has a single clean felt layer, not duplicated casino artwork",()=>{
+ assert.match(ROULETTE_CLIENT_SCRIPT,/#roulette-board\{display:grid/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/radial-gradient\(ellipse at 48% 38%/);
+ assert.doesNotMatch(ROULETTE_CLIENT_SCRIPT,/background-image:[^"\\n]*casino\.webp/);
+ assert.doesNotMatch(ROULETTE_CLIENT_SCRIPT,/backgroundSize=.*CROP/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/roulette-ball/);
+ assert.match(ROULETTE_CLIENT_SCRIPT,/rouletteItemImage\(item\)/);
+});
 test("roulette UI offers only straight, dozen and even-money bets, with input scripts valid",()=>{
  new Function(ROULETTE_CLIENT_SCRIPT);
  assert.match(ROULETTE_CLIENT_SCRIPT,/add\("n0","0"/);
