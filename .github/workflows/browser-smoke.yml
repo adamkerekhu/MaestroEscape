@@ -32,7 +32,11 @@ jobs:
           page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text())});
           try{
             await page.goto('https://maestroescape.adam-kerek.workers.dev/?mode=single&room=maestro-solo-smoke',{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForTimeout(7500);
+            await page.waitForFunction(()=>{
+              const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              return scene?.children?.list.some(o=>o.texture?.key==='maestro'&&o.visible);
+            },{timeout:22000}).catch(()=>{});
+            await page.waitForTimeout(500);
             const status=await page.evaluate(()=>{
               const scene=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
               const objects=scene?.children?.list||[];
