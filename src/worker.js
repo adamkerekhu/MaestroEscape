@@ -1342,6 +1342,9 @@ function npcUpdatePrompt(){
   npcPrompt.textContent="E · Exit hiding";npcPrompt.hidden=false;return;
  }
  if(npcDialogue||gameplay?.menuOpen()){npcPrompt.hidden=true;return;}
+ if(insideCasino&&casinoNearestHotspot()?.id==="roulette"){
+  npcPrompt.textContent="E · Play roulette";npcPrompt.hidden=false;return;
+ }
  const pickup=gameplay?.prompt();
  if(pickup){npcPrompt.textContent=pickup;npcPrompt.hidden=false;return;}
  if(insideCasino&&casinoExitNearby()){
@@ -1794,6 +1797,8 @@ function interact(){
  if(gameplay?.menuOpen()){gameplay.close();return;}
  if(npcDialogue){npcCloseDialogue();return;}
  if(!insidePub&&gameplay?.occupied){void enterOrExitCar();return;}
+ // The roulette table takes precedence over a dropped item beside the table.
+ if(insideCasino&&casinoNearestHotspot()?.id==="roulette"){roulette.open();return;}
  if(gameplay?.nearestItem()){void gameplay.interact();return;}
  if(insideCasino){
   if(casinoExitNearby()){exitCasino();return;}
