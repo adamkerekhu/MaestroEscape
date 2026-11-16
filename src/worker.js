@@ -1,5 +1,6 @@
 import { ConsumableRoom } from "./consumables.js";
 import { CONSUMABLE_CLIENT_SCRIPT } from "./consumables-client.js";
+import { ROULETTE_CLIENT_SCRIPT } from "./roulette-client.js";
 import { LOCAL_ROOM_SOURCE } from "./local-room-source.js";
 import { DRUNK_MODE_CLIENT_SCRIPT } from "./drunk-mode.js";
 import { PUB_MENU, PUB_TABLES } from "./pub-menu-data.js";
@@ -812,6 +813,7 @@ function casinoEntranceFeedback(){
 }
 const casinoExitNearby=()=>insideCasino&&interactionNear("casino_exit",CASINO_EXIT,CASINO_EXIT.radius);
 const casinoNearestHotspot=()=>insideCasino?CASINO_HOTSPOTS.map(h=>({...h,d:Math.hypot(player.x-h.x,player.y-h.y)})).filter(h=>h.d<h.radius).sort((a,b)=>a.d-b.d)[0]||null:null;
+${ROULETTE_CLIENT_SCRIPT}
 const SHOP_NAMES={dohanybolt:"DOHÁNYBOLT",spar:"SPAR",gyros:"MESTER GYROS"};
 function shopZoom(shop){const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return cfg("building."+name+".zoom");}
 function shopCharacterScale(shop){const name=Object.keys(SHOPS).find(key=>SHOPS[key]===shop);return cfg("building."+name+".scale");}
@@ -1352,7 +1354,7 @@ function npcUpdatePrompt(){
   const bartender=npcNearestTarget();
   if(bartender){npcPrompt.textContent="E · Talk to "+bartender.definition.name;npcPrompt.hidden=false;return;}
   const hotspot=casinoNearestHotspot();
-  if(hotspot){npcPrompt.textContent="E · "+hotspot.name;npcPrompt.hidden=false;return;}
+  if(hotspot){npcPrompt.textContent=hotspot.id==="roulette"?"E · Play roulette":"E · "+hotspot.name;npcPrompt.hidden=false;return;}
  }
  if(insideBasement&&basementStairNear()){
   npcPrompt.textContent="E · Go upstairs";npcPrompt.hidden=false;return;
@@ -1452,6 +1454,7 @@ function enterCasino(){
  show("Underground Casino. Press E near the ladder to return to Mester utca.");
 }
 function exitCasino(){
+ roulette.close();
  hideController?.reset();npcCloseDialogue();
  if(!insideCasino)return;
  insideCasino=false;insidePub=false;insideBasement=false;activeShop=null;
@@ -1775,6 +1778,7 @@ class VehicleController {
  }
 }
 function interact(){
+ if(roulette.opened){roulette.close();return;}
  refreshCasinoStreetSettings();
  if(window.MaestroRealOrders?.isOpen?.())return;
  if(hideController?.state==="HIDDEN"){if(!hideController.exit())show("No safe place to emerge.");return;}
@@ -1796,7 +1800,7 @@ function interact(){
   const bartender=npcNearestTarget();
   if(bartender){npcOpenDialogue(bartender);return;}
   const hotspot=casinoNearestHotspot();
-  if(hotspot){show(hotspot.name+" interaction is ready for a future mini-game. No wagering is implemented.");return;}
+  if(hotspot){if(hotspot.id==="roulette"){roulette.open();return;}show(hotspot.name+" interaction is ready for a future mini-game. No wagering is implemented.");return;}
   show("Find the ladder to exit the casino.");return;
  }
  if(insidePub){
