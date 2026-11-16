@@ -4,7 +4,7 @@ export const CONSUMABLE_CONFIG={
  beer:{units:1,unitMs:1500},kebab:{units:1,unitMs:2000},
  cigarette:{units:1,unitMs:1500},cigarette_pack:{units:5,unitMs:0},
  orderBeerMs:3000,refillMs:2000,orderKebabMs:5000,borrowExpiryMs:8000,
- interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:5,maxCarrySmall:5,maxPerItem:5,
+ interactRadius:112,collectRadius:82,tableRadius:115,maxCarryLarge:999999,maxCarrySmall:999999,maxPerItem:999999,
  vendorPoints:{
   casino_bartender:[{x:288,y:444},{x:340,y:444},{x:395,y:444}],
   maestro_bartender:[{x:340,y:424},{x:395,y:424},{x:455,y:424},{x:522,y:424}],
@@ -213,8 +213,8 @@ const bad=(message,status=400)=>({ok:false,error:message,status});
 const ok=(data={})=>({ok:true,...data});
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const copy=x=>JSON.parse(JSON.stringify(x));
-// Each item type can have five separate full items; slot numbers remain unique across the bag.
-const slots=item=>Array.from({length:40},(_,i)=>i);
+// Inventory is unbounded: choose the smallest available integer slot without allocating a giant array.
+const slots=item=>[];
 const locPos=location=>{
  if(location.kind==="table"){
   const t=C.pubTables.find(q=>q.id===location.tableId);
@@ -232,9 +232,9 @@ function findPlayer(s,token){return Object.values(s.players).find(p=>p.token===t
 function playerInventory(s,p){return s.items.filter(i=>i.location.kind==="inventory"&&i.location.playerId===p.id)}
 function freeSlot(s,p,type){
  const inventory=playerInventory(s,p);
- if(inventory.filter(i=>i.type===type).length>=C.maxPerItem)return undefined;
- const candidate=slots({type}),used=new Set(inventory.map(i=>i.location.slot));
- return candidate.find(n=>!used.has(n));
+ const used=new Set(inventory.map(i=>i.location.slot));
+ let slot=0;while(used.has(slot))slot++;
+ return slot;
 }
 function vendorSpot(s,vendor,player){
  // Prefer the authored counter, but never put purchased goods outside pickup range,
@@ -464,6 +464,67 @@ function validateLocation(s,p,item){
 }
 function operation(s,p,d){
  const op=d.op;
+ // European single-zero roulette. Inventory items represent play-only stakes.
+ // Settle atomically in the authoritative item engine; the client never chooses the outcome.
+ if(op==="rouletteSpin"){
+  if(p.scene!=="casino"||!p.characterId)return bad("Enter the casino first");
+  if(p.action||p.deadUntil&&p.deadUntil>now())return bad("Cannot spin right now");
+  const bets=d.bets;
+  if(!Array.isArray(bets)||bets.length<1||bets.length>100)return bad("Select 1–100 inventory items");
+  const seen=new Set(),selected=[];
+  const red=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  const verify=bet=>{
+   const v=String(bet);
+   if(/^n(?:[0-9]|[12][0-9]|3[0-6])$/.test(v))return {kind:"number",number:Number(v.slice(1)),total:36};
+   if(["dozen1","dozen2","dozen3"].includes(v))return {kind:"dozen",number:Number(v.slice(-1)),total:3};
+   if(["low","high","red","black"].includes(v))return {kind:v,total:2};
+   return null;
+  };
+  for(const entry of bets){
+   if(!entry||typeof entry.itemId!=="string"||seen.has(entry.itemId))return bad("Repeated or invalid stake");
+   seen.add(entry.itemId);
+   const wager=verify(entry.bet);if(!wager)return bad("Invalid roulette placement");
+   const item=owned(s,p,entry.itemId);if(!item)return bad("A selected item is no longer in your inventory");
+   selected.push({item,wager,bet:entry.bet});
+  }
+  // Rejection sampling ensures 0..36 are equally likely.
+  const max=0x100000000,limit=max-max%37;
+  let number;do{const bytes=new Uint32Array(1);crypto.getRandomValues(bytes);number=bytes[0]}while(number>=limit);
+  number%=37;
+  const color=number===0?"green":red.has(number)?"red":"black";
+  let won=0,lost=0,returned=0;
+  // Verify all item ownership and placements before altering inventory.
+  const results=[];
+  for(const {item,wager,bet} of selected){
+   const match=wager.kind==="number"?number===wager.number:
+    wager.kind==="dozen"?number>=1&&Math.ceil(number/12)===wager.number:
+    wager.kind==="low"?number>=1&&number<=18:
+    wager.kind==="high"?number>=19&&number<=36:
+    number!==0&&color===wager.kind;
+   const count=match?wager.total:0;
+   results.push({itemId:item.id,type:item.type,bet,win:match,returned:count});
+   if(match){won++;returned+=count}else lost++;
+  }
+  const ids=new Set(selected.map(b=>b.item.id));
+  s.items=s.items.filter(i=>!ids.has(i.id));
+  if(ids.has(p.equippedId))p.equippedId=null;
+  if(s.scratchResults)for(const id of ids)delete s.scratchResults[id];
+  for(let j=0;j<selected.length;j++){
+   const {item}=selected[j],count=results[j].returned;
+   for(let k=0;k<count;k++){
+    const reward=create(s,item.type,item.remainingUnits,{kind:"inventory",playerId:p.id,slot:freeSlot(s,p,item.type)});
+    reward.maxUnits=item.maxUnits;
+    reward.lit=item.lit;
+    // Scratch tickets must never inherit a winning outcome from a prior ticket.
+    if(item.type==="scratch_ticket"){
+     const roll=new Uint32Array(1);crypto.getRandomValues(roll);
+     const lucky=roll[0]%10===0;
+     s.scratchResults??={};s.scratchResults[reward.id]={won:lucky,variant:lucky?10:1+(roll[0]%9)};
+    }
+   }
+  }
+  return ok({number,color,won,lost,returned,results,message:"Roulette landed on "+number+" "+color+". "+won+" winning stakes, "+returned+" items returned."});
+ }
  if(op==="sendChat"){
   if(!p.characterId)return bad("Select a character before chatting");
   if(typeof d.message!=="string")return bad("Invalid chat message");
