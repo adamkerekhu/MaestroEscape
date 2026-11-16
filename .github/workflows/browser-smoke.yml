@@ -177,7 +177,8 @@ jobs:
             await rouletteContext.addInitScript(()=>{
               localStorage.setItem('maestroescape.gameSettings.v1',JSON.stringify({
                 'casino.manhole.enabled':1,'interaction.street_casino.x':859,'interaction.street_casino.y':577,
-                'interaction.street_casino.radius':100,'transition.casino.x':988,'transition.casino.y':718
+                'interaction.street_casino.radius':100,'transition.casino.x':988,'transition.casino.y':718,
+                'roulette.tableImageOpacity':0.65,'roulette.hitboxOpacity':0.22,'roulette.wheelX':181,'roulette.wheelY':175,'roulette.ballRadius':76
               }));
             });
             const roulettePage=await rouletteContext.newPage();
@@ -210,6 +211,11 @@ jobs:
                 n1:{x:(n1.x-frame.x)/frame.width,y:(n1.y-frame.y)/frame.height}};
             });
             console.log('ROULETTE_EXACT_IMAGE',JSON.stringify(background));
+            if(Math.abs(Number(background.opacity)-0.65)>0.02)
+              throw Error('Roulette image opacity did not apply from saved Settings');
+            const hitboxOpacity=await roulettePage.locator('#roulette-board').evaluate(el=>el.style.getPropertyValue('--hitbox-opacity'));
+            if(Math.abs(Number(hitboxOpacity)-0.22)>0.01)
+              throw Error('Roulette betting-zone transparency did not apply from saved Settings');
             if(!background.image.includes('roulette-table-exact.avif'))
               throw Error('Roulette board does not show exact photo');
             if(Math.abs(background.n1.x-366/767)>0.015||Math.abs(background.n1.y-104/332)>0.015)
