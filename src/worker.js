@@ -2411,6 +2411,11 @@ export default {
     if(!upstream.ok)return new Response("Buksza lottery artwork missing",{status:404,headers:{"cache-control":"no-store"}});
     return new Response(upstream.body,{headers:{"content-type":"image/webp","cache-control":"public, max-age=300","x-content-type-options":"nosniff"}});
   }
+  if(url.pathname==="/assets/roulette-table-exact.avif"){
+    const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/roulette_table_exact.avif",{headers:{"cache-control":"no-cache"}});
+    if(!upstream.ok||!upstream.body)return new Response("Roulette artwork unavailable",{status:502,headers:{"cache-control":"no-store"}});
+    return new Response(upstream.body,{headers:{"content-type":"image/avif","cache-control":"public, max-age=60","x-content-type-options":"nosniff"}});
+  }
   if(url.pathname==="/assets/casino.webp"){
     // Use the uploaded 1448x1086 artwork when published, preserving legacy fallback until then.
     const base="https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/";
