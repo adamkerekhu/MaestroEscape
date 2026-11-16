@@ -219,10 +219,32 @@ jobs:
             if(seeded.error)throw Error(seeded.error);
             await roulettePage.reload({waitUntil:'domcontentloaded'});
             await roulettePage.waitForTimeout(5000);
+            const afterReload=await roulettePage.evaluate(()=>{
+              const roomKey='maestroescape.singleRoom.v1.maestro-roulette-smoke';
+              const data=JSON.parse(localStorage.getItem(roomKey)||'null');
+              const p=Object.values(data?.players||{})[0];
+              const game=window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore');
+              const avatar=game?.children?.list.find(o=>o.texture?.key==='maestro'&&o.visible);
+              return {itemSaved:data?.items?.some(i=>i.id==='roulette_test_stake'),
+                playerId:p?.id,playerPos:avatar?{x:avatar.x,y:avatar.y}:null,
+                prompt:document.querySelector('#npc-prompt')?.textContent,
+                errors:document.querySelector('#splash')?.textContent};
+            });
+            console.log('ROULETTE_AFTER_RELOAD',JSON.stringify(afterReload));
             await roulettePage.keyboard.press('e');
             await roulettePage.waitForTimeout(350);
+            console.log('ROULETTE_AFTER_ENTER',JSON.stringify(await roulettePage.evaluate(()=>({
+              prompt:document.querySelector('#npc-prompt')?.textContent,
+              casino:window.__MAESTRO_GAME__?.scene?.scenes?.find(x=>x.scene?.key==='Explore')?.children?.list?.filter(o=>o.texture?.key==='casino'&&o.visible).length
+            }))));
             await roulettePage.keyboard.press('e');
             await roulettePage.waitForTimeout(300);
+            console.log('ROULETTE_AFTER_OPEN',JSON.stringify(await roulettePage.evaluate(()=>({
+              overlay:!document.querySelector('#maestro-roulette')?.hidden,
+              inventory:document.querySelector('#roulette-inventory')?.textContent,
+              count:document.querySelectorAll('#roulette-inventory [data-item-id]').length,
+              prompt:document.querySelector('#npc-prompt')?.textContent
+            }))));
             const card=roulettePage.locator('#roulette-inventory [data-item-id="roulette_test_stake"]');
             if(!(await card.isVisible()))throw Error('Seeded inventory item not visible below roulette board');
             await card.dragTo(roulettePage.locator('#roulette-board [data-bet="red"]'));
