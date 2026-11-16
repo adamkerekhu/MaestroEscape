@@ -269,7 +269,7 @@ jobs:
             const note=await roulettePage.locator('#roulette-message').textContent();
             const remaining=await roulettePage.locator('#roulette-inventory [data-item-id]').count();
             console.log('ROULETTE_E2E_SPIN',JSON.stringify({outcome,note,remaining}));
-            if(!/\\b(?:[0-9]|[12][0-9]|3[0-6]) (?:RED|BLACK|GREEN)\\b/.test(outcome||''))
+            if(!/\b(?:[0-9]|[12][0-9]|3[0-6]) (?:RED|BLACK|GREEN)\b/.test(outcome||''))
               throw Error('Missing roulette result animation outcome: '+outcome);
             const winning=/ RED$/.test(outcome||'');
             if(remaining!==(winning?2:0))throw Error('Incorrect inventory payout for result: '+JSON.stringify({outcome,remaining,note}));
