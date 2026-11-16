@@ -199,6 +199,46 @@ jobs:
             if(await overlay.isVisible())throw Error('Roulette close failed');
             if(rouletteErrors.length)throw Error('Roulette page errors: '+JSON.stringify(rouletteErrors));
             console.log('PASS: roulette opens on E with 37 numbers + 7 outside bets and closes correctly');
+            // Seed one non-monetary inventory item in this isolated test room, then
+            // exercise browser drag/drop, a full spin and actual inventory settlement.
+            await roulettePage.waitForTimeout(1800);
+            const seeded=await roulettePage.evaluate(()=>{
+              const key=Object.keys(localStorage).find(k=>k.includes('maestroescape.singleRoom.v1.')&&k.includes('maestro-roulette-smoke'));
+              if(!key)return {error:'No saved local room'};
+              const room=JSON.parse(localStorage.getItem(key)||'null');
+              const p=Object.values(room?.players||{})[0];
+              if(!p)return {error:'No player saved'};
+              const id='roulette_test_stake';
+              room.items=room.items.filter(i=>i.id!==id);
+              room.items.push({id,type:'beer',generation:0,remainingUnits:1,maxUnits:1,
+                location:{kind:'inventory',playerId:p.id,slot:99},lit:false,revision:0});
+              localStorage.setItem(key,JSON.stringify(room));
+              return {key,id,playerId:p.id};
+            });
+            console.log('ROULETTE_SEED',JSON.stringify(seeded));
+            if(seeded.error)throw Error(seeded.error);
+            await roulettePage.reload({waitUntil:'domcontentloaded'});
+            await roulettePage.waitForTimeout(5000);
+            await roulettePage.keyboard.press('e');
+            await roulettePage.waitForTimeout(350);
+            await roulettePage.keyboard.press('e');
+            await roulettePage.waitForTimeout(300);
+            const card=roulettePage.locator('#roulette-inventory [data-item-id="roulette_test_stake"]');
+            if(!(await card.isVisible()))throw Error('Seeded inventory item not visible below roulette board');
+            await card.dragTo(roulettePage.locator('#roulette-board [data-bet="red"]'));
+            if(!(await roulettePage.locator('#roulette-spin').isEnabled()))throw Error('Dragging an item to red did not register the stake');
+            await roulettePage.locator('#roulette-spin').click();
+            await roulettePage.waitForTimeout(3700);
+            const outcome=await roulettePage.locator('#roulette-result').textContent();
+            const note=await roulettePage.locator('#roulette-message').textContent();
+            const remaining=await roulettePage.locator('#roulette-inventory [data-item-id]').count();
+            console.log('ROULETTE_E2E_SPIN',JSON.stringify({outcome,note,remaining}));
+            if(!/\\b(?:[0-9]|[12][0-9]|3[0-6]) (?:RED|BLACK|GREEN)\\b/.test(outcome||''))
+              throw Error('Missing roulette result animation outcome: '+outcome);
+            const winning=/ RED$/.test(outcome||'');
+            if(remaining!==(winning?2:0))throw Error('Incorrect inventory payout for result: '+JSON.stringify({outcome,remaining,note}));
+            console.log('PASS: Dragged inventory item, animated spin and settled European roulette payout');
+
             await rouletteContext.close();
 
 
