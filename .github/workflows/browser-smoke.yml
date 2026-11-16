@@ -217,6 +217,20 @@ jobs:
             });
             console.log('ROULETTE_SEED',JSON.stringify(seeded));
             if(seeded.error)throw Error(seeded.error);
+            // pagehide flushes the live in-memory room over localStorage on reload.
+            // Seed during the next document's init script, before the room engine reads storage.
+            await roulettePage.addInitScript(()=>{
+              const key='maestroescape.singleRoom.v1.maestro-roulette-smoke';
+              const room=JSON.parse(localStorage.getItem(key)||'null');
+              const p=Object.values(room?.players||{})[0];
+              if(p){
+                const id='roulette_test_stake';
+                room.items=room.items.filter(i=>i.id!==id);
+                room.items.push({id,type:'beer',generation:0,remainingUnits:1,maxUnits:1,
+                  location:{kind:'inventory',playerId:p.id,slot:99},lit:false,revision:0});
+                localStorage.setItem(key,JSON.stringify(room));
+              }
+            });
             await roulettePage.reload({waitUntil:'domcontentloaded'});
             await roulettePage.waitForTimeout(5000);
             const afterReload=await roulettePage.evaluate(()=>{
