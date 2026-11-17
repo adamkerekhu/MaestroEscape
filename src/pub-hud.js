@@ -51,6 +51,17 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
  #pub-hud .pub-bottom .pub-btn{min-width:48px;min-height:45px;padding:7px 9px;font-size:11px}
  #pub-hud #pub-menu-toggle{width:56px;height:56px}
  #pub-hud #pub-interact-button{display:none}
+ /* Touch devices use a dedicated bottom-right E button. Keep Bag and Beer
+    in separate upper-right slots so none of the three overlap. */
+ @media(pointer:coarse){
+  #joystick{width:clamp(140px,36vmin,248px)!important;height:clamp(140px,36vmin,248px)!important}
+  #pub-hud .pub-bottom{position:absolute!important;inset:0!important;display:block!important;pointer-events:none!important}
+  #pub-hud .pub-bottom .pub-btn{position:absolute!important;right:max(10px,env(safe-area-inset-right))!important;left:auto!important;bottom:auto!important;min-width:62px!important;height:52px!important;pointer-events:auto!important}
+  #pub-hud #pub-quick-inventory{top:max(62px,env(safe-area-inset-top))!important}
+  #pub-hud #pub-menu-toggle{top:max(122px,calc(env(safe-area-inset-top) + 60px))!important;width:58px!important;height:58px!important}
+  #mobile-controls .action{right:max(12px,env(safe-area-inset-right))!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
+  #pub-hud .pub-radial{bottom:75px!important}
+ }
  #pub-hud .pub-radial{right:0;bottom:73px;transform-origin:85% 85%;scale:.82}
  #pub-hud .pub-tools{top:58px;max-height:75dvh}
  #instructions{bottom:68px;width:70vw;left:50%}
