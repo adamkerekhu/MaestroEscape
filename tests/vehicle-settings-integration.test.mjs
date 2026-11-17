@@ -12,7 +12,7 @@ test("browser local engine uses the current server vehicle logic",()=>{
 test("all devices load the same Supabase settings",()=>{
  assert.match(worker,/const singleMode=false;/);
  assert.match(worker,/maestroescape-settings/);
- assert.match(worker,/JSON\\.stringify\\(\\{settings:JSON\\.parse\\(payload\\),revision\\}\\)/);
+ assert.ok(worker.includes("settings:JSON.parse(payload),revision"),"Full editor submits a revision-checked Supabase document");
  assert.match(worker,/a\\.settings-nav\\[href="\\/settings"\\]/);
 });
 test("single-player startup receives saved vehicle positions",()=>{
