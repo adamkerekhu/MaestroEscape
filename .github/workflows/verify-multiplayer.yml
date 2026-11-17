@@ -35,7 +35,7 @@ jobs:
             const page=await context.newPage();
             const errors=[];
             page.on("pageerror",e=>errors.push(e.message));
-            await page.goto(address,{waitUntil:"domcontentloaded",timeout:30000});
+            await page.goto(address,{waitUntil:"commit",timeout:45000});
             await page.waitForSelector("#maestro-mode-button",{timeout:25000});
             await page.waitForFunction(()=>{
               const lobby=document.querySelector("#maestro-character-lobby");
