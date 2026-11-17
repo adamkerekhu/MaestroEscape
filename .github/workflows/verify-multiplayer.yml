@@ -1,0 +1,64 @@
+name: Verify MaestroEscape multiplayer invite
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/worker.js"
+      - "src/consumables-client.js"
+      - "wrangler.toml"
+      - ".github/workflows/verify-multiplayer.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify two players share one live Cloudflare room
+        run: |
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          const base="https://maestroescape.adam-kerek.workers.dev";
+          const room="maestro-party-20261117";
+          const endpoint=base+"/api/consumables?room="+room;
+          const a="smokemultiplayerfirstpeer20261117";
+          const b="smokemultiplayersecondpeer20261117";
+          const pause=ms=>new Promise(r=>setTimeout(r,ms));
+          let health;
+          for(let i=0;i<18;i++){
+            try{
+              const resp=await fetch(base+"/health",{cache:"no-store"});
+              health=await resp.json();
+              if(resp.ok&&health.multiplayerEnabled&&health.multiplayerRoom===room)break;
+            }catch(error){console.log("Waiting for Cloudflare:",String(error))}
+            await pause(5000);
+          }
+          assert.equal(health?.multiplayerEnabled,true,"Live worker did not receive multiplayer build");
+          console.log("HEALTH",JSON.stringify(health));
+          const get=async token=>{
+            const res=await fetch(endpoint+"&token="+token,{cache:"no-store"});
+            const body=await res.json();
+            assert.equal(res.ok,true,JSON.stringify(body));
+            assert.equal(body.snapshot?.playerId!==undefined,true,JSON.stringify(body));
+            return body;
+          };
+          const first=await get(a);
+          const second=await get(b);
+          const again=await get(a);
+          assert.notEqual(first.snapshot.playerId,second.snapshot.playerId,"Two clients were assigned the same identity");
+          const playerIds=again.snapshot.players.map(x=>x.id);
+          assert.ok(playerIds.includes(first.snapshot.playerId)&&playerIds.includes(second.snapshot.playerId),
+            "Two clients do not see the same room player list");
+          assert.equal(first.snapshot.roomCreatedAt,second.snapshot.roomCreatedAt,
+            "Two clients did not connect to the same authoritative room");
+          const query=new URL(base+"/?room="+room+"&mode=multi");
+          const html=await (await fetch(query)).text();
+          assert.ok(html.includes("Maestro"),"The game was not served");
+          console.log("PASS: Shared room with two independent clients, createdAt",first.snapshot.roomCreatedAt);
+          console.log("INVITE",query.toString());
+          JS
