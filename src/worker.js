@@ -2202,7 +2202,8 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
   "#maestro-live-settings-panel input[type=range]{width:100%;margin:4px 0;accent-color:#ebbf72;touch-action:pan-x}",
   "#maestro-live-settings-panel .ls-footer{display:flex;justify-content:space-between;align-items:center;gap:7px;padding:9px 12px;border-top:1px solid #43554b;font-size:11px;color:#bed1ba}",
   "#maestro-live-settings-panel .ls-group-name{border-top:1px solid #475b4e;padding-top:10px;font-size:11px;letter-spacing:.04em;color:#e2ce95;font-weight:700;text-transform:uppercase}",
-  "@media(max-width:620px){#maestro-live-settings-button{top:9px;right:9px;padding:6px 9px;font-size:12px}#maestro-live-settings-panel{top:48px;right:6px;max-height:78dvh;width:min(310px,90vw)}}"
+  "@media(max-width:620px){#maestro-live-settings-button{top:9px;right:9px;padding:6px 9px;font-size:12px}#maestro-live-settings-panel{top:48px;right:6px;max-height:78dvh;width:min(310px,90vw)}}",
+  "@media(pointer:coarse){#maestro-live-settings-button,#maestro-live-settings-panel{display:none!important}}"
  ].join("");
  document.head.append(css);
  const trigger=document.createElement("button");
