@@ -50,6 +50,7 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
   #joystick{width:clamp(140px,36vmin,248px)!important;height:clamp(140px,36vmin,248px)!important}
   #pub-hud .pub-bottom{position:absolute!important;inset:0!important;display:block!important;pointer-events:none!important}
   #pub-hud .pub-bottom .pub-btn{position:absolute!important;right:max(10px,env(safe-area-inset-right))!important;left:auto!important;bottom:auto!important;min-width:62px!important;height:52px!important;pointer-events:auto!important}
+  #pub-hud #pub-interact-button{display:none!important}
   #pub-hud #pub-quick-inventory{top:max(62px,env(safe-area-inset-top))!important}
   #pub-hud #pub-menu-toggle{top:max(122px,calc(env(safe-area-inset-top) + 60px))!important;width:58px!important;height:58px!important}
   #mobile-controls .action{right:max(12px,env(safe-area-inset-right))!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
