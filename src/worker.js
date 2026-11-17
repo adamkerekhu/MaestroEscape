@@ -2233,7 +2233,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
  };
  let shownRoom="",changing=false,dragging=null;
  const decimals=step=>String(step).includes(".")?String(step).split(".")[1].length:0;
- const fmt=(value,step)=>Number(value).toFixed(decimals(step))+"×";
+ const fmt=(value,step)=>Number(value).toFixed(Math.max(3,decimals(step))).replace(/\.?0+$/,"")+"×";
  const setVisual=()=>{
   if(character){
    const room=currentRoom();
@@ -2332,7 +2332,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
    const heading=document.createElement("span");heading.textContent=label;
    const valueEl=document.createElement("output");valueEl.textContent=fmt(cfg(key),step);
    const input=document.createElement("input");input.type="range";input.min=String(min);input.max=String(max);
-   input.step=String(step);input.value=String(cfg(key));input.disabled=!canEditShared;
+   input.step="any";input.value=String(cfg(key));input.disabled=!canEditShared;
    input.setAttribute("aria-label",label);
    row.append(heading,valueEl);wrap.append(row,input);fields.append(wrap);
    input.addEventListener("input",()=>{
