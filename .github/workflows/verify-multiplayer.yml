@@ -19,6 +19,38 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install browser test
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium --with-deps
+      - name: Confirm the actual game opens multiplayer in a browser
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from "playwright";
+          import assert from "node:assert/strict";
+          const browser=await chromium.launch({headless:true});
+          const address="https://maestroescape.adam-kerek.workers.dev/?room=maestro-party-20261117&mode=multi";
+          try {
+            const context=await browser.newContext({viewport:{width:1440,height:900}});
+            const page=await context.newPage();
+            const errors=[];
+            page.on("pageerror",e=>errors.push(e.message));
+            await page.goto(address,{waitUntil:"domcontentloaded",timeout:30000});
+            await page.waitForSelector("#maestro-mode-button",{timeout:25000});
+            await page.waitForFunction(()=>{
+              const lobby=document.querySelector("#maestro-character-lobby");
+              return lobby&&lobby.textContent.includes("Choose your character");
+            },undefined,{timeout:25000});
+            const mode=await page.locator("#maestro-mode-button").textContent();
+            const lobby=await page.locator("#maestro-character-lobby").textContent();
+            assert.match(mode,/Multiplayer/,"The browser was forced into single-player");
+            assert.match(lobby,/MULTIPLAYER INVITE ROOM/,"Wrong character lobby");
+            assert.equal(new URL(page.url()).searchParams.get("mode"),"multi");
+            if(errors.length)throw Error("Browser errors: "+errors.join(" | "));
+            console.log("PASS: Browser remains in multiplayer mode and shows real character lobby");
+            await context.close();
+          } finally { await browser.close() }
+          JS
       - name: Verify two players share one live Cloudflare room
         run: |
           node --input-type=module <<'JS'
