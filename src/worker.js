@@ -2173,6 +2173,154 @@ class Explore extends Phaser.Scene{
  }
 }
 document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.respawn();};
+
+// Compact in-game scale tuning. Existing settings remain authoritative: this is only
+// another editor for the same keys, with immediate Phaser visual updates.
+(function installLiveScaleControls(){
+ const css=document.createElement("style");
+ css.textContent=[
+  "#maestro-live-settings-button{position:fixed;right:14px;top:84px;z-index:1100;padding:8px 12px;border:1px solid #d9bd80;background:#142c24ee;color:#fff0c5;border-radius:11px;font:600 13px system-ui;box-shadow:0 4px 16px #0009}",
+  "#maestro-live-settings-panel[hidden]{display:none!important}",
+  "#maestro-live-settings-panel{position:fixed;right:14px;top:125px;z-index:1101;width:310px;max-width:calc(100vw - 20px);max-height:min(73dvh,600px);display:flex;flex-direction:column;overflow:hidden;background:#14251ff2;color:#f7e9c7;border:1px solid #c6a76a;border-radius:13px;box-shadow:0 10px 40px #000c;font:13px system-ui,Arial}",
+  "#maestro-live-settings-panel *{box-sizing:border-box}",
+  "#maestro-live-settings-panel .ls-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;background:#223b31;border-bottom:1px solid #7c805f;cursor:grab;touch-action:none;user-select:none}",
+  "#maestro-live-settings-panel .ls-head:active{cursor:grabbing}",
+  "#maestro-live-settings-panel .ls-head strong{font-size:14px}",
+  "#maestro-live-settings-panel button{border:1px solid #a5a180;background:#2a4438;color:#f9e4b5;border-radius:6px;padding:4px 8px;font-size:12px}",
+  "#maestro-live-settings-panel .ls-content{overflow-y:auto;padding:12px;overscroll-behavior:contain}",
+  "#maestro-live-settings-panel .ls-location{color:#f8ca78;font-weight:650;margin-bottom:5px}",
+  "#maestro-live-settings-panel .ls-help{font-size:11px;color:#c0c9ba;margin:5px 0 12px;line-height:1.5}",
+  "#maestro-live-settings-panel .ls-field{display:block;margin:11px 0 14px}",
+  "#maestro-live-settings-panel .ls-field-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}",
+  "#maestro-live-settings-panel .ls-field output{font-variant-numeric:tabular-nums;color:#ffda96;font-weight:700}",
+  "#maestro-live-settings-panel input[type=range]{width:100%;margin:4px 0;accent-color:#ebbf72;touch-action:pan-x}",
+  "#maestro-live-settings-panel .ls-footer{display:flex;justify-content:space-between;align-items:center;gap:7px;padding:9px 12px;border-top:1px solid #43554b;font-size:11px;color:#bed1ba}",
+  "#maestro-live-settings-panel .ls-group-name{border-top:1px solid #475b4e;padding-top:10px;font-size:11px;letter-spacing:.04em;color:#e2ce95;font-weight:700;text-transform:uppercase}",
+  "@media(max-width:620px){#maestro-live-settings-button{top:9px;right:9px;padding:6px 9px;font-size:12px}#maestro-live-settings-panel{top:48px;right:6px;max-height:78dvh;width:min(310px,90vw)}}"
+ ].join("");
+ document.head.append(css);
+ const trigger=document.createElement("button");
+ trigger.id="maestro-live-settings-button";trigger.type="button";
+ trigger.textContent="⚙ Live settings";trigger.title="Adjust sizes and zoom without leaving the game";
+ trigger.setAttribute("aria-controls","maestro-live-settings-panel");trigger.setAttribute("aria-expanded","false");
+ document.body.append(trigger);
+ const panel=document.createElement("section");panel.id="maestro-live-settings-panel";
+ panel.hidden=true;panel.setAttribute("role","region");panel.setAttribute("aria-label","Live game scale settings");
+ panel.innerHTML='<div class="ls-head"><strong>⚙ Live scale settings</strong><button class="ls-close" type="button" aria-label="Close live settings">✕</button></div><div class="ls-content"><div class="ls-location"></div><p class="ls-help">Changes are visible immediately behind this window. Drag the header to reposition. Saved in this browser.</p><div class="ls-fields"></div></div><div class="ls-footer"><span class="ls-save-status">Using existing settings</span><button class="ls-reset" type="button">Reset room values</button></div>';
+ document.body.append(panel);
+ const fields=panel.querySelector(".ls-fields"),locationLabel=panel.querySelector(".ls-location");
+ const savedStatus=panel.querySelector(".ls-save-status");
+ const roomLabel={street:"Mester utca",pub:"Maestro Pub",basement:"Pub basement",casino:"Underground Casino",spar:"SPAR",gyros:"Mester Gyros",dohanybolt:"Dohánybolt"};
+ const currentRoom=()=>!insidePub?"street":insideCasino?"casino":insideBasement?"basement":activeShop?(Object.keys(SHOPS).find(id=>SHOPS[id]===activeShop)||"pub"):"pub";
+ const getFields=room=>{
+  const keys=[];
+  if(room==="street")keys.push(["character.streetScale","Player size",.10,2.5,.01]);
+  else keys.push(["building."+(room==="basement"?"pub":room)+".scale","Player size",.2,3,.025]);
+  keys.push([room==="street"?"camera.streetZoom":"building."+room+".zoom","Camera zoom",.35,4.5,.025]);
+  if(room!=="street"&&room!=="basement"&&Object.prototype.hasOwnProperty.call(configDefaults,"npc.location."+room+".scale")){
+   keys.push(["npc.location."+room+".scale","All NPCs in room",.25,3,.05]);
+   for(const def of NPC_DEFINITIONS){
+    if(def.interior===room)keys.push(["npc."+def.id+".scale",def.name+" size",.25,4,.05]);
+   }
+  }
+  return keys.filter(Array.isArray);
+ };
+ let shownRoom="",changing=false,dragging=null;
+ const decimals=step=>String(step).includes(".")?String(step).split(".")[1].length:0;
+ const fmt=(value,step)=>Number(value).toFixed(decimals(step))+"×";
+ const setVisual=()=>{
+  if(character){
+   const room=currentRoom();
+   const key=room==="street"?"character.streetScale":"building."+(room==="basement"?"pub":room)+".scale";
+   character.setScale(cfg(key));
+  }
+  for(const entity of npcEntities.values()){
+   if(!entity?.sprite)continue;
+   entity.sprite.setScale(npcEffectiveScale(entity.definition.id,entity.definition.interior)*(entity.loaded?1:.60));
+   npcApplyVisual(entity);
+  }
+  // Camera zoom is already read from cfg() in Phaser's update loop.
+ };
+ const save=()=>{
+  try{
+   const stored=readLocalGameSettings()||{};
+   const merged={...stored};
+   for(const [key,value] of Object.entries(overrides)){
+    if(Object.prototype.hasOwnProperty.call(configDefaults,key)&&Number.isFinite(Number(value)))merged[key]=Number(value);
+   }
+   localStorage.setItem(LOCAL_SETTINGS_KEY,JSON.stringify(merged));
+   localStorage.setItem(LOCAL_PENDING_KEY,"1");
+   savedStatus.textContent="✓ Saved locally · Live";
+   return true;
+  }catch(e){savedStatus.textContent="⚠ Local save failed";console.warn("Quick settings could not save",e);return false}
+ };
+ const assign=(key,value)=>{
+  const numeric=Number(value);
+  if(!Number.isFinite(numeric)||!(key in configDefaults))return;
+  overrides[key]=numeric;
+  setVisual();save();
+ };
+ const render=force=>{
+  if(panel.hidden)return;
+  const room=currentRoom();
+  if(!force&&room===shownRoom)return;
+  shownRoom=room;locationLabel.textContent="Current location: "+(roomLabel[room]||room);
+  fields.replaceChildren();
+  const specs=getFields(room);
+  let section="";
+  for(const [key,label,min,max,step] of specs){
+   const nextSection=key.startsWith("npc.")?"NPCs":key.includes("zoom")?"Camera":"Player";
+   if(nextSection!==section){
+    const title=document.createElement("div");title.className="ls-group-name";title.textContent=nextSection;fields.append(title);section=nextSection;
+   }
+   const wrap=document.createElement("label");wrap.className="ls-field";
+   const row=document.createElement("div");row.className="ls-field-row";
+   const heading=document.createElement("span");heading.textContent=label;
+   const valueEl=document.createElement("output");valueEl.textContent=fmt(cfg(key),step);
+   const input=document.createElement("input");input.type="range";input.min=String(min);input.max=String(max);
+   input.step=String(step);input.value=String(cfg(key));
+   input.setAttribute("aria-label",label);
+   row.append(heading,valueEl);wrap.append(row,input);fields.append(wrap);
+   input.addEventListener("input",()=>{
+    changing=true;const next=Number(input.value);valueEl.textContent=fmt(next,step);
+    assign(key,next);changing=false;
+   });
+  }
+ };
+ const open=()=>{
+  panel.hidden=false;trigger.setAttribute("aria-expanded","true");
+  savedStatus.textContent="Using existing settings";
+  render(true);
+ };
+ const close=()=>{panel.hidden=true;trigger.setAttribute("aria-expanded","false");dragging=null};
+ trigger.addEventListener("click",()=>panel.hidden?open():close());
+ panel.querySelector(".ls-close").addEventListener("click",close);
+ panel.querySelector(".ls-reset").addEventListener("click",()=>{
+  for(const [key] of getFields(currentRoom()))overrides[key]=configDefaults[key];
+  setVisual();save();render(true);
+ });
+ // Prevent moving the player by pressing keys while focused inside the panel.
+ panel.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","e","E"].includes(e.key))e.stopPropagation()});
+ const head=panel.querySelector(".ls-head");
+ head.addEventListener("pointerdown",e=>{
+  if(e.target.closest("button"))return;
+  const rect=panel.getBoundingClientRect();
+  dragging={x:e.clientX,y:e.clientY,left:rect.left,top:rect.top,id:e.pointerId};
+  head.setPointerCapture(e.pointerId);e.preventDefault();
+ });
+ head.addEventListener("pointermove",e=>{
+  if(!dragging||dragging.id!==e.pointerId)return;
+  const x=Math.max(0,Math.min(window.innerWidth-panel.offsetWidth,dragging.left+e.clientX-dragging.x));
+  const y=Math.max(0,Math.min(window.innerHeight-45,dragging.top+e.clientY-dragging.y));
+  panel.style.left=x+"px";panel.style.top=y+"px";panel.style.right="auto";
+ });
+ const endDrag=e=>{if(dragging?.id===e.pointerId)dragging=null};
+ head.addEventListener("pointerup",endDrag);head.addEventListener("pointercancel",endDrag);
+ window.addEventListener("resize",()=>{if(!panel.hidden)render(true)});
+ // Only reconstruct controls when the player changes location, not while a slider is dragged.
+ setInterval(()=>{if(!changing&&!panel.hidden&&shownRoom!==currentRoom())render(true)},350);
+})();
+
 (async()=>{
  function applyLocalSettingsIfNeeded(force=false){
    const local=readLocalGameSettings();
