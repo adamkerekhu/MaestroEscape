@@ -2415,6 +2415,14 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
     }
    }
    if(window.__maestroSettingsDirty)return data;
+   // Until an administrator imports the first configuration, keep this
+   // device's existing calibration instead of silently resetting it to defaults.
+   if(!data.initialized&&readLocalGameSettings()){
+    localFallback();
+    setSettingsBadge("⚠ Supabase · awaiting admin import",
+     "Sign in as admin on the device with your preferred local settings, then reload to import them.");
+    return data;
+   }
    cloudSettings=data;
    applyRemoteSettings({settings:{...configDefaults,...data.settings},revision:data.revision},false);
    if(data.initialized){
