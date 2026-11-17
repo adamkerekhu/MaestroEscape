@@ -739,7 +739,7 @@ const applyRemoteSettings=(data,localOnly=false)=>{
      if(sprite)sprite.setPosition(x,y).setRotation(model.angle)
                    .setDisplaySize(cfg("vehicle."+id+".width"),cfg("vehicle."+id+".length"));
    }
-   character?.setScale?.(insidePub?(activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
+   character?.setScale?.(insidePub?(insideCasino?cfg("building.casino.scale"):activeShop?shopCharacterScale(activeShop):cfg("building.pub.scale")):cfg("character.streetScale"));
    tramSprite?.setDisplaySize?.(cfg("tram.width"),cfg("tram.length"));
    const previous=JSON.parse(before||"{}");
    if(Object.keys(overrides).some(key=>key.startsWith("npc.")&&Number(overrides[key])!==Number(previous[key]))){
