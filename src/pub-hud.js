@@ -44,13 +44,6 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
 #pub-hud .pub-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);padding:9px 15px;border:1px solid #d5ad70;border-radius:10px;background:#1e3029ed;color:#ffe7b8;opacity:0;transition:opacity .2s;max-width:80vw;text-align:center}
 #pub-hud .pub-toast.visible{opacity:1}
 #mobile-controls{z-index:5!important}
-@media(max-width:650px){
- #pub-hud .pub-brand strong{font-size:12px}#pub-hud .pub-brand{padding:7px 9px}
- #pub-hud .pub-indicators{max-width:57%}#pub-hud .pub-chip{padding:6px;font-size:10px}
- #pub-hud .pub-bottom{bottom:max(8px,env(safe-area-inset-bottom));gap:6px;right:8px}
- #pub-hud .pub-bottom .pub-btn{min-width:48px;min-height:45px;padding:7px 9px;font-size:11px}
- #pub-hud #pub-menu-toggle{width:56px;height:56px}
- #pub-hud #pub-interact-button{display:none}
  /* Touch devices use a dedicated bottom-right E button. Keep Bag and Beer
     in separate upper-right slots so none of the three overlap. */
  @media(pointer:coarse){
@@ -62,6 +55,14 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
   #mobile-controls .action{right:max(12px,env(safe-area-inset-right))!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
   #pub-hud .pub-radial{bottom:75px!important}
  }
+@media(max-width:650px){
+ #pub-hud .pub-brand strong{font-size:12px}#pub-hud .pub-brand{padding:7px 9px}
+ #pub-hud .pub-indicators{max-width:57%}#pub-hud .pub-chip{padding:6px;font-size:10px}
+ #pub-hud .pub-bottom{bottom:max(8px,env(safe-area-inset-bottom));gap:6px;right:8px}
+ #pub-hud .pub-bottom .pub-btn{min-width:48px;min-height:45px;padding:7px 9px;font-size:11px}
+ #pub-hud #pub-menu-toggle{width:56px;height:56px}
+ #pub-hud #pub-interact-button{display:none}
+
  #pub-hud .pub-radial{right:0;bottom:73px;transform-origin:85% 85%;scale:.82}
  #pub-hud .pub-tools{top:58px;max-height:75dvh}
  #instructions{bottom:68px;width:70vw;left:50%}
