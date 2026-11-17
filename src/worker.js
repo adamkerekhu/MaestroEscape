@@ -2231,7 +2231,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
   }
   return keys.filter(Array.isArray);
  };
- let shownRoom="",changing=false,dragging=null;
+ let shownRoom="",shownRevision=-1,changing=false,dragging=null;
  const decimals=step=>String(step).includes(".")?String(step).split(".")[1].length:0;
  const fmt=(value,step)=>Number(value).toFixed(Math.max(3,decimals(step))).replace(/\.?0+$/,"")+"×";
  const setVisual=()=>{
@@ -2316,8 +2316,8 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
  const render=force=>{
   if(panel.hidden)return;
   const room=currentRoom();
-  if(!force&&room===shownRoom)return;
-  shownRoom=room;locationLabel.textContent="Current location: "+(roomLabel[room]||room);
+  if(!force&&room===shownRoom&&shownRevision===settingsRevision)return;
+  shownRoom=room;shownRevision=settingsRevision;locationLabel.textContent="Current location: "+(roomLabel[room]||room);
   fields.replaceChildren();
   panel.querySelector(".ls-reset").disabled=!canEditShared;
   const specs=getFields(room);
@@ -2375,7 +2375,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
  head.addEventListener("pointerup",endDrag);head.addEventListener("pointercancel",endDrag);
  window.addEventListener("resize",()=>{if(!panel.hidden)render(true)});
  // Only reconstruct controls when the player changes location, not while a slider is dragged.
- setInterval(()=>{if(!changing&&!panel.hidden&&shownRoom!==currentRoom())render(true)},350);
+ setInterval(()=>{if(!changing&&!panel.hidden&&(shownRoom!==currentRoom()||shownRevision!==settingsRevision))render(true)},350);
  void refreshAdmin();
 })();
 
