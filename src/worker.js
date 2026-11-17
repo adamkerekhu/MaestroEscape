@@ -2247,24 +2247,71 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
   }
   // Camera zoom is already read from cfg() in Phaser's update loop.
  };
- const save=()=>{
+ let canEditShared=false,checkedAdmin=false,queued={},flushTimer=null,flushing=false;
+ const authMessage=()=>canEditShared?"✓ Administrator · Supabase connected":"🔒 Sign in as admin to save shared settings";
+ async function refreshAdmin(){
   try{
-   const stored=readLocalGameSettings()||{};
-   const merged={...stored};
-   for(const [key,value] of Object.entries(overrides)){
-    if(Object.prototype.hasOwnProperty.call(configDefaults,key)&&Number.isFinite(Number(value)))merged[key]=Number(value);
+   const response=await fetch("/api/account/me",{cache:"no-store"});
+   const data=await response.json();
+   canEditShared=response.ok&&data.user?.role==="admin";
+  }catch(error){canEditShared=false}
+  checkedAdmin=true;
+  savedStatus.textContent=authMessage();
+  const link=panel.querySelector(".ls-help");
+  if(link)link.textContent=canEditShared
+   ?"Change sliders to update this game immediately. Supabase saves them for every device."
+   :"View the global settings here. Sign in as an administrator to make changes on every device.";
+  if(!panel.hidden)render(true);
+  return canEditShared;
+ }
+ async function flushCloud(){
+  if(flushing||!canEditShared)return;
+  clearTimeout(flushTimer);flushTimer=null;flushing=true;
+  while(Object.keys(queued).length){
+   const patch=queued;queued={};
+   savedStatus.textContent="☁ Saving to Supabase…";
+   try{
+    const response=await fetch("/api/settings",{method:"PATCH",cache:"no-store",
+     headers:{"Content-Type":"application/json"},body:JSON.stringify({settings:patch})});
+    const data=await response.json();
+    if(!response.ok||!data.ok)throw Error(data.error||"HTTP "+response.status);
+    cloudSettings={...data,initialized:true};
+    // Don't replace a user's newer in-progress slider values with the previous
+    // response while another batch is still queued.
+    if(!Object.keys(queued).length){
+     applyRemoteSettings({settings:{...configDefaults,...data.settings},revision:data.revision},false);
+     try{localStorage.setItem(LOCAL_SETTINGS_KEY,JSON.stringify(data.settings));localStorage.removeItem(LOCAL_PENDING_KEY)}catch{}
+     savedStatus.textContent="✓ Saved to Supabase · all devices";
+    }
+   }catch(error){
+    queued={...patch,...queued};
+    savedStatus.textContent="⚠ Not synced: "+String(error.message).slice(0,90);
+    console.error("Live settings Supabase save failure",error);
+    break;
    }
-   localStorage.setItem(LOCAL_SETTINGS_KEY,JSON.stringify(merged));
+  }
+  flushing=false;
+  window.__maestroSettingsDirty=false;
+ }
+ const save=patch=>{
+  if(!canEditShared){savedStatus.textContent="🔒 Administrator sign-in required";return false}
+  try{
+   const saved={...(readLocalGameSettings()||{}),...patch};
+   localStorage.setItem(LOCAL_SETTINGS_KEY,JSON.stringify(saved));
    localStorage.setItem(LOCAL_PENDING_KEY,"1");
-   savedStatus.textContent="✓ Saved locally · Live";
-   return true;
-  }catch(e){savedStatus.textContent="⚠ Local save failed";console.warn("Quick settings could not save",e);return false}
+  }catch(error){console.warn("Local quick-settings backup unavailable",error)}
+  Object.assign(queued,patch);
+  window.__maestroSettingsDirty=true;
+  savedStatus.textContent="☁ Changes pending…";
+  clearTimeout(flushTimer);
+  flushTimer=setTimeout(()=>void flushCloud(),450);
+  return true;
  };
  const assign=(key,value)=>{
   const numeric=Number(value);
-  if(!Number.isFinite(numeric)||!(key in configDefaults))return;
+  if(!canEditShared||!Number.isFinite(numeric)||!(key in configDefaults))return;
   overrides[key]=numeric;
-  setVisual();save();
+  setVisual();save({[key]:numeric});
  };
  const render=force=>{
   if(panel.hidden)return;
@@ -2272,6 +2319,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
   if(!force&&room===shownRoom)return;
   shownRoom=room;locationLabel.textContent="Current location: "+(roomLabel[room]||room);
   fields.replaceChildren();
+  panel.querySelector(".ls-reset").disabled=!canEditShared;
   const specs=getFields(room);
   let section="";
   for(const [key,label,min,max,step] of specs){
@@ -2284,7 +2332,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
    const heading=document.createElement("span");heading.textContent=label;
    const valueEl=document.createElement("output");valueEl.textContent=fmt(cfg(key),step);
    const input=document.createElement("input");input.type="range";input.min=String(min);input.max=String(max);
-   input.step=String(step);input.value=String(cfg(key));
+   input.step=String(step);input.value=String(cfg(key));input.disabled=!canEditShared;
    input.setAttribute("aria-label",label);
    row.append(heading,valueEl);wrap.append(row,input);fields.append(wrap);
    input.addEventListener("input",()=>{
@@ -2295,15 +2343,18 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
  };
  const open=()=>{
   panel.hidden=false;trigger.setAttribute("aria-expanded","true");
-  savedStatus.textContent="Using existing settings";
-  render(true);
+  savedStatus.textContent=checkedAdmin?authMessage():"Checking administrator access…";
+  render(true);void refreshAdmin();
  };
  const close=()=>{panel.hidden=true;trigger.setAttribute("aria-expanded","false");dragging=null};
  trigger.addEventListener("click",()=>panel.hidden?open():close());
  panel.querySelector(".ls-close").addEventListener("click",close);
- panel.querySelector(".ls-reset").addEventListener("click",()=>{
-  for(const [key] of getFields(currentRoom()))overrides[key]=configDefaults[key];
-  setVisual();save();render(true);
+ const resetRoom=panel.querySelector(".ls-reset");
+ resetRoom.addEventListener("click",()=>{
+  if(!canEditShared)return;
+  const patch={};
+  for(const [key] of getFields(currentRoom())){overrides[key]=configDefaults[key];patch[key]=configDefaults[key]}
+  setVisual();save(patch);render(true);
  });
  // Prevent moving the player by pressing keys while focused inside the panel.
  panel.addEventListener("keydown",e=>{if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"," ","e","E"].includes(e.key))e.stopPropagation()});
@@ -2325,6 +2376,7 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
  window.addEventListener("resize",()=>{if(!panel.hidden)render(true)});
  // Only reconstruct controls when the player changes location, not while a slider is dragged.
  setInterval(()=>{if(!changing&&!panel.hidden&&shownRoom!==currentRoom())render(true)},350);
+ void refreshAdmin();
 })();
 
 (async()=>{
