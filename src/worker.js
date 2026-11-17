@@ -53,7 +53,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
 <label>Rest time (ms) <input id="npc-idle" type="number" min="500" max="20000" step="100"></label></div>
 <div class="npc-fields"><button type="button" id="npc-save" class="primary">Save NPC settings to all devices</button><button type="button" id="npc-reload">Reload from server</button><button type="button" id="npc-reset">Reset selected NPC</button></div>
 <p id="npc-map-status">Edit positions on the map. Changes require saving.</p>
-</section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
+</section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Supabase and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
  // Supabase stores the same global configuration on every device.
@@ -62,7 +62,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
   const back=document.querySelector(".toolbar a[href='/']");
   if(back)back.href="/?mode=single";
   const heading=document.querySelector("header p");
-  if(heading)heading.textContent="Offline settings saved in this browser. No Cloudflare requests.";
+  if(heading)heading.textContent="Offline settings saved in this browser. No Supabase requests.";
  }
  const response=await fetch("/settings/schema",{cache:"no-store"});
  const {groups,defaults}=await response.json();
@@ -104,7 +104,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
      const pending=JSON.parse(localStorage.getItem(KEY)||"null");
      if(pending&&typeof pending==="object"&&!Array.isArray(pending)){
       values=normalize({...defaults,...pending});
-      notice.textContent="⚠ Unsynced settings recovered from this device. Press Save to retry Cloudflare when available.";
+      notice.textContent="⚠ Unsynced settings recovered from this device. Press Save to retry Supabase when available.";
      }
     }catch(error){console.warn("Could not load pending local settings",error)}
    }
@@ -118,7 +118,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
    }
    }
  }catch(error){
-   // A failed Cloudflare read must never erase the settings saved on this device.
+   // A failed Supabase read must never erase the settings saved on this device.
    let restored=false;
    try{
     const local=JSON.parse(localStorage.getItem(KEY)||"null");
@@ -167,7 +167,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
        catch(localError){console.error("Local settings backup failed",localError);}
        notice.textContent=locallySaved
         ?"⚠ Saved on THIS device only. Supabase save failed ("+error.message+"). Other devices will NOT receive these changes."
-        :"Could not save locally or to Cloudflare: "+error.message+". Export JSON to avoid losing changes.";
+        :"Could not save locally or to Supabase: "+error.message+". Export JSON to avoid losing changes.";
        console.error("Shared settings save failure",error);
        return false;
      }
@@ -386,7 +386,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
  npcEnabled.addEventListener("change",()=>{npcSetValue(npcKey(npcActiveId,"enabled"),npcEnabled.checked?1:0);npcRender();store();});
  document.getElementById("npc-save").addEventListener("click",async()=>{
   const button=document.getElementById("npc-save");button.disabled=true;
-  npcStatus.textContent="Saving NPC settings to Cloudflare…";
+  npcStatus.textContent="Saving NPC settings to Supabase…";
   try{const ok=await push(true);npcStatus.textContent=ok?"✓ Saved and verified all NPC settings.":"Cloud save failed; local backup only, see warning above.";}
   finally{button.disabled=false;}
  });
