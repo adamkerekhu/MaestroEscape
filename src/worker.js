@@ -2328,67 +2328,74 @@ document.getElementById("reset").onclick=()=>{drunk.reset();drunkHud();scene?.re
 })();
 
 (async()=>{
- function applyLocalSettingsIfNeeded(force=false){
-   const local=readLocalGameSettings();
-   const pending=localSettingsPending();
-   const useLocal=!!local&&(pending||!cloudSettings);
-   const signature=useLocal?JSON.stringify(local):"cloud:"+JSON.stringify(cloudSettings?.settings||{});
-   if(!force&&signature===localSettingsFingerprint)return useLocal;
-   localSettingsFingerprint=signature;
-   if(useLocal){
-    applyRemoteSettings({settings:{...configDefaults,...(cloudSettings?.settings||{}),...local},
-      revision:cloudSettings?.revision||0},true);
-    return true;
-   }
-   if(cloudSettings)applyRemoteSettings(cloudSettings,false);
-   return false;
-  }
-  async function syncSharedSettings(){
-   // Apply local changes immediately: a Cloudflare error must never block
-   // movement speeds, camera zoom, sizes or NPC visuals in this browser.
-   applyLocalSettingsIfNeeded();
-   try{
-    const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",headers:{"Cache-Control":"no-store"}});
-    if(!response.ok)throw new Error("Shared settings HTTP "+response.status);
-    const data=await response.json();
-    cloudSettings=data;
-    applyLocalSettingsIfNeeded(true);
-    return data;
-   }catch(error){
-    if(!applyLocalSettingsIfNeeded(true)){
-     setSettingsBadge("⚠ Sync offline","No local settings were found; using built-in defaults.");
+ function localFallback(){
+  const local=readLocalGameSettings();
+  if(!local)return false;
+  applyRemoteSettings({settings:{...configDefaults,...local},revision:0},true);
+  return true;
+ }
+ async function syncSharedSettings(){
+  // Any browser/device is a reader, regardless of game mode or account.
+  // Never replace slider edits while the administrator is saving them.
+  if(window.__maestroSettingsDirty)return cloudSettings;
+  try{
+   const response=await fetch("/api/settings?fresh="+Date.now(),{cache:"no-store",signal:AbortSignal.timeout(8000)});
+   if(!response.ok)throw Error("Supabase settings HTTP "+response.status);
+   let data=await response.json();
+   if(!data.ok||!data.settings)throw Error("Supabase settings payload invalid");
+   // One-time import of THIS device's existing configuration, only while the
+   // shared table has never been saved, and only with a valid admin session.
+   if(!data.initialized&&!window.__maestroSettingsImportAttempted){
+    const original=readLocalGameSettings();
+    if(original){
+     window.__maestroSettingsImportAttempted=true;
+     try{
+      const imported=await fetch("/api/settings",{method:"PATCH",cache:"no-store",
+       headers:{"Content-Type":"application/json"},body:JSON.stringify({settings:original})});
+      if(imported.ok){
+       data=await imported.json();
+       data.initialized=true;
+      }else if(imported.status===403){
+       // Do not let untrusted browsers overwrite shared settings.
+       console.info("Admin sign-in required to import local game settings");
+      }
+     }catch(error){console.warn("Initial Supabase import unavailable",error)}
     }
-    throw error;
    }
-  }
-  // Initial local application happens before Phaser constructs its world.
-  applyLocalSettingsIfNeeded(true);
-  if(new URL(location.href).searchParams.get("mode")!=="multi"){
-   settingsSynced=false;
-   setSettingsBadge("🧪 Single Player · local","No Cloudflare Durable Objects requests.");
-  }
-  if(false)try{await syncSharedSettings();}
-  catch(error){
-   console.error("Shared settings unavailable",error);
-   show(readLocalGameSettings()
-    ?"Cloud settings offline; your local settings are active in this browser."
-    :"Cloud settings offline; default settings are active.");
-  }
-  window.addEventListener("storage",event=>{
-   if(event.key===LOCAL_SETTINGS_KEY||event.key===LOCAL_PENDING_KEY){
-    applyLocalSettingsIfNeeded(true);
+   if(window.__maestroSettingsDirty)return data;
+   cloudSettings=data;
+   applyRemoteSettings({settings:{...configDefaults,...data.settings},revision:data.revision},false);
+   if(data.initialized){
+    try{
+     localStorage.setItem(LOCAL_SETTINGS_KEY,JSON.stringify(data.settings));
+     localStorage.removeItem(LOCAL_PENDING_KEY);
+    }catch(error){console.warn("Local settings cache unavailable",error)}
    }
-  });
-  document.addEventListener("visibilitychange",()=>{
-   if(!document.hidden&&new URL(location.href).searchParams.get("mode")==="multi")
-    void syncSharedSettings().catch(console.warn);
-  });
+   setSettingsBadge(data.initialized?"☁ Supabase · synced":"☁ Supabase · defaults",
+     data.initialized?"All device settings loaded from Supabase, revision "+data.revision:
+     "Shared configuration not initialized yet. Sign in as admin to save.");
+   return data;
+  }catch(error){
+   if(!cloudSettings&&!localFallback())
+    setSettingsBadge("⚠ Supabase offline","Default settings are active until Supabase reconnects");
+   else setSettingsBadge("⚠ Supabase offline · cached","Cached settings shown until Supabase reconnects");
+   throw error;
+  }
+ }
+ // Preserve any already saved local values while the initial cloud fetch runs.
+ localFallback();
+ try{await syncSharedSettings()}
+ catch(error){console.warn("Global Supabase settings unavailable",error);}
+ window.addEventListener("storage",event=>{
+  if(event.key===LOCAL_SETTINGS_KEY&&window.__maestroSettingsDirty)
+   localFallback();
+ });
+ document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden)void syncSharedSettings().catch(console.warn);
+ });
  window.__MAESTRO_GAME__=new Phaser.Game({type:Phaser.CANVAS,parent:"screen",width:1280,height:720,backgroundColor:"#121926",scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[Explore],render:{pixelArt:false,antialias:true}});
  // Regular polling keeps existing mobile tabs in sync with desktop changes.
- if(new URL(location.href).searchParams.get("mode")==="multi")setInterval(()=>{
-   applyLocalSettingsIfNeeded();
-   void syncSharedSettings().catch(error=>console.warn("Shared settings sync unavailable",error.message));
- },10000);
+ setInterval(()=>{if(!document.hidden)void syncSharedSettings().catch(error=>console.warn("Supabase settings refresh failed",error.message))},12000);
 })();
 })();
 </script></body></html>`;
