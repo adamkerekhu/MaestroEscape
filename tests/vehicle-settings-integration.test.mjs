@@ -9,9 +9,11 @@ test("browser local engine uses the current server vehicle logic",()=>{
  assert.equal(LOCAL_ROOM_SOURCE,source);
  assert.match(source,/LOCAL_VEHICLE_SETTINGS/);
 });
-test("single-player settings editor saves locally by default",()=>{
- assert.match(worker,/const singleMode=true;/);
- assert.match(worker,/a\.settings-nav\[href="\/settings"\]/);
+test("all devices load the same Supabase settings",()=>{
+ assert.match(worker,/const singleMode=false;/);
+ assert.match(worker,/maestroescape-settings/);
+ assert.match(worker,/JSON\\.stringify\\(\\{settings:JSON\\.parse\\(payload\\),revision\\}\\)/);
+ assert.match(worker,/a\\.settings-nav\\[href="\\/settings"\\]/);
 });
 test("single-player startup receives saved vehicle positions",()=>{
  assert.match(ui,/readVehicleSpawnSettings\(\)/);
