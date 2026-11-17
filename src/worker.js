@@ -56,9 +56,8 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
 </section><div class="sections" id="sections"></div><footer>Changes apply when you return to the game. You can keep a backup using Export JSON. Settings are stored centrally in Cloudflare and loaded by all devices.</footer></main><script>
 (async()=>{
  const KEY="maestroescape.gameSettings.v1",PENDING_KEY="maestroescape.gameSettings.pending.v1";
- // Multiplayer is retired; the settings editor must write to the same
- // browser-local storage that the active single-player room reads.
- const singleMode=true;
+ // Supabase stores the same global configuration on every device.
+ const singleMode=false;
  if(singleMode){
   const back=document.querySelector(".toolbar a[href='/']");
   if(back)back.href="/?mode=single";
@@ -99,8 +98,8 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
    lastPersisted=JSON.stringify(values);
    revision=Number(remote.revision)||0;
    storageReady=true;
-   // Recover unfinished local changes without silently overwriting the cloud version.
-   if(localStorage.getItem(PENDING_KEY)==="1"){
+   // Recover unfinished edits only before the cloud configuration is initialized.
+   if(!remote.initialized&&localStorage.getItem(PENDING_KEY)==="1"){
     try{
      const pending=JSON.parse(localStorage.getItem(KEY)||"null");
      if(pending&&typeof pending==="object"&&!Array.isArray(pending)){
@@ -109,7 +108,14 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
      }
     }catch(error){console.warn("Could not load pending local settings",error)}
    }
-   // Never overwrite shared settings with another device\u0027s local cache.
+   // Initial migration: the first signed-in admin device with a locally saved
+   // configuration seeds Supabase once. Later devices only load the shared row.
+   if(!remote.initialized&&saved&&Object.keys(saved).length){
+    values=normalize({...defaults,...saved});
+    lastPersisted=JSON.stringify({...defaults,...remote.settings});
+    notice.textContent="Importing your existing browser settings into Supabase…";
+    setTimeout(()=>void push(true),200);
+   }
    }
  }catch(error){
    // A failed Cloudflare read must never erase the settings saved on this device.
@@ -122,8 +128,8 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
     }
    }catch(localError){console.warn("Local settings recovery failed",localError);}
    notice.textContent=restored
-    ?"⚠ Cloud unavailable. Restored settings saved on THIS device only. Changes are not synced to other players."
-    :"⚠ Cloud unavailable. Defaults shown; changes can be saved on THIS device only until Cloudflare recovers.";
+    ?"⚠ Supabase unavailable. Recovered this device’s settings, but they are not shared."
+    :"⚠ Supabase unavailable. Defaults are shown, and changes are not yet shared.";
    console.error(error);
  }
  async function push(force=false){
@@ -136,9 +142,9 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
       try{localStorage.setItem(KEY,payload);lastPersisted=payload;notice.textContent="✓ Saved locally. Return to Single Player to see changes.";return true;}
       catch(error){notice.textContent="Offline settings could not be saved: "+error.message;return false;}
      }
-     notice.textContent="Saving settings to Cloudflare…";
+     notice.textContent="Saving settings to Supabase…";
      try{
-       const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json","X-Settings-Revision":String(revision)},body:payload,cache:"no-store"});
+       const response=await fetch("/api/settings",{method:"PUT",headers:{"Content-Type":"application/json","X-Settings-Revision":String(revision)},body:JSON.stringify({settings:JSON.parse(payload),revision}),cache:"no-store"});
        if(!response.ok)throw new Error("server returned "+response.status+": "+(await response.text()).slice(0,120));
        const committed=await response.json();
        if(!committed.ok)throw new Error("server did not confirm the save");
@@ -160,7 +166,7 @@ ${TRANSITION_EDITOR_CSS}${INTERACTION_EDITOR_CSS}${HIDE_EDITOR_CSS}</style></hea
        try{localStorage.setItem(KEY,payload);localStorage.setItem(PENDING_KEY,"1");locallySaved=true;}
        catch(localError){console.error("Local settings backup failed",localError);}
        notice.textContent=locallySaved
-        ?"⚠ Saved on THIS device only. Cloudflare save failed ("+error.message+"). Other devices will NOT receive these changes."
+        ?"⚠ Saved on THIS device only. Supabase save failed ("+error.message+"). Other devices will NOT receive these changes."
         :"Could not save locally or to Cloudflare: "+error.message+". Export JSON to avoid losing changes.";
        console.error("Shared settings save failure",error);
        return false;
