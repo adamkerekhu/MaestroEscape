@@ -75,6 +75,31 @@ jobs:
             await context.close();
           } finally { await browser.close() }
           JS
+      - name: Verify Supabase settings are shared and protected
+        run: |
+          node --input-type=module <<'JS'
+          import assert from "node:assert/strict";
+          const base="https://maestroescape.adam-kerek.workers.dev";
+          const endpoint=base+"/api/settings";
+          const first=await fetch(endpoint+"?from=deviceA",{cache:"no-store"});
+          const second=await fetch(endpoint+"?from=deviceB",{cache:"no-store"});
+          assert.equal(first.status,200,"First device cannot load settings");
+          assert.equal(second.status,200,"Second device cannot load settings");
+          const a=await first.json(),b=await second.json();
+          assert.equal(a.backend,"supabase");
+          assert.equal(b.backend,"supabase");
+          assert.equal(a.revision,b.revision);
+          assert.deepEqual(a.settings,b.settings,"Two devices received different configurations");
+          assert.equal(typeof a.settings["character.streetScale"],"number");
+          const unauth=await fetch(endpoint,{method:"PATCH",
+            headers:{"Content-Type":"application/json","Origin":base},
+            body:JSON.stringify({settings:{"character.streetScale":1.234}})});
+          assert.equal(unauth.status,403,"Anonymous player could modify shared settings");
+          const after=await (await fetch(endpoint+"?verify=unchanged")).json();
+          assert.equal(after.revision,a.revision,"Unauthorized update mutated the shared configuration");
+          console.log("PASS: Two devices share Supabase revision",a.revision,"with",Object.keys(a.settings).length,"settings");
+          console.log("PASS: Anonymous writes are rejected by game API");
+          JS
       - name: Verify two players share one live Cloudflare room
         run: |
           node --input-type=module <<'JS'
