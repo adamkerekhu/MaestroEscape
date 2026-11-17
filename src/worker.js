@@ -2519,18 +2519,57 @@ export default {
    if(request.method!=="POST"||!mutationOriginAllowed(request))return new Response("Forbidden",{status:403});
    return loggedOutResponse();
   }
-  if(["/account","/api/account/me","/settings","/settings/schema","/api/settings"].includes(url.pathname)){
+  if(url.pathname==="/api/settings"){
+   // A single authoritative configuration, stored in the isolated MaestroEscape
+   // table in Supabase. Every device can read it, only admin can modify it.
+   if(!["GET","PUT","PATCH"].includes(request.method))
+    return Response.json({ok:false,error:"Method not allowed"},{status:405,headers:{"cache-control":"no-store"}});
+   let session=null,payload=null;
+   if(request.method!=="GET"){
+    if(!mutationOriginAllowed(request))
+     return Response.json({ok:false,error:"Invalid origin"},{status:403});
+    session=await accountFromRequest(request);
+    if(session.user?.role!=="admin")
+     return Response.json({ok:false,error:"Sign in as a MaestroEscape administrator to save global settings",code:"ADMIN_REQUIRED"},{status:403,headers:{"cache-control":"no-store"}});
+    const raw=await request.text();
+    if(raw.length>180000)return Response.json({ok:false,error:"Settings payload too large"},{status:413});
+    let data;try{data=JSON.parse(raw)}catch{return Response.json({ok:false,error:"Invalid JSON"},{status:400})}
+    const input=data?.settings;
+    if(!input||typeof input!=="object"||Array.isArray(input))return Response.json({ok:false,error:"Expected settings object"},{status:400});
+    const fields=Object.fromEntries(SETTINGS_GROUPS.flatMap(group=>group.fields.map(field=>[field.key,field])));
+    const clean={};
+    for(const [key,value] of Object.entries(input)){
+     const field=fields[key];
+     if(!field||typeof value!=="number"||!Number.isFinite(value))
+      return Response.json({ok:false,error:"Invalid settings field "+key},{status:400});
+     clean[key]=Math.max(field.min,Math.min(field.max,value));
+    }
+    if(request.method==="PUT"&&(!Number.isSafeInteger(data.revision)||data.revision<0))
+     return Response.json({ok:false,error:"Settings revision is required"},{status:400});
+    payload={settings:clean,...(request.method==="PUT"?{revision:data.revision}:{})};
+   }
+   const sessionToken=(request.headers.get("cookie")||"").split(";").map(x=>x.trim()).find(x=>x.startsWith("maestro_account="))?.slice("maestro_account=".length)||"";
+   try{
+    const upstream=await fetch("https://djesmhxablodlzqfzqfa.supabase.co/functions/v1/maestroescape-settings",{
+     method:request.method,
+     headers:{"apikey":"sb_publishable_xcBa6fYyuclsRxWCF_BJ6g_XeHUThv6","content-type":"application/json",
+      ...(request.method!=="GET"?{"x-maestro-session":sessionToken}:{})},
+     ...(payload?{body:JSON.stringify(payload)}:{})
+    });
+    const result=await upstream.json();
+    if(upstream.ok&&result?.settings&&typeof result.settings==="object")
+     result.settings={...SETTINGS_DEFAULTS,...result.settings};
+    return Response.json(result,{status:upstream.status,headers:{"cache-control":"no-store","x-content-type-options":"nosniff"}});
+   }catch(error){
+    console.error("MaestroEscape Supabase settings unavailable",String(error));
+    return Response.json({ok:false,error:"Supabase settings unavailable",code:"SETTINGS_UNAVAILABLE"},{status:503,headers:{"cache-control":"no-store"}});
+   }
+  }
+  if(["/account","/api/account/me","/settings","/settings/schema"].includes(url.pathname)){
    const session=await accountFromRequest(request);
    if(url.pathname==="/api/account/me")return session.user?applyAuthCookies(Response.json({ok:true,user:session.user},{headers:{"cache-control":"no-store"}}),session):Response.json({ok:false,error:"Not authenticated"},{status:401});
    if(url.pathname==="/account")return session.user?applyAuthCookies(new Response(ACCOUNT_HOME,{headers:accountHTML}),session):Response.redirect(url.origin+"/account/login",303);
    if(session.user?.role!=="admin")return url.pathname==="/settings"?Response.redirect(url.origin+(session.user?"/account":"/account/login"),303):Response.json({ok:false,error:"Administrator role required",code:"ADMIN_REQUIRED"},{status:403,headers:{"cache-control":"no-store"}});
-   if(url.pathname==="/api/settings"&&request.method!=="GET"&&!mutationOriginAllowed(request))return Response.json({ok:false,error:"Invalid origin"},{status:403});
-   if(url.pathname==="/api/settings"){
-    if(!env?.SETTINGS_STORE)return Response.json({error:"Shared settings storage binding unavailable"},{status:503});
-    const stub=env.SETTINGS_STORE.get(env.SETTINGS_STORE.idFromName("maestroescape-global-settings"));
-    const result=await stub.fetch(new Request("https://settings.internal/",{method:request.method,headers:request.headers,body:request.method==="PUT"?request.body:undefined}));
-    return applyAuthCookies(result,session);
-   }
    if(url.pathname==="/settings")return applyAuthCookies(new Response(SETTINGS_HTML.replace("</header>",'<form action="/admin/logout" method="post" style="margin-left:auto"><button type="submit">🔒 Log out</button></form></header>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY"}}),session);
    return applyAuthCookies(Response.json({groups:SETTINGS_GROUPS,defaults:SETTINGS_DEFAULTS},{headers:{"cache-control":"no-store"}}),session);
   }
