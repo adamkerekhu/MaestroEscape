@@ -2340,7 +2340,24 @@ export default {
   if(url.pathname==="/assets/pub-shop.css")return new Response(PUB_SHOP_CSS,{headers:{"content-type":"text/css; charset=utf-8","cache-control":"no-store","x-content-type-options":"nosniff"}});
   if(url.pathname==="/assets/consumables.js")
    return new Response(CONSUMABLE_CLIENT_SCRIPT,{headers:{"content-type":"application/javascript; charset=utf-8","cache-control":"no-store"}});
-  if(url.pathname==="/api/consumables")return Response.json({ok:false,error:"Multiplayer has been shut down. Use single-player test mode.",code:"MULTIPLAYER_DISABLED"},{status:410,headers:{"cache-control":"no-store"}});
+  if(url.pathname==="/api/consumables"){
+   // One explicitly invited multiplayer room. Other rooms retain the offline-only policy.
+   const name=url.searchParams.get("room");
+   if(name!=="maestro-party-20261117")
+    return Response.json({ok:false,error:"This multiplayer invite room does not exist",code:"ROOM_NOT_FOUND"},{status:404,headers:{"cache-control":"no-store"}});
+   if(!env.ITEM_ROOMS)
+    return Response.json({ok:false,error:"Multiplayer room binding is unavailable",code:"ROOM_NOT_DEPLOYED"},{status:503,headers:{"cache-control":"no-store"}});
+   if(!["GET","POST"].includes(request.method))
+    return Response.json({ok:false,error:"Method not allowed"},{status:405,headers:{"cache-control":"no-store"}});
+   const stub=env.ITEM_ROOMS.get(env.ITEM_ROOMS.idFromName("maestroescape-invite-"+name));
+   try{
+    // Keep the original method, query token, and JSON payload for the room engine.
+    return await stub.fetch(request);
+   }catch(error){
+    console.error("Invite room error",String(error));
+    return Response.json({ok:false,error:"Shared room temporarily unavailable",code:"ROOM_UNAVAILABLE"},{status:503,headers:{"cache-control":"no-store"}});
+   }
+  }
   // Supabase Auth users are separate from Takkershop application roles.
   const accountHTML={"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY","x-robots-tag":"noindex, nofollow","content-security-policy":"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"};
   if(url.pathname==="/admin/login")return Response.redirect(url.origin+"/account/login",303);
@@ -2369,7 +2386,7 @@ export default {
    if(url.pathname==="/settings")return applyAuthCookies(new Response(SETTINGS_HTML.replace("</header>",'<form action="/admin/logout" method="post" style="margin-left:auto"><button type="submit">🔒 Log out</button></form></header>'),{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","x-frame-options":"DENY"}}),session);
    return applyAuthCookies(Response.json({groups:SETTINGS_GROUPS,defaults:SETTINGS_DEFAULTS},{headers:{"cache-control":"no-store"}}),session);
   }
-  if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-test-only",multiplayerEnabled:false,vehicle:"Skoda Superb 2.0TDI"});
+  if(url.pathname==="/health")return Response.json({ok:true,game:"MaestroEscape",mode:"single-player-plus-invite-room",multiplayerEnabled:true,multiplayerRoom:"maestro-party-20261117",vehicle:"Skoda Superb 2.0TDI"});
   if(/^\/assets\/shop-(dohanybolt|spar|gyros)\.webp$/.test(url.pathname)){
     const shopName=url.pathname.slice(13,-5);
     const upstream=await fetch("https://raw.githubusercontent.com/adamkerekhu/MaestroEscape/main/Assets/Maps/shops/"+shopName+".webp");
