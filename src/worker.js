@@ -2163,7 +2163,15 @@ class Explore extends Phaser.Scene{
    }
    moving=distance>0.01;
    if(distance){
-      const amount=(keys.SHIFT.isDown?cfg("character.sprintSpeed"):cfg("character.walkSpeed"))*Math.min(0.045,delta/1000);dx=dx/distance*amount;dy=dy/distance*amount;
+      // Convert the configured pace to a fraction of the visible screen height per second.
+      // This keeps walking equally fast on-screen regardless of world-map size,
+      // mobile viewport, fullscreen or camera zoom. The 450 factor preserves
+      // the existing 205/300 pace sliders as approximately 46%/67% of a screen/s.
+      const camera=this.cameras.main;
+      const screenHeightInWorld=camera.height/Math.max(0.1,camera.zoom);
+      const screenFractionPerSecond=(keys.SHIFT.isDown?cfg("character.sprintSpeed"):cfg("character.walkSpeed"))/450;
+      const amount=screenFractionPerSecond*screenHeightInWorld*Math.min(0.045,delta/1000);
+      dx=dx/distance*amount;dy=dy/distance*amount;
       if(!intersects(player.x+dx,player.y))player.x+=dx;
       if(!intersects(player.x,player.y+dy))player.y+=dy;
       const face=Math.abs(dx)>Math.abs(dy)?dx>0?"right":"left":dy>0?"down":"up";
