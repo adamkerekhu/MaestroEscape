@@ -1,6 +1,10 @@
 // Pub-style game HUD. Presentation only: delegates to existing gameplay actions.
 export const PUB_HUD_CSS = String.raw`
 html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#10151f}
+#screen,#screen *{user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important}
+#screen img,#screen canvas{-webkit-user-drag:none;user-drag:none}
+#screen{overscroll-behavior:none;touch-action:none}
+#screen input,#screen textarea,#screen [contenteditable="true"]{user-select:text!important;-webkit-user-select:text!important;-webkit-touch-callout:default!important}
 body>header{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;padding:0!important;margin:0!important}
 #instructions{position:fixed!important;bottom:8px;left:50%;transform:translateX(-50%);width:min(840px,85vw);z-index:15;background:#101923bc!important;border:1px solid #b58a4866;border-radius:12px;padding:5px 12px!important;pointer-events:none;max-width:100%;box-sizing:border-box}
 #instructions>div{display:none!important}#instructions #msg{font-size:12px;text-align:center;color:#f6d8a0}
@@ -19,6 +23,7 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
 #pub-hud .pub-chip{padding:8px 10px;border:1px solid #efc57b69;border-radius:12px;background:#15261fed;color:#ffe0ab;font-size:12px;font-weight:750;backdrop-filter:blur(8px)}
 #pub-hud .pub-bottom{position:absolute;right:clamp(14px,2.5vw,35px);bottom:max(22px,env(safe-area-inset-bottom));display:flex;align-items:center;gap:9px}
 #pub-hud .pub-bottom .pub-btn{min-width:65px;min-height:53px}
+#pub-hud #pub-fullscreen{position:absolute;left:max(12px,env(safe-area-inset-left));top:max(76px,calc(env(safe-area-inset-top) + 56px));width:45px;height:45px;display:none;align-items:center;justify-content:center;font-size:20px;padding:0;pointer-events:auto}
 #pub-hud #pub-menu-toggle{border-radius:50%;width:65px;height:65px;font-size:24px;background:radial-gradient(circle at 35% 30%,#ad8342,#50351e);border:2px solid #f0c77e;box-shadow:0 5px 25px #000a}
 #pub-hud .pub-radial{position:absolute;right:clamp(2px,1.4vw,24px);bottom:96px;width:326px;height:326px;pointer-events:none;visibility:hidden;transform:translateY(12px) scale(.89);opacity:0;transition:opacity .21s ease,transform .23s cubic-bezier(.2,1.2,.2,1),visibility .23s}
 #pub-hud .pub-radial.open{pointer-events:auto;visibility:visible;opacity:1;transform:translateY(0) scale(1)}
@@ -51,8 +56,9 @@ body>header{position:absolute!important;width:1px!important;height:1px!important
   #pub-hud .pub-bottom{position:absolute!important;inset:0!important;display:block!important;pointer-events:none!important}
   #pub-hud .pub-bottom .pub-btn{position:absolute!important;right:max(10px,env(safe-area-inset-right))!important;left:auto!important;bottom:auto!important;min-width:62px!important;height:52px!important;pointer-events:auto!important}
   #pub-hud #pub-interact-button{display:none!important}
-  #pub-hud #pub-quick-inventory{top:max(62px,env(safe-area-inset-top))!important}
-  #pub-hud #pub-menu-toggle{top:max(122px,calc(env(safe-area-inset-top) + 60px))!important;width:58px!important;height:58px!important}
+  #pub-hud #pub-fullscreen{display:flex}
+  #pub-hud #pub-menu-toggle{top:max(62px,env(safe-area-inset-top))!important;width:58px!important;height:58px!important}
+  #pub-hud #pub-quick-inventory{top:max(128px,calc(env(safe-area-inset-top) + 66px))!important}
   #mobile-controls .action{right:max(12px,env(safe-area-inset-right))!important;bottom:max(12px,env(safe-area-inset-bottom))!important}
   #pub-hud .pub-radial{bottom:75px!important}
  }
@@ -78,10 +84,25 @@ if(document.getElementById("pub-hud"))return;
 const screen=document.getElementById("screen"),legacy=document.getElementById("hud");
 if(!screen||!legacy)return;
 const root=document.createElement("div");root.id="pub-hud";
-root.innerHTML='<div class="pub-scrim"></div><div class="pub-top"><div class="pub-brand"><strong>🍻 MAESTRO ESCAPE</strong><small>MESTER UTCA · SINGLE PLAYER</small></div><div class="pub-indicators"><span class="pub-chip" id="pub-alcohol">🍺 Sober</span><span class="pub-chip" id="pub-coords">📍 Mester utca</span></div></div><div class="pub-toast" role="status" aria-live="polite"></div><div class="pub-radial" id="pub-radial" role="menu" aria-label="Pub action wheel"><div class="pub-radial-disc"></div><div class="pub-radial-center">🍻</div></div><aside class="pub-tools" id="pub-tools" aria-label="Game controls"><h2>🍺 The Back Bar</h2><p>Controls, game tools and account access</p><div class="pub-tool-grid" id="pub-tool-grid"></div></aside><div class="pub-bottom"><button class="pub-btn" id="pub-quick-inventory" type="button">🎒<br>Bag</button><button class="pub-btn" id="pub-interact-button" type="button">E · Use</button><button class="pub-btn" id="pub-menu-toggle" type="button" aria-label="Open pub menu" aria-expanded="false">🍺</button></div>';
+root.innerHTML='<div class="pub-scrim"></div><div class="pub-top"><div class="pub-brand"><strong>🍻 MAESTRO ESCAPE</strong><small>MESTER UTCA · SINGLE PLAYER</small></div><div class="pub-indicators"><span class="pub-chip" id="pub-alcohol">🍺 Sober</span><span class="pub-chip" id="pub-coords">📍 Mester utca</span></div></div><div class="pub-toast" role="status" aria-live="polite"></div><button class="pub-btn" id="pub-fullscreen" type="button" aria-label="Enter fullscreen" title="Fullscreen">⛶</button><div class="pub-radial" id="pub-radial" role="menu" aria-label="Pub action wheel"><div class="pub-radial-disc"></div><div class="pub-radial-center">🍻</div></div><aside class="pub-tools" id="pub-tools" aria-label="Game controls"><h2>🍺 The Back Bar</h2><p>Controls, game tools and account access</p><div class="pub-tool-grid" id="pub-tool-grid"></div></aside><div class="pub-bottom"><button class="pub-btn" id="pub-quick-inventory" type="button">🎒<br>Bag</button><button class="pub-btn" id="pub-interact-button" type="button">E · Use</button><button class="pub-btn" id="pub-menu-toggle" type="button" aria-label="Open pub menu" aria-expanded="false">🍺</button></div>';
 screen.append(root);
 const $=sel=>root.querySelector(sel),radial=$("#pub-radial"),tools=$("#pub-tools"),toggle=$("#pub-menu-toggle"),scrim=$(".pub-scrim");
 const toastNode=$(".pub-toast");let toastTimer=0;
+const isMobile=()=>matchMedia("(pointer:coarse)").matches;
+const fullscreen=$("#pub-fullscreen");
+const syncFullscreen=()=>{const active=!!document.fullscreenElement;fullscreen.textContent=active?"⤢":"⛶";fullscreen.setAttribute("aria-label",active?"Exit fullscreen":"Enter fullscreen");fullscreen.title=active?"Exit fullscreen":"Fullscreen"};
+fullscreen.onclick=async()=>{
+ try{
+  if(document.fullscreenElement){await document.exitFullscreen()}
+  else if(screen.requestFullscreen){await screen.requestFullscreen()}
+  else {toast("Fullscreen is not supported by this browser")}
+ }catch(e){toast("Fullscreen is unavailable in this browser")}
+ syncFullscreen();
+};
+document.addEventListener("fullscreenchange",syncFullscreen);
+syncFullscreen();
+screen.addEventListener("contextmenu",event=>event.preventDefault());
+screen.addEventListener("dragstart",event=>{if(event.target.closest("img,canvas"))event.preventDefault()});
 const toast=text=>{toastNode.textContent=text;toastNode.classList.add("visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastNode.classList.remove("visible"),2700)};
 const findButton=identifier=>{
  if(identifier.startsWith("#"))return document.querySelector(identifier);
@@ -111,9 +132,9 @@ const items=[
  {label:"Character",emoji:"🧍",action:()=>run("Character")},
  {label:"Vehicles",emoji:"🚙",action:()=>run("#vehicle-respawn-button")},
  {label:"Back bar",emoji:"⚙️",action:openTools},
- {label:"Settings",emoji:"🛠️",action:()=>location.assign("/settings")}
+ {label:"Settings",emoji:"🛠️",action:()=>location.assign("/settings"),desktopOnly:true}
 ];
-items.forEach((item,i)=>{
+items.filter(item=>!item.desktopOnly||!isMobile()).forEach((item,i)=>{
  const angle=(-90+i*45)*Math.PI/180;
  const x=163+119*Math.cos(angle)-39.5,y=163+119*Math.sin(angle)-39.5;
  const b=document.createElement("button");b.type="button";b.className="pub-radial-option";b.setAttribute("role","menuitem");
@@ -137,7 +158,7 @@ createTool("🍺 Test drunk +1",()=>run("#drunk-test-next"));
 createTool("💧 Sober",()=>run("Sober"));
 createTool("🔄 Reset test",()=>run("#maestro-reset-solo"));
 createTool("🔗 Copy test link",()=>run("Copy test link"));
-const links=[["⚙ Settings","/settings"],["👤 Register","/account/register"],["🔐 Sign in","/account/login"]];
+const links=[["⚙ Settings","/settings"],["👤 Register","/account/register"],["🔐 Sign in","/account/login"]].filter(([,href])=>href!=="/settings"||!isMobile());
 for(const [label,href] of links){
  const a=document.createElement("a");a.href=href;a.className="pub-btn";a.textContent=label;$("#pub-tool-grid").append(a);
 }
