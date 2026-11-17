@@ -20,7 +20,12 @@ class_name = "GameSettings"
 tag = "maestro-escape-shared-settings-v3"
 new_sqlite_classes = ["GameSettings"]
 
-# Multiplayer ITEM_ROOMS binding intentionally removed. Historical migration is kept.
+# One invite-only multiplayer room, reusing the existing ConsumableRoom migration.
+[[durable_objects.bindings]]
+name = "ITEM_ROOMS"
+class_name = "ConsumableRoom"
+
+# Existing SQLite Durable Object migration remains unchanged.
 
 [[migrations]]
 tag = "maestro-consumables-v4"
