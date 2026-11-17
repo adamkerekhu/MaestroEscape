@@ -53,19 +53,23 @@ jobs:
             const panel=page.locator("#maestro-live-settings-panel");
             assert.equal(await panel.isVisible(),true,"Live settings panel did not open");
             const player=panel.getByRole("slider",{name:"Player size"});
-            const original=await player.inputValue();
-            const next=original==="0.54"?"0.56":"0.54";
-            await player.fill(next);
-            const stored=await page.evaluate(()=>({
-              value:JSON.parse(localStorage.getItem("maestroescape.gameSettings.v1")||"{}")["character.streetScale"],
-              pending:localStorage.getItem("maestroescape.gameSettings.pending.v1")
-            }));
-            assert.equal(Number(stored.value),Number(next),"Live setting failed to save");
-            assert.equal(stored.pending,"1","Local settings update not marked pending");
-            await player.fill(original);
+            // Ordinary multiplayer visitors can see global configuration but
+            // cannot overwrite it. Only signed-in admins may enable sliders.
+            await page.waitForFunction(()=>document.querySelector('.ls-save-status')?.textContent?.includes('Sign in as admin'),undefined,{timeout:20000});
+            assert.equal(await player.isDisabled(),true,"Anonymous visitors must not edit global settings");
+            const settings=await page.evaluate(async()=>{
+              const response=await fetch('/api/settings',{cache:'no-store'});
+              return {http:response.status,body:await response.json()};
+            });
+            assert.equal(settings.http,200,"Supabase settings endpoint must be publicly readable");
+            assert.equal(settings.body.backend,"supabase");
+            assert.equal(typeof settings.body.settings["character.streetScale"],"number");
+            assert.equal(Number(await player.inputValue()),Number(settings.body.settings["character.streetScale"]),
+              "In-game slider must reflect the cross-device global configuration");
+            console.log("PASS: Global Supabase settings loaded in browser; unauthorized edits disabled");
             await panel.getByRole("button",{name:"Close live settings"}).click();
             assert.equal(await panel.isVisible(),false,"Live settings window did not close");
-            console.log("PASS: Compact live settings open, apply, save, restore and close");
+            console.log("PASS: Compact live settings open, read cloud values, and close");
             if(errors.length)throw Error("Browser errors: "+errors.join(" | "));
             console.log("PASS: Browser remains in multiplayer mode and shows real character lobby");
             await context.close();
