@@ -712,6 +712,39 @@ test("tobacco cashier purchase uses locally opened NPC dialogue when cloud setti
  assert.equal(outOfBounds.ok,false,"NPC contact must remain inside the shop");
 });
 
+test("an opened NPC dialogue is sufficient for all vendor actions and borrowing",async()=>{
+ const {send}=fixture();
+ await send(0,"selectCharacter",{characterId:"maestro"});
+ await send(0,"syncPosition",{scene:"gyros",x:100,y:100});
+ const kebab=await send(0,"orderKebab",{
+  npcId:"gyros_employee",dialogueAccepted:true,
+  actorPosition:{scene:"gyros",x:100,y:100}
+ });
+ assert.equal(kebab.ok,true,kebab.error);
+ await send(0,"syncPosition",{scene:"dohanybolt",x:100,y:100});
+ const tobacco=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",dialogueAccepted:true,
+  actorPosition:{scene:"dohanybolt",x:100,y:100}
+ });
+ assert.equal(tobacco.ok,true,tobacco.error);
+ await send(0,"syncPosition",{scene:"pub",x:100,y:100});
+ const beer=await send(0,"orderBeer",{
+  npcId:"maestro_bartender",dialogueAccepted:true,
+  actorPosition:{scene:"pub",x:100,y:100}
+ });
+ assert.equal(beer.ok,true,beer.error);
+ const borrow=await send(0,"npcBorrow",{
+  npcId:"maestro_regular_1",dialogueAccepted:true,
+  actorPosition:{scene:"pub",x:100,y:100}
+ });
+ assert.equal(borrow.ok,true,borrow.error);
+ const wrongShop=await send(0,"buyPack",{
+  npcId:"tobacco_cashier",dialogueAccepted:true,
+  actorPosition:{scene:"pub",x:100,y:100}
+ });
+ assert.equal(wrongShop.ok,false,"An accepted dialogue cannot bypass the shop scene");
+});
+
 test("NPC interaction radius is shared and enforces the same distance as dialogue",async()=>{
  let radius=55;let tick=1000000;const old=Date.now;Date.now=()=>tick;
  try{
