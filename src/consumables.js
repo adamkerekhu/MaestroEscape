@@ -424,6 +424,9 @@ function npcInReach(s,p,id,d){
 }
 function npcVendor(s,p,npc,d){
  if(C.vendors[npc]!==p.scene)return bad("Visit the correct shop");
+ // A dialogue opened by the game has already passed the same NPC distance check.
+ // Do not reject an accepted dialogue because backend NPC coordinates lag behind.
+ if(d?.dialogueAccepted===true&&d.npcId===npc&&p.characterId)return null;
  if(npcInReach(s,p,npc,d))return null;
  // Browser-only settings can legitimately relocate the shopkeeper or change
  // dialogue range while Cloudflare settings storage is unavailable.
@@ -719,7 +722,8 @@ function operation(s,p,d){
  if(op==="npcBorrow"){
   if(p.scene!=="pub")return bad("Ask inside the pub");
   const conf=s.npcStock[d.npcId];if(!conf)return bad("This person does not have cigarettes");
-  if(!npcInReach(s,p,d.npcId,d))return bad("Move closer to this person");
+  if(!(d.dialogueAccepted===true&&p.characterId)&&!npcInReach(s,p,d.npcId,d))
+   return bad("Move closer to this person");
   if(!conf.share)return bad("Sorry, I don't have one to spare");
   if(conf.stock<=0)return bad("Out of cigarettes");
   const slot=freeSlot(s,p,"cigarette");if(slot===undefined)return bad("Cigarette slots are full");
