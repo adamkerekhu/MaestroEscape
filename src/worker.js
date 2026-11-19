@@ -1308,7 +1308,7 @@ async function npcChooseAction(entity,action){
  if(now-npcActionAt<cfg("npc.interactCooldownMs"))return;
  npcActionAt=now;
  if(entity!==npcDialogue||!insidePub||npcInteriorKey()!==entity.definition.interior
-    ||!npcCurrentEnabled(entity.definition.id)||npcInteractionDistance(entity)>cfg("npc.interactRadius")){
+    ||!npcCurrentEnabled(entity.definition.id)){
   npcCloseDialogue();return;
  }
  if(action==="talk"){
